@@ -23,7 +23,7 @@ const RelatedProducts = ({ title, products }: RelatedProductsProps) => {
           >
             <div className="aspect-square overflow-hidden">
               <img
-                src={product.images[0]?.url}
+                src={product.images[0]?.url || "/placeholder.svg"}
                 alt={product.title}
                 className="w-full h-full object-cover"
               />
