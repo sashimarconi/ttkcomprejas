@@ -95,6 +95,19 @@ const CheckoutPage = () => {
     },
   });
 
+  const { data: checkoutSettings } = useQuery({
+    queryKey: ["checkout-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("checkout_settings" as any)
+        .select("*")
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   useEffect(() => {
     if (shippingOptions?.length && !selectedShipping) {
       setSelectedShipping(shippingOptions[0].id);
