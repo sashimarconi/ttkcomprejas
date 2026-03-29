@@ -202,6 +202,9 @@ const CheckoutPage = () => {
         copyPaste: result.paymentData.copyPaste,
         expiresAt: result.paymentData.expiresAt,
       });
+
+      // Fire TikTok Purchase event
+      trackTikTokPurchase(total);
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {
