@@ -701,7 +701,7 @@ const CheckoutPage = () => {
             disabled={submitting}
             className="flex-1 ml-4 py-3 rounded-full bg-marketplace-red text-white text-sm font-bold disabled:opacity-50 flex flex-col items-center"
           >
-            <span>{submitting ? "Processando..." : "Fazer pedido"}</span>
+            <span>{submitting ? "Processando..." : (checkoutSettings?.checkout_button_text || "Fazer pedido")}</span>
             {product.flash_sale && (
               <span className="text-[9px] font-normal opacity-90">Oferta Relâmpago termina em breve</span>
             )}
