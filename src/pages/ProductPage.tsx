@@ -106,7 +106,7 @@ const ProductPage = () => {
       <ProductHeader />
 
       <div className="pt-12">
-        <ProductGallery images={images} videoUrl={product.video_url || undefined} />
+        <ProductGallery images={images} />
         <PricingBlock
           originalPrice={Number(product.original_price)}
           salePrice={Number(product.sale_price)}
@@ -135,12 +135,30 @@ const ProductPage = () => {
 
         <div ref={descriptionRef} className="bg-card px-4 py-4 mt-2">
           <p className="text-sm font-bold text-foreground mb-3">Descrição do produto</p>
-          <div
-            className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: product.description || "" }}
-          />
-          {product.description && !product.description.includes("<") && (
-            <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+
+          {/* Video do produto */}
+          {product.video_url && (
+            <div className="mb-4 rounded-lg overflow-hidden">
+              <video
+                src={product.video_url}
+                className="w-full rounded-lg"
+                controls
+                playsInline
+                preload="metadata"
+              />
+            </div>
+          )}
+
+          {/* Descrição com formatação preservada */}
+          {product.description && product.description.includes("<") ? (
+            <div
+              className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: product.description }}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+              {product.description}
+            </p>
           )}
         </div>
 
