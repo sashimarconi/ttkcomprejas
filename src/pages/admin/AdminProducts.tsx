@@ -345,10 +345,48 @@ const AdminProducts = () => {
               </div>
             )}
 
-            <div className="space-y-1">
-              <Label>URL do Vídeo (opcional)</Label>
-              <Input value={form.video_url} onChange={(e) => updateField("video_url", e.target.value)} placeholder="https://exemplo.com/video.mp4" />
-              <p className="text-[10px] text-muted-foreground">Será exibido como primeiro item na galeria do produto</p>
+            <div className="space-y-2">
+              <Label>Vídeo (opcional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.video_url}
+                  onChange={(e) => updateField("video_url", e.target.value)}
+                  placeholder="https://exemplo.com/video.mp4"
+                  className="flex-1"
+                />
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="video/mp4,video/webm,video/ogg"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 50 * 1024 * 1024) {
+                        toast({ title: "Arquivo muito grande", description: "Máximo 50MB", variant: "destructive" });
+                        return;
+                      }
+                      const ext = file.name.split(".").pop();
+                      const fileName = `videos/${Date.now()}.${ext}`;
+                      const { error } = await supabase.storage.from("product-images").upload(fileName, file);
+                      if (error) {
+                        toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+                        return;
+                      }
+                      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+                      updateField("video_url", urlData.publicUrl);
+                      toast({ title: "Vídeo enviado!" });
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" className="h-9" asChild>
+                    <span>Upload</span>
+                  </Button>
+                </label>
+              </div>
+              {form.video_url && (
+                <video src={form.video_url} className="w-full h-32 rounded-lg object-cover" muted />
+              )}
+              <p className="text-[10px] text-muted-foreground">Cole uma URL ou faça upload. Será exibido como primeiro item na galeria.</p>
             </div>
 
             <Button type="submit" className="w-full bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending}>
