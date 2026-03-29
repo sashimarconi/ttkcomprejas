@@ -29,6 +29,7 @@ interface OrderBump {
 const CheckoutPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  useTikTokPixel();
   const [quantity, setQuantity] = useState(1);
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
