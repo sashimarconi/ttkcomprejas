@@ -11,6 +11,10 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminBadges from "./pages/admin/AdminBadges";
 import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
+import AdminGateways from "./pages/admin/AdminGateways";
+import AdminShipping from "./pages/admin/AdminShipping";
+import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
+import CheckoutPage from "./pages/CheckoutPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
