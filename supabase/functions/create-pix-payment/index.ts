@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
     }
 
     // Save order
-    const { error: orderError } = await supabase.from("orders").insert({
+    const { data: orderData, error: orderError } = await supabase.from("orders").insert({
       product_id: body.productId,
       quantity: body.quantity,
       subtotal: body.amount / 100,
@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       pix_qr_code_base64: paymentData.data?.paymentData?.qrCodeBase64,
       pix_expires_at: paymentData.data?.paymentData?.expiresAt,
       selected_bumps: body.selectedBumps,
-    });
+    }).select("id").single();
 
     if (orderError) {
       console.error("Order save error:", orderError);
