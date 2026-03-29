@@ -53,6 +53,8 @@ const ProductPage = () => {
   const handleBuyNow = () => {
     if (product?.checkout_type === "external" && product.external_checkout_url) {
       window.open(product.external_checkout_url, "_blank");
+    } else {
+      navigate(`/checkout/${slug}`);
     }
   };
 
