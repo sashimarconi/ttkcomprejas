@@ -16,6 +16,7 @@ import AdminShipping from "./pages/admin/AdminShipping";
 import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
 import CheckoutPage from "./pages/CheckoutPage";
 import AdminCheckoutSettings from "./pages/admin/AdminCheckoutSettings";
+import AdminPixels from "./pages/admin/AdminPixels";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
