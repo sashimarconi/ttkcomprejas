@@ -345,6 +345,12 @@ const AdminProducts = () => {
               </div>
             )}
 
+            <div className="space-y-1">
+              <Label>URL do Vídeo (opcional)</Label>
+              <Input value={form.video_url} onChange={(e) => updateField("video_url", e.target.value)} placeholder="https://exemplo.com/video.mp4" />
+              <p className="text-[10px] text-muted-foreground">Será exibido como primeiro item na galeria do produto</p>
+            </div>
+
             <Button type="submit" className="w-full bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
