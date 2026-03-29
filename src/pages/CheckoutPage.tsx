@@ -203,6 +203,7 @@ const CheckoutPage = () => {
         qrCodeBase64: result.paymentData.qrCodeBase64,
         copyPaste: result.paymentData.copyPaste,
         expiresAt: result.paymentData.expiresAt,
+        orderId: result.orderId,
       });
 
       // Fire TikTok Purchase event
