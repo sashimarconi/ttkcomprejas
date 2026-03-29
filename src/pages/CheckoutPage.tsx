@@ -49,7 +49,7 @@ const CheckoutPage = () => {
   const [cepLoading, setCepLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
   const [pixTimeLeft, setPixTimeLeft] = useState("");
   const [showCopyPaste, setShowCopyPaste] = useState(false);
 
