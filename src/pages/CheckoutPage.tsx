@@ -329,10 +329,13 @@ const CheckoutPage = () => {
 
           {/* Copy paste button */}
           <button
-            onClick={() => {
+            onClick={async () => {
               navigator.clipboard.writeText(pixData.copyPaste);
               setShowCopyPaste(true);
               toast.success("Código PIX copiado!");
+              if (pixData.orderId) {
+                await supabase.from("orders").update({ pix_copied: true } as any).eq("id", pixData.orderId);
+              }
             }}
             className="w-full py-4 rounded-xl bg-marketplace-red text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg"
           >
