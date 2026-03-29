@@ -26,6 +26,7 @@ interface Order {
   pix_expires_at: string | null;
   created_at: string;
   pix_copied: boolean | null;
+  product_id: string | null;
 }
 
 const statusColors: Record<string, string> = {
