@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
         success: true,
         transactionId: paymentData.data?.transactionId,
         paymentData: paymentData.data?.paymentData,
+        orderId: orderData?.id || null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
