@@ -21,6 +21,7 @@ export interface ProductWithRelations {
   sold_count: number | null;
   active: boolean | null;
   sort_order: number | null;
+  video_url: string | null;
   product_images: { id: string; url: string; alt: string | null; sort_order: number | null }[];
   product_variants: { id: string; name: string; color: string | null; thumbnail_url: string | null; sort_order: number | null }[];
   reviews: { id: string; user_name: string; user_avatar_url: string | null; city: string | null; rating: number; comment: string | null; photos: string[] | null; review_date: string | null }[];
