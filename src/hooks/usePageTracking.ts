@@ -26,7 +26,7 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
       page_url: pageUrl,
       session_id: sessionId,
       metadata: metadata || {},
-    }).then();
+    } as any).then();
 
     // Upsert visitor session
     supabase.from("visitor_sessions").upsert(
