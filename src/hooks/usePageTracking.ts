@@ -43,7 +43,7 @@ export function trackEvent(eventType: string, metadata?: Record<string, unknown>
     page_url: window.location.pathname,
     session_id: sessionId,
     metadata: metadata || {},
-  });
+  } as any);
 }
 
 // Heartbeat to keep session alive
