@@ -121,6 +121,7 @@ export type Database = {
           id: string
           payment_method: string
           payment_status: string
+          pix_copied: boolean | null
           pix_copy_paste: string | null
           pix_expires_at: string | null
           pix_qr_code: string | null
@@ -146,6 +147,7 @@ export type Database = {
           id?: string
           payment_method?: string
           payment_status?: string
+          pix_copied?: boolean | null
           pix_copy_paste?: string | null
           pix_expires_at?: string | null
           pix_qr_code?: string | null
@@ -171,6 +173,7 @@ export type Database = {
           id?: string
           payment_method?: string
           payment_status?: string
+          pix_copied?: boolean | null
           pix_copy_paste?: string | null
           pix_expires_at?: string | null
           pix_qr_code?: string | null
