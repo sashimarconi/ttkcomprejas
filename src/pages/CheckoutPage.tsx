@@ -105,6 +105,7 @@ const CheckoutPage = () => {
 
   const handleSubmitOrder = async () => {
     if (!customerName || !customerEmail || !customerPhone || !customerDocument) {
+      setShowForm(true);
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
