@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductBySlug, fetchProducts, fetchStoreSettings } from "@/lib/supabase-queries";
 import ProductHeader from "@/components/product/ProductHeader";
