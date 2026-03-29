@@ -222,6 +222,13 @@ const AdminReviews = () => {
                 <Input placeholder="URL da foto" value={photoInput} onChange={(e) => setPhotoInput(e.target.value)} />
                 <Button type="button" variant="outline" size="sm" onClick={addPhoto}>+</Button>
               </div>
+              <div className="flex gap-2 items-center">
+                <label className="cursor-pointer flex items-center gap-1 text-xs text-muted-foreground border border-border rounded px-3 py-1.5 hover:bg-accent transition">
+                  <Upload className="w-3 h-3" />
+                  {uploadingPhoto ? "Enviando..." : "Upload foto"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                </label>
+              </div>
             </div>
             <Button type="submit" className="w-full bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending || !form.product_id}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
