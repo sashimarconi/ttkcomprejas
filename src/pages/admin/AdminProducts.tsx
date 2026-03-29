@@ -30,6 +30,7 @@ interface ProductForm {
   review_count: number;
   sold_count: number;
   active: boolean;
+  video_url: string;
 }
 
 const emptyForm: ProductForm = {
@@ -51,6 +52,7 @@ const emptyForm: ProductForm = {
   review_count: 0,
   sold_count: 0,
   active: true,
+  video_url: "",
 };
 
 const AdminProducts = () => {
@@ -168,6 +170,7 @@ const AdminProducts = () => {
       review_count: product.review_count || 0,
       sold_count: product.sold_count || 0,
       active: product.active ?? true,
+      video_url: product.video_url || "",
     });
     setDialogOpen(true);
   };
@@ -341,6 +344,12 @@ const AdminProducts = () => {
                 <Input value={form.external_checkout_url} onChange={(e) => updateField("external_checkout_url", e.target.value)} placeholder="https://pay.hotmart.com/..." />
               </div>
             )}
+
+            <div className="space-y-1">
+              <Label>URL do Vídeo (opcional)</Label>
+              <Input value={form.video_url} onChange={(e) => updateField("video_url", e.target.value)} placeholder="https://exemplo.com/video.mp4" />
+              <p className="text-[10px] text-muted-foreground">Será exibido como primeiro item na galeria do produto</p>
+            </div>
 
             <Button type="submit" className="w-full bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}

@@ -106,7 +106,7 @@ const ProductPage = () => {
       <ProductHeader />
 
       <div className="pt-12">
-        <ProductGallery images={images} />
+        <ProductGallery images={images} videoUrl={product.video_url || undefined} />
         <PricingBlock
           originalPrice={Number(product.original_price)}
           salePrice={Number(product.sale_price)}
