@@ -17,6 +17,8 @@ import FixedFooter from "@/components/product/FixedFooter";
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  usePageTracking("page_view");
+  useVisitorHeartbeat();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
