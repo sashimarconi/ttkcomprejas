@@ -235,47 +235,132 @@ const CheckoutPage = () => {
 
       {/* Customer info toggle */}
       <button
-        onClick={() => setShowForm(!showForm)}
+        onClick={() => setShowForm(true)}
         className="w-full bg-card border-b border-border px-4 py-3 flex items-center justify-between"
       >
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center">
             <span className="text-[10px]">📍</span>
           </div>
-          <span className="text-sm text-foreground">Adicionar informações do pedido</span>
+          <span className="text-sm text-foreground">
+            {customerName ? `${customerName} — ${customerDocument}` : "Adicionar informações do pedido"}
+          </span>
         </div>
         <span className="text-muted-foreground text-lg">›</span>
       </button>
 
-      {showForm && (
-        <div className="bg-card px-4 py-3 space-y-3 border-b border-border">
-          <input
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground"
-            placeholder="Nome completo"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-          />
-          <input
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground"
-            placeholder="E-mail"
-            type="email"
-            value={customerEmail}
-            onChange={(e) => setCustomerEmail(e.target.value)}
-          />
-          <input
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground"
-            placeholder="Telefone (apenas números)"
-            value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
-          />
-          <input
-            className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background text-foreground placeholder:text-muted-foreground"
-            placeholder="CPF (apenas números)"
-            value={customerDocument}
-            onChange={(e) => setCustomerDocument(e.target.value)}
-          />
-        </div>
-      )}
+      {/* Customer info sheet */}
+      <Sheet open={showForm} onOpenChange={setShowForm}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] overflow-y-auto p-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h2 className="text-base font-semibold text-foreground">Informações do pedido</h2>
+            <button onClick={() => setShowForm(false)}>
+              <X className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+          <div className="px-5 py-5 space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">CPF</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="000.000.000-00"
+                value={customerDocument}
+                onChange={(e) => setCustomerDocument(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="seu@email.com"
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome completo</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="Seu nome"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Telefone</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="(99) 99999-9999"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">CEP</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="00000-000"
+                value={customerCep}
+                onChange={(e) => setCustomerCep(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="Rua, Avenida..."
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Número</label>
+                <input
+                  className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                  placeholder="123"
+                  value={customerNumber}
+                  onChange={(e) => setCustomerNumber(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Complemento (opcional)</label>
+                <input
+                  className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                  placeholder="Apto, Bloco..."
+                  value={customerComplement}
+                  onChange={(e) => setCustomerComplement(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Bairro</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="Centro"
+                value={customerNeighborhood}
+                onChange={(e) => setCustomerNeighborhood(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Cidade</label>
+              <input
+                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                placeholder="São Paulo"
+                value={customerCity}
+                onChange={(e) => setCustomerCity(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => setShowForm(false)}
+              className="w-full py-3 rounded-full bg-marketplace-red text-white text-sm font-bold mt-4"
+            >
+              Salvar informações
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Store name */}
       <div className="bg-card px-4 py-3 mt-2 border-b border-border flex items-center justify-between">
