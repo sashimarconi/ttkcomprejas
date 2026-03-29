@@ -182,7 +182,6 @@ const ProductPage = () => {
       <FixedFooter
         freeShipping={product.free_shipping || false}
         onBuyNow={handleBuyNow}
-        onAddToCart={() => {}}
       />
     </div>
   );

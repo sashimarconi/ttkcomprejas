@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      checkout_settings: {
+        Row: {
+          checkout_button_text: string
+          checkout_header_text: string
+          checkout_security_text: string
+          created_at: string
+          id: string
+          pix_expiration_minutes: number
+          pix_instruction_text: string
+          pix_payment_title: string
+          updated_at: string
+        }
+        Insert: {
+          checkout_button_text?: string
+          checkout_header_text?: string
+          checkout_security_text?: string
+          created_at?: string
+          id?: string
+          pix_expiration_minutes?: number
+          pix_instruction_text?: string
+          pix_payment_title?: string
+          updated_at?: string
+        }
+        Update: {
+          checkout_button_text?: string
+          checkout_header_text?: string
+          checkout_security_text?: string
+          created_at?: string
+          id?: string
+          pix_expiration_minutes?: number
+          pix_instruction_text?: string
+          pix_payment_title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gateway_settings: {
         Row: {
           active: boolean | null

@@ -95,6 +95,19 @@ const CheckoutPage = () => {
     },
   });
 
+  const { data: checkoutSettings } = useQuery({
+    queryKey: ["checkout-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("checkout_settings" as any)
+        .select("*")
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data as any;
+    },
+  });
+
   useEffect(() => {
     if (shippingOptions?.length && !selectedShipping) {
       setSelectedShipping(shippingOptions[0].id);
@@ -256,7 +269,7 @@ const CheckoutPage = () => {
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="p-5 text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Efetue o pagamento agora mesmo<br />escaneando o QR Code
+                {checkoutSettings?.pix_instruction_text || "Efetue o pagamento agora mesmo"}<br />escaneando o QR Code
               </p>
               <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
                 📱 Aponte a câmera do seu celular
@@ -274,7 +287,7 @@ const CheckoutPage = () => {
               <p className="text-[11px] text-muted-foreground">
                 O Pix será destinado à empresa que realiza o<br />processamento seguro dos nossos pagamentos:
               </p>
-              <p className="text-sm font-semibold text-foreground mt-1">Pagamento Seguro</p>
+              <p className="text-sm font-semibold text-foreground mt-1">{checkoutSettings?.pix_payment_title || "Pagamento Seguro"}</p>
             </div>
           </div>
 
@@ -344,9 +357,9 @@ const CheckoutPage = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1 text-center">
-            <p className="text-sm font-semibold text-foreground">Resumo do pedido</p>
+            <p className="text-sm font-semibold text-foreground">{checkoutSettings?.checkout_header_text || "Resumo do pedido"}</p>
             <p className="text-[10px] text-marketplace-green flex items-center justify-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Finalização da compra segura garantida
+              <ShieldCheck className="w-3 h-3" /> {checkoutSettings?.checkout_security_text || "Finalização da compra segura garantida"}
             </p>
           </div>
           <div className="w-5" />
@@ -688,7 +701,7 @@ const CheckoutPage = () => {
             disabled={submitting}
             className="flex-1 ml-4 py-3 rounded-full bg-marketplace-red text-white text-sm font-bold disabled:opacity-50 flex flex-col items-center"
           >
-            <span>{submitting ? "Processando..." : "Fazer pedido"}</span>
+            <span>{submitting ? "Processando..." : (checkoutSettings?.checkout_button_text || "Fazer pedido")}</span>
             {product.flash_sale && (
               <span className="text-[9px] font-normal opacity-90">Oferta Relâmpago termina em breve</span>
             )}
