@@ -52,6 +52,7 @@ const emptyForm: ProductForm = {
   review_count: 0,
   sold_count: 0,
   active: true,
+  video_url: "",
 };
 
 const AdminProducts = () => {
