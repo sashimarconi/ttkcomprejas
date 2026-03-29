@@ -269,7 +269,7 @@ const CheckoutPage = () => {
           <div className="bg-card rounded-xl border border-border overflow-hidden">
             <div className="p-5 text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                Efetue o pagamento agora mesmo<br />escaneando o QR Code
+                {checkoutSettings?.pix_instruction_text || "Efetue o pagamento agora mesmo"}<br />escaneando o QR Code
               </p>
               <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
                 📱 Aponte a câmera do seu celular
