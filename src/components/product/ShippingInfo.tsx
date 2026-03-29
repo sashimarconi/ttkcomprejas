@@ -9,17 +9,22 @@ interface ShippingInfoProps {
 const ShippingInfo = ({ freeShipping, shippingCost, estimatedDelivery }: ShippingInfoProps) => {
   return (
     <div className="bg-card px-4 py-3 mt-2">
-      <div className={`flex items-center gap-3 rounded-lg px-3 py-2.5 ${
-        freeShipping ? "bg-marketplace-green-light" : "bg-marketplace-gray-light"
-      }`}>
-        <Truck className={`w-5 h-5 ${freeShipping ? "text-marketplace-green" : "text-muted-foreground"}`} />
-        <div>
-          <p className={`text-sm font-semibold ${freeShipping ? "text-marketplace-green" : "text-foreground"}`}>
-            {freeShipping ? "Frete grátis" : `Taxa de envio: R$ ${shippingCost.toFixed(2).replace('.', ',')}`}
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded-full bg-marketplace-green-light flex items-center justify-center flex-shrink-0 mt-0.5">
+          <Truck className="w-4 h-4 text-marketplace-green" />
+        </div>
+        <div className="flex-1">
+          {freeShipping && (
+            <p className="text-sm font-bold text-marketplace-green">Frete grátis</p>
+          )}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {estimatedDelivery || "Chegará entre 7 e 15 dias úteis"}
           </p>
-          <p className="text-xs text-muted-foreground">
-            Entrega estimada: {estimatedDelivery}
-          </p>
+          {shippingCost > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Taxa de envio: <span className="font-medium text-foreground">R$ {shippingCost.toFixed(2).replace('.', ',')}</span>
+            </p>
+          )}
         </div>
       </div>
     </div>

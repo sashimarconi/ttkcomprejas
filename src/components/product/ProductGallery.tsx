@@ -14,7 +14,6 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
 
   return (
     <div className="relative w-full bg-card">
-      {/* Image */}
       <div className="relative aspect-square overflow-hidden">
         <img
           src={images[current]?.url}
@@ -22,41 +21,30 @@ const ProductGallery = ({ images }: ProductGalleryProps) => {
           className="w-full h-full object-cover"
         />
 
-        {/* Arrows */}
         {images.length > 1 && (
           <>
             <button
               onClick={prev}
-              className="absolute left-2 top-1/2 -translate-y-1/2 bg-card/80 rounded-full p-1.5 shadow-md"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-card/70 backdrop-blur-sm rounded-full p-1.5 shadow-md"
             >
               <ChevronLeft className="w-5 h-5 text-foreground" />
             </button>
             <button
               onClick={next}
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-card/80 rounded-full p-1.5 shadow-md"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-card/70 backdrop-blur-sm rounded-full p-1.5 shadow-md"
             >
               <ChevronRight className="w-5 h-5 text-foreground" />
             </button>
           </>
         )}
-      </div>
 
-      {/* Dots */}
-      {images.length > 1 && (
-        <div className="flex justify-center gap-1.5 py-3">
-          {images.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={`rounded-full transition-all ${
-                i === current
-                  ? "w-6 h-2 bg-marketplace-red"
-                  : "w-2 h-2 bg-border"
-              }`}
-            />
-          ))}
-        </div>
-      )}
+        {/* Counter badge */}
+        {images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-foreground/60 text-primary-foreground text-xs px-3 py-1 rounded-full font-medium backdrop-blur-sm">
+            {current + 1}/{images.length}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

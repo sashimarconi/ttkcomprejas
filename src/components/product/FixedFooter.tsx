@@ -1,4 +1,4 @@
-import { Store, MessageCircle, ShoppingCart } from "lucide-react";
+import { Store, MessageCircle } from "lucide-react";
 
 interface FixedFooterProps {
   freeShipping: boolean;
@@ -26,16 +26,15 @@ const FixedFooter = ({ freeShipping, onBuyNow, onAddToCart }: FixedFooterProps) 
         <div className="flex-1 flex gap-2 ml-2">
           <button
             onClick={onAddToCart}
-            className="flex-1 flex items-center justify-center gap-1.5 h-10 rounded-full border-2 border-marketplace-red text-marketplace-red text-xs font-bold"
+            className="flex-1 flex items-center justify-center h-10 rounded-lg bg-muted text-foreground text-xs font-bold"
           >
-            <ShoppingCart className="w-4 h-4" />
-            Adicionar
+            Adicionar ao carrinho
           </button>
           <button
             onClick={onBuyNow}
-            className="flex-1 flex flex-col items-center justify-center h-10 rounded-full bg-marketplace-red text-primary-foreground"
+            className="flex-1 flex flex-col items-center justify-center h-10 rounded-lg bg-marketplace-red text-primary-foreground"
           >
-            <span className="text-xs font-bold">Comprar agora</span>
+            <span className="text-xs font-bold">Comprar Agora</span>
             {freeShipping && (
               <span className="text-[9px] font-normal opacity-90">Frete Grátis</span>
             )}
