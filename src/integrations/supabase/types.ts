@@ -14,6 +14,159 @@ export type Database = {
   }
   public: {
     Tables: {
+      gateway_settings: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          gateway_name: string
+          id: string
+          public_key: string | null
+          secret_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          gateway_name?: string
+          id?: string
+          public_key?: string | null
+          secret_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          gateway_name?: string
+          id?: string
+          public_key?: string | null
+          secret_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_bumps: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          image_url: string | null
+          price: number
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          price?: number
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          price?: number
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          bumps_total: number | null
+          created_at: string
+          customer_document: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          id: string
+          payment_method: string
+          payment_status: string
+          pix_copy_paste: string | null
+          pix_expires_at: string | null
+          pix_qr_code: string | null
+          pix_qr_code_base64: string | null
+          product_id: string | null
+          product_variant: string | null
+          quantity: number
+          selected_bumps: Json | null
+          shipping_cost: number | null
+          shipping_option_id: string | null
+          subtotal: number
+          total: number
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bumps_total?: number | null
+          created_at?: string
+          customer_document: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          pix_copy_paste?: string | null
+          pix_expires_at?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          product_id?: string | null
+          product_variant?: string | null
+          quantity?: number
+          selected_bumps?: Json | null
+          shipping_cost?: number | null
+          shipping_option_id?: string | null
+          subtotal: number
+          total: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bumps_total?: number | null
+          created_at?: string
+          customer_document?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          pix_copy_paste?: string | null
+          pix_expires_at?: string | null
+          pix_qr_code?: string | null
+          pix_qr_code_base64?: string | null
+          product_id?: string | null
+          product_variant?: string | null
+          quantity?: number
+          selected_bumps?: Json | null
+          shipping_cost?: number | null
+          shipping_option_id?: string | null
+          subtotal?: number
+          total?: number
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_shipping_option_id_fkey"
+            columns: ["shipping_option_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           alt: string | null
@@ -214,6 +367,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shipping_options: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          description: string | null
+          estimated_days: string | null
+          free: boolean | null
+          id: string
+          logo_url: string | null
+          name: string
+          price: number
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          estimated_days?: string | null
+          free?: boolean | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          price?: number
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          estimated_days?: string | null
+          free?: boolean | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          price?: number
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       store_settings: {
         Row: {

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductBySlug, fetchProducts, fetchStoreSettings } from "@/lib/supabase-queries";
 import ProductHeader from "@/components/product/ProductHeader";
@@ -15,6 +15,7 @@ import FixedFooter from "@/components/product/FixedFooter";
 
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("Visão geral");
 
   const { data: product, isLoading } = useQuery({
@@ -52,6 +53,8 @@ const ProductPage = () => {
   const handleBuyNow = () => {
     if (product?.checkout_type === "external" && product.external_checkout_url) {
       window.open(product.external_checkout_url, "_blank");
+    } else {
+      navigate(`/checkout/${slug}`);
     }
   };
 
