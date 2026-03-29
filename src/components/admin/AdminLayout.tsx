@@ -13,6 +13,7 @@ const navItems = [
   { label: "Fretes", path: "/admin/shipping", icon: Truck },
   { label: "Bumps", path: "/admin/order-bumps", icon: Tag },
   { label: "Checkout", path: "/admin/checkout", icon: ShoppingBag },
+  { label: "Pixels", path: "/admin/pixels", icon: BarChart3 },
 ];
 
 const AdminLayout = () => {
