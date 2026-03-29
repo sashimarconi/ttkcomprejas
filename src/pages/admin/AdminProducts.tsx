@@ -170,6 +170,7 @@ const AdminProducts = () => {
       review_count: product.review_count || 0,
       sold_count: product.sold_count || 0,
       active: product.active ?? true,
+      video_url: product.video_url || "",
     });
     setDialogOpen(true);
   };
