@@ -41,6 +41,8 @@ const CheckoutPage = () => {
   const [customerComplement, setCustomerComplement] = useState("");
   const [customerNeighborhood, setCustomerNeighborhood] = useState("");
   const [customerCity, setCustomerCity] = useState("");
+  const [customerState, setCustomerState] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string } | null>(null);
