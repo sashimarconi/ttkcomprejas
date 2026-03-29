@@ -8,6 +8,8 @@ import ProductPage from "./pages/ProductPage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminOrders from "./pages/admin/AdminOrders";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminBadges from "./pages/admin/AdminBadges";
 import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
@@ -33,7 +35,9 @@ const App = () => (
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminProducts />} />
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="products" element={<AdminProducts />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="badges" element={<AdminBadges />} />
             <Route path="settings" element={<AdminStoreSettings />} />

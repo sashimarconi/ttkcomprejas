@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { usePageTracking, useVisitorHeartbeat } from "@/hooks/usePageTracking";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductBySlug, fetchProducts, fetchStoreSettings } from "@/lib/supabase-queries";
@@ -16,6 +17,8 @@ import FixedFooter from "@/components/product/FixedFooter";
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  usePageTracking("page_view");
+  useVisitorHeartbeat();
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],

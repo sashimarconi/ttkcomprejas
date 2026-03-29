@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTikTokPixel, trackTikTokPurchase } from "@/hooks/useTikTokPixel";
+import { usePageTracking, trackEvent } from "@/hooks/usePageTracking";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ const CheckoutPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   useTikTokPixel();
+  usePageTracking("checkout_view");
   const [quantity, setQuantity] = useState(1);
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
@@ -205,6 +207,8 @@ const CheckoutPage = () => {
 
       // Fire TikTok Purchase event
       trackTikTokPurchase(total);
+      // Track PIX generation
+      trackEvent("pix_generated", { total, product_slug: slug });
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {
