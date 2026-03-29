@@ -35,7 +35,9 @@ const App = () => (
           <Route path="/checkout/:slug" element={<CheckoutPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminProducts />} />
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="products" element={<AdminProducts />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="badges" element={<AdminBadges />} />
             <Route path="settings" element={<AdminStoreSettings />} />

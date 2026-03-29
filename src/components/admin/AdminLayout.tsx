@@ -5,7 +5,9 @@ import { Package, Star, Settings, ShieldCheck, LogOut, Menu, X, CreditCard, Truc
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { label: "Produtos", path: "/admin", icon: Package },
+  { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
+  { label: "Pedidos", path: "/admin/orders", icon: ClipboardList },
+  { label: "Produtos", path: "/admin/products", icon: Package },
   { label: "Avaliações", path: "/admin/reviews", icon: Star },
   { label: "Badges", path: "/admin/badges", icon: ShieldCheck },
   { label: "Loja", path: "/admin/settings", icon: Settings },
