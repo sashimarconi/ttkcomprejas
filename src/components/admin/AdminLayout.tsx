@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Star, Settings, ShieldCheck, LogOut, Menu, X, CreditCard, Truck, Tag, ShoppingBag } from "lucide-react";
+import { Package, Star, Settings, ShieldCheck, LogOut, Menu, X, CreditCard, Truck, Tag, ShoppingBag, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
