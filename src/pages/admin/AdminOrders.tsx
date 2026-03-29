@@ -250,6 +250,13 @@ const AdminOrders = () => {
                         <TableCell className="text-sm text-muted-foreground uppercase">
                           {order.payment_method}
                         </TableCell>
+                        <TableCell>
+                          {order.pix_copied ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Sim</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-500/10 text-gray-500 border-gray-500/20">Não</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(order.created_at).toLocaleDateString("pt-BR")}{" "}
                           {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
