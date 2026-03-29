@@ -11,7 +11,6 @@ interface PricingBlockProps {
 }
 
 const parseTimeToSeconds = (timeStr: string): number => {
-  // Support "HH:MM:SS" or "X dia(s)" formats
   const hmsMatch = timeStr.match(/(\d+):(\d+):(\d+)/);
   if (hmsMatch) {
     return parseInt(hmsMatch[1]) * 3600 + parseInt(hmsMatch[2]) * 60 + parseInt(hmsMatch[3]);
@@ -20,7 +19,7 @@ const parseTimeToSeconds = (timeStr: string): number => {
   if (dayMatch) {
     return parseInt(dayMatch[1]) * 86400;
   }
-  return 3600; // fallback 1h
+  return 3600;
 };
 
 const formatTime = (totalSeconds: number): string => {
@@ -42,50 +41,33 @@ const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, fl
   }, [flashSale]);
 
   return (
-    <div className="bg-card">
-      {/* Price section */}
-      <div className="px-4 pt-3 pb-2">
+    <div className="bg-gradient-to-r from-marketplace-orange to-[hsl(15,90%,50%)] px-4 py-3">
+      {/* Row: discount badge + price + flash sale */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="bg-marketplace-red text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">
+          <span className="bg-marketplace-red text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded">
             -{discountPercent}%
           </span>
-          <span className="text-lg font-bold text-marketplace-red">
-            {formatCurrency(salePrice)}
+          <span className="text-2xl font-extrabold text-primary-foreground">
+            R$ {salePrice.toFixed(2).replace('.', ',')}
           </span>
         </div>
-        <div className="mt-0.5">
-          <span className="text-xs text-muted-foreground line-through">
-            {formatCurrency(originalPrice)}
-          </span>
-        </div>
-      </div>
-
-      {/* Flash sale timer */}
-      {flashSale && (
-        <div className="px-4 pb-2">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 bg-marketplace-red text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+        {flashSale && (
+          <div className="flex flex-col items-end">
+            <span className="flex items-center gap-1 text-primary-foreground text-[11px] font-bold">
               <Zap className="w-3 h-3 fill-current" />
               Oferta Relâmpago
             </span>
-            <span className="text-xs text-muted-foreground">
-              Termina em <span className="font-bold text-foreground">{formatTime(secondsLeft)}</span>
+            <span className="text-[11px] text-primary-foreground/90">
+              Termina em <span className="font-bold">{formatTime(secondsLeft)}</span>
             </span>
           </div>
-        </div>
-      )}
-
-      {/* Discount progress bar */}
-      <div className="px-4 pb-3">
-        <div className="relative w-full h-5 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-marketplace-red to-marketplace-orange rounded-full transition-all duration-500 flex items-center justify-end pr-2"
-            style={{ width: `${Math.min(discountPercent, 100)}%` }}
-          >
-            <span className="text-[10px] font-bold text-primary-foreground">{discountPercent}%</span>
-          </div>
-        </div>
+        )}
       </div>
+      {/* Original price */}
+      <p className="text-xs text-primary-foreground/70 line-through mt-0.5">
+        {formatCurrency(originalPrice)}
+      </p>
     </div>
   );
 };
