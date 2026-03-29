@@ -202,27 +202,7 @@ const CheckoutPage = () => {
     );
   }
 
-  // Countdown timer for PIX expiry
-  const [pixTimeLeft, setPixTimeLeft] = useState("");
-  useEffect(() => {
-    if (!pixData?.expiresAt) return;
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const expires = new Date(pixData.expiresAt).getTime();
-      const diff = expires - now;
-      if (diff <= 0) {
-        setPixTimeLeft("00:00");
-        clearInterval(interval);
-        return;
-      }
-      const mins = Math.floor(diff / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      setPixTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [pixData?.expiresAt]);
 
-  const [showCopyPaste, setShowCopyPaste] = useState(false);
 
   if (pixData) {
     return (
