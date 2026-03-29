@@ -203,6 +203,33 @@ export type Database = {
           },
         ]
       }
+      page_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_url: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_url?: string | null
+          session_id?: string
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           alt: string | null
@@ -530,6 +557,30 @@ export type Database = {
           id?: string
           sort_order?: number | null
           title?: string
+        }
+        Relationships: []
+      }
+      visitor_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          last_seen_at: string
+          page_url: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          page_url?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          page_url?: string | null
+          session_id?: string
         }
         Relationships: []
       }
