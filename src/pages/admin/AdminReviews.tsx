@@ -97,6 +97,30 @@ const AdminReviews = () => {
     setForm((prev) => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
   };
 
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+      return;
+    }
+    setUploadingPhoto(true);
+    const ext = file.name.split(".").pop();
+    const path = `reviews/${Date.now()}.${ext}`;
+    const { error } = await supabaseClient.storage.from("product-images").upload(path, file);
+    if (error) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+      setUploadingPhoto(false);
+      return;
+    }
+    const { data: urlData } = supabaseClient.storage.from("product-images").getPublicUrl(path);
+    setForm((prev) => ({ ...prev, photos: [...prev.photos, urlData.publicUrl] }));
+    setUploadingPhoto(false);
+    e.target.value = "";
+  };
+
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
 
   return (
