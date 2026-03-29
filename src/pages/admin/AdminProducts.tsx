@@ -30,6 +30,7 @@ interface ProductForm {
   review_count: number;
   sold_count: number;
   active: boolean;
+  video_url: string;
 }
 
 const emptyForm: ProductForm = {
