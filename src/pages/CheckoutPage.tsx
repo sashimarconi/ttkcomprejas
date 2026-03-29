@@ -41,6 +41,8 @@ const CheckoutPage = () => {
   const [customerComplement, setCustomerComplement] = useState("");
   const [customerNeighborhood, setCustomerNeighborhood] = useState("");
   const [customerCity, setCustomerCity] = useState("");
+  const [customerState, setCustomerState] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string } | null>(null);
@@ -101,6 +103,30 @@ const CheckoutPage = () => {
     setSelectedBumps((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
     );
+  };
+  const handleCepChange = async (value: string) => {
+    const cleaned = value.replace(/\D/g, "");
+    const formatted = cleaned.length > 5 ? `${cleaned.slice(0, 5)}-${cleaned.slice(5, 8)}` : cleaned;
+    setCustomerCep(formatted);
+
+    if (cleaned.length === 8) {
+      setCepLoading(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleaned}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setCustomerAddress(data.logradouro || "");
+          setCustomerNeighborhood(data.bairro || "");
+          setCustomerCity(data.localidade || "");
+          setCustomerState(data.uf || "");
+          setCustomerComplement(data.complemento || "");
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setCepLoading(false);
+      }
+    }
   };
 
   const handleSubmitOrder = async () => {
@@ -298,12 +324,18 @@ const CheckoutPage = () => {
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">CEP</label>
-              <input
-                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
-                placeholder="00000-000"
-                value={customerCep}
-                onChange={(e) => setCustomerCep(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                  placeholder="00000-000"
+                  maxLength={9}
+                  value={customerCep}
+                  onChange={(e) => handleCepChange(e.target.value)}
+                />
+                {cepLoading && (
+                  <span className="absolute right-0 top-0 text-xs text-muted-foreground animate-pulse">Buscando...</span>
+                )}
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Endereço</label>
@@ -343,14 +375,26 @@ const CheckoutPage = () => {
                 onChange={(e) => setCustomerNeighborhood(e.target.value)}
               />
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Cidade</label>
-              <input
-                className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
-                placeholder="São Paulo"
-                value={customerCity}
-                onChange={(e) => setCustomerCity(e.target.value)}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Cidade</label>
+                <input
+                  className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                  placeholder="São Paulo"
+                  value={customerCity}
+                  onChange={(e) => setCustomerCity(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Estado</label>
+                <input
+                  className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                  placeholder="SP"
+                  maxLength={2}
+                  value={customerState}
+                  onChange={(e) => setCustomerState(e.target.value)}
+                />
+              </div>
             </div>
             <button
               onClick={() => setShowForm(false)}
