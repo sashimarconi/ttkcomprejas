@@ -15,6 +15,7 @@ import FixedFooter from "@/components/product/FixedFooter";
 
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("Visão geral");
 
   const { data: product, isLoading } = useQuery({
