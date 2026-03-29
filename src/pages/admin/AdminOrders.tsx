@@ -211,6 +211,7 @@ const AdminOrders = () => {
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Método</TableHead>
+                    <TableHead>PIX copiado</TableHead>
                     <TableHead>Data</TableHead>
                   </TableRow>
                 </TableHeader>
