@@ -1,23 +1,6 @@
-import { RotateCcw, ShieldCheck, Clock, Package, Undo2, PackageCheck } from "lucide-react";
+import { Check, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTrustBadges } from "@/lib/supabase-queries";
-
-const iconMap: Record<string, any> = {
-  "undo-2": Undo2,
-  "shield-check": ShieldCheck,
-  "clock": Clock,
-  "package-check": PackageCheck,
-  "rotate-ccw": RotateCcw,
-  "package": Package,
-  "shield": ShieldCheck,
-};
-
-const colorMap: Record<string, string> = {
-  green: "text-marketplace-green",
-  blue: "text-marketplace-blue",
-  orange: "text-marketplace-orange",
-  red: "text-marketplace-red",
-};
 
 const TrustBadges = () => {
   const { data: badges } = useQuery({
@@ -25,24 +8,31 @@ const TrustBadges = () => {
     queryFn: fetchTrustBadges,
   });
 
-  if (!badges || badges.length === 0) return null;
+  // Default badges if none in DB
+  const defaultBadges = [
+    "Devolução gratuita",
+    "Reembolso automático por danos",
+    "Pagamento seguro",
+    "Cupom por atraso na coleta",
+  ];
+
+  const items = badges && badges.length > 0
+    ? badges.map((b: any) => b.title)
+    : defaultBadges;
 
   return (
     <div className="bg-card px-4 py-3 mt-2">
-      <p className="text-xs font-semibold text-foreground mb-3">Nossos Serviços</p>
-      <div className="grid grid-cols-4 gap-2">
-        {badges.map((badge) => {
-          const Icon = iconMap[badge.icon] || ShieldCheck;
-          const colorClass = colorMap[badge.color || "blue"] || "text-marketplace-blue";
-          return (
-            <div key={badge.id} className="flex flex-col items-center text-center gap-1.5">
-              <div className="w-10 h-10 rounded-full bg-marketplace-gray-light flex items-center justify-center">
-                <Icon className={`w-5 h-5 ${colorClass}`} />
-              </div>
-              <span className="text-[10px] text-muted-foreground leading-tight">{badge.title}</span>
-            </div>
-          );
-        })}
+      <div className="flex items-center gap-2 mb-2.5">
+        <ShieldCheck className="w-4 h-4 text-marketplace-green" />
+        <p className="text-xs font-semibold text-foreground">Proteção do cliente</p>
+      </div>
+      <div className="grid grid-cols-2 gap-y-1.5 gap-x-2">
+        {items.map((item: string, i: number) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 text-marketplace-green flex-shrink-0" />
+            <span className="text-[11px] text-muted-foreground">{item}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

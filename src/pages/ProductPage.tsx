@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductBySlug, fetchProducts, fetchStoreSettings } from "@/lib/supabase-queries";
@@ -16,7 +16,6 @@ import FixedFooter from "@/components/product/FixedFooter";
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState("Visão geral");
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
@@ -34,21 +33,8 @@ const ProductPage = () => {
     queryFn: fetchStoreSettings,
   });
 
-  const overviewRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
-  const recommendationsRef = useRef<HTMLDivElement>(null);
-
-  const scrollToSection = useCallback((section: string) => {
-    setActiveSection(section);
-    const refs: Record<string, React.RefObject<HTMLDivElement>> = {
-      "Visão geral": overviewRef,
-      "Avaliações": reviewsRef,
-      "Descrição": descriptionRef,
-      "Recomendações": recommendationsRef,
-    };
-    refs[section]?.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, []);
 
   const handleBuyNow = () => {
     if (product?.checkout_type === "external" && product.external_checkout_url) {
@@ -68,7 +54,6 @@ const ProductPage = () => {
 
   const otherProducts = allProducts?.filter((p) => p.id !== product.id) || [];
 
-  // Map DB data to component props
   const images = (product.product_images || []).map((img) => ({
     id: img.id,
     url: img.url,
@@ -118,41 +103,45 @@ const ProductPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <ProductHeader activeSection={activeSection} onSectionClick={scrollToSection} />
+      <ProductHeader />
 
-      <div className="pt-[88px]">
-        <div ref={overviewRef}>
-          <ProductGallery images={images} />
-          <PricingBlock
-            originalPrice={Number(product.original_price)}
-            salePrice={Number(product.sale_price)}
-            discountPercent={product.discount_percent}
-            flashSale={product.flash_sale || false}
-            flashSaleEndsIn={product.flash_sale_ends_in || ""}
-          />
-          <ProductInfo
-            title={product.title}
-            promoTag={product.promo_tag || ""}
-            rating={Number(product.rating) || 0}
-            reviewCount={product.review_count || 0}
-            soldCount={product.sold_count || 0}
-            variants={variants}
-          />
-          <ShippingInfo
-            freeShipping={product.free_shipping || false}
-            shippingCost={Number(product.shipping_cost) || 0}
-            estimatedDelivery={product.estimated_delivery || ""}
-          />
-          <TrustBadges />
-        </div>
+      <div className="pt-12">
+        <ProductGallery images={images} />
+        <PricingBlock
+          originalPrice={Number(product.original_price)}
+          salePrice={Number(product.sale_price)}
+          discountPercent={product.discount_percent}
+          flashSale={product.flash_sale || false}
+          flashSaleEndsIn={product.flash_sale_ends_in || ""}
+        />
+        <ProductInfo
+          title={product.title}
+          promoTag={product.promo_tag || ""}
+          rating={Number(product.rating) || 0}
+          reviewCount={product.review_count || 0}
+          soldCount={product.sold_count || 0}
+          variants={variants}
+        />
+        <ShippingInfo
+          freeShipping={product.free_shipping || false}
+          shippingCost={Number(product.shipping_cost) || 0}
+          estimatedDelivery={product.estimated_delivery || ""}
+        />
+        <TrustBadges />
 
         <div ref={reviewsRef}>
           <ReviewsSection reviews={reviews} totalReviews={product.review_count || 0} />
         </div>
 
-        <div ref={descriptionRef} className="bg-card px-4 py-3 mt-2">
-          <p className="text-sm font-semibold text-foreground mb-2">Descrição do produto</p>
-          <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+        <div ref={descriptionRef} className="bg-card px-4 py-4 mt-2">
+          <p className="text-sm font-bold text-foreground mb-3">Descrição do produto</p>
+          <div
+            className="text-xs text-muted-foreground leading-relaxed prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: product.description || "" }}
+          />
+          {product.description && !product.description.includes("<") && (
+            <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+          )}
         </div>
 
         {store && (
@@ -166,10 +155,10 @@ const ProductPage = () => {
           />
         )}
 
-        <div ref={recommendationsRef}>
-          <RelatedProducts title="Mais desta loja" products={relatedFormatted} />
+        <RelatedProducts title="Mais desta loja" products={relatedFormatted} />
+        {relatedFormatted.length > 2 && (
           <RelatedProducts title="Você também pode gostar" products={relatedFormatted.slice(0, 2)} />
-        </div>
+        )}
       </div>
 
       <FixedFooter
