@@ -476,6 +476,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tracking_pixels: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          id: string
+          pixel_id: string
+          platform: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          pixel_id: string
+          platform?: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          id?: string
+          pixel_id?: string
+          platform?: string
+        }
+        Relationships: []
+      }
       trust_badges: {
         Row: {
           active: boolean | null
