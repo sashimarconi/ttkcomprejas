@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Star } from "lucide-react";
+import { Plus, Trash2, Star, Upload } from "lucide-react";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 
 interface ReviewForm {
   product_id: string;
@@ -94,6 +95,30 @@ const AdminReviews = () => {
 
   const removePhoto = (index: number) => {
     setForm((prev) => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
+  };
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 5MB", variant: "destructive" });
+      return;
+    }
+    setUploadingPhoto(true);
+    const ext = file.name.split(".").pop();
+    const path = `reviews/${Date.now()}.${ext}`;
+    const { error } = await supabaseClient.storage.from("product-images").upload(path, file);
+    if (error) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+      setUploadingPhoto(false);
+      return;
+    }
+    const { data: urlData } = supabaseClient.storage.from("product-images").getPublicUrl(path);
+    setForm((prev) => ({ ...prev, photos: [...prev.photos, urlData.publicUrl] }));
+    setUploadingPhoto(false);
+    e.target.value = "";
   };
 
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
@@ -196,6 +221,13 @@ const AdminReviews = () => {
               <div className="flex gap-2">
                 <Input placeholder="URL da foto" value={photoInput} onChange={(e) => setPhotoInput(e.target.value)} />
                 <Button type="button" variant="outline" size="sm" onClick={addPhoto}>+</Button>
+              </div>
+              <div className="flex gap-2 items-center">
+                <label className="cursor-pointer flex items-center gap-1 text-xs text-muted-foreground border border-border rounded px-3 py-1.5 hover:bg-accent transition">
+                  <Upload className="w-3 h-3" />
+                  {uploadingPhoto ? "Enviando..." : "Upload foto"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                </label>
               </div>
             </div>
             <Button type="submit" className="w-full bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending || !form.product_id}>
