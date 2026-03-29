@@ -287,7 +287,7 @@ const CheckoutPage = () => {
               <p className="text-[11px] text-muted-foreground">
                 O Pix será destinado à empresa que realiza o<br />processamento seguro dos nossos pagamentos:
               </p>
-              <p className="text-sm font-semibold text-foreground mt-1">Pagamento Seguro</p>
+              <p className="text-sm font-semibold text-foreground mt-1">{checkoutSettings?.pix_payment_title || "Pagamento Seguro"}</p>
             </div>
           </div>
 
