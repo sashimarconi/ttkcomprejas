@@ -35,6 +35,12 @@ const CheckoutPage = () => {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerDocument, setCustomerDocument] = useState("");
+  const [customerCep, setCustomerCep] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerNumber, setCustomerNumber] = useState("");
+  const [customerComplement, setCustomerComplement] = useState("");
+  const [customerNeighborhood, setCustomerNeighborhood] = useState("");
+  const [customerCity, setCustomerCity] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string } | null>(null);
