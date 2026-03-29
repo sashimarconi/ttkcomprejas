@@ -9,6 +9,9 @@ const navItems = [
   { label: "Avaliações", path: "/admin/reviews", icon: Star },
   { label: "Badges", path: "/admin/badges", icon: ShieldCheck },
   { label: "Loja", path: "/admin/settings", icon: Settings },
+  { label: "Gateways", path: "/admin/gateways", icon: CreditCard },
+  { label: "Fretes", path: "/admin/shipping", icon: Truck },
+  { label: "Bumps", path: "/admin/order-bumps", icon: Tag },
 ];
 
 const AdminLayout = () => {

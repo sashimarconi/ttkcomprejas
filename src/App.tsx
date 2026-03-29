@@ -35,6 +35,9 @@ const App = () => (
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="badges" element={<AdminBadges />} />
             <Route path="settings" element={<AdminStoreSettings />} />
+            <Route path="gateways" element={<AdminGateways />} />
+            <Route path="shipping" element={<AdminShipping />} />
+            <Route path="order-bumps" element={<AdminOrderBumps />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
