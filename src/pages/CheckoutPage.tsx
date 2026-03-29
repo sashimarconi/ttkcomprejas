@@ -186,47 +186,151 @@ const CheckoutPage = () => {
     );
   }
 
+  // Countdown timer for PIX expiry
+  const [pixTimeLeft, setPixTimeLeft] = useState("");
+  useEffect(() => {
+    if (!pixData?.expiresAt) return;
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const expires = new Date(pixData.expiresAt).getTime();
+      const diff = expires - now;
+      if (diff <= 0) {
+        setPixTimeLeft("00:00");
+        clearInterval(interval);
+        return;
+      }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setPixTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [pixData?.expiresAt]);
+
+  const [showCopyPaste, setShowCopyPaste] = useState(false);
+
   if (pixData) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-muted/30">
+        {/* Header */}
         <header className="sticky top-0 z-40 bg-card border-b border-border">
           <div className="flex items-center h-12 px-4">
             <button onClick={() => setPixData(null)}>
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
-            <div className="flex-1 text-center">
-              <p className="text-sm font-semibold text-foreground">Pagamento PIX</p>
-              <p className="text-[10px] text-marketplace-green flex items-center justify-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Pagamento seguro
-              </p>
-            </div>
+            <p className="flex-1 text-center text-sm font-semibold text-foreground">Pagamento</p>
             <div className="w-5" />
           </div>
         </header>
 
-        <div className="max-w-lg mx-auto p-4 space-y-4">
-          <div className="bg-card rounded-xl p-6 text-center space-y-4 border border-border">
-            <p className="text-sm text-muted-foreground">Escaneie o QR Code ou copie o código</p>
-            <div className="flex justify-center">
-              <img src={pixData.qrCodeBase64} alt="QR Code PIX" className="w-48 h-48 rounded-lg" />
+        {/* Progress steps */}
+        <div className="bg-card border-b border-border px-6 py-4">
+          <div className="flex items-center justify-between max-w-xs mx-auto">
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-7 h-7 rounded-full bg-marketplace-red flex items-center justify-center">
+                <Check className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-[10px] font-medium text-marketplace-red">Revisão</span>
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(pixData.copyPaste);
-                toast.success("Código copiado!");
-              }}
-              className="w-full py-3 rounded-full bg-marketplace-green text-white text-sm font-bold"
-            >
-              Copiar código PIX
-            </button>
-            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-              <Clock className="w-3 h-3" />
-              Expira em {new Date(pixData.expiresAt).toLocaleString("pt-BR")}
-            </p>
+            <div className="flex-1 h-0.5 bg-marketplace-red mx-1 -mt-4" />
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-7 h-7 rounded-full bg-marketplace-red flex items-center justify-center">
+                <Check className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-[10px] font-medium text-marketplace-red">Dados</span>
+            </div>
+            <div className="flex-1 h-0.5 bg-marketplace-red mx-1 -mt-4" />
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-7 h-7 rounded-full bg-marketplace-red/20 border-2 border-marketplace-red flex items-center justify-center">
+                <span className="text-[10px] font-bold text-marketplace-red">3</span>
+              </div>
+              <span className="text-[10px] font-medium text-marketplace-red">Pagamento</span>
+            </div>
           </div>
-          <div className="bg-card rounded-xl p-4 border border-border">
-            <p className="text-xs text-muted-foreground">Total pago</p>
-            <p className="text-lg font-bold text-marketplace-red">{formatCurrency(total)}</p>
+        </div>
+
+        <div className="max-w-lg mx-auto p-4 space-y-4">
+          {/* Timer banner */}
+          <div className="bg-marketplace-red rounded-xl py-3 px-4 flex items-center justify-center gap-2">
+            <Clock className="w-4 h-4 text-white" />
+            <span className="text-white text-sm font-bold">{pixTimeLeft}</span>
+            <span className="text-white/80 text-sm">para pagar</span>
+          </div>
+
+          {/* QR Code section */}
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="p-5 text-center space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Efetue o pagamento agora mesmo<br />escaneando o QR Code
+              </p>
+              <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1">
+                📱 Aponte a câmera do seu celular
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                Valor no pix: <span className="text-marketplace-red">{formatCurrency(total)}</span>
+              </p>
+              <div className="flex justify-center py-2">
+                <img src={pixData.qrCodeBase64} alt="QR Code PIX" className="w-44 h-44" />
+              </div>
+            </div>
+
+            {/* Destination info */}
+            <div className="bg-muted/50 border-t border-border px-5 py-3 text-center">
+              <p className="text-[11px] text-muted-foreground">
+                O Pix será destinado à empresa que realiza o<br />processamento seguro dos nossos pagamentos:
+              </p>
+              <p className="text-sm font-semibold text-foreground mt-1">Pagamento Seguro</p>
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-card rounded-xl border border-border p-5 space-y-3">
+            <p className="text-sm font-semibold text-foreground text-center">Como pagar o seu pedido</p>
+            <div className="space-y-3">
+              <div className="flex gap-3 items-start">
+                <span className="text-muted-foreground text-xs mt-0.5">📱</span>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Abra o aplicativo do seu banco e selecione <strong className="text-foreground">QR Code</strong> na opção de pagamento por <strong className="text-foreground">PIX</strong>.
+                </p>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="text-muted-foreground text-xs mt-0.5">📷</span>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Utilize a câmera do celular para <strong className="text-foreground">escanear o QR Code</strong>, certifique-se que os dados estão corretos e finalize o pagamento.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 px-4">
+            <div className="flex-1 border-t border-border" />
+            <span className="text-xs text-muted-foreground">ou</span>
+            <div className="flex-1 border-t border-border" />
+          </div>
+
+          {/* Copy paste button */}
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(pixData.copyPaste);
+              setShowCopyPaste(true);
+              toast.success("Código PIX copiado!");
+            }}
+            className="w-full py-4 rounded-xl bg-marketplace-red text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg"
+          >
+            📋 UTILIZAR PIX COPIA E COLA
+          </button>
+
+          {showCopyPaste && (
+            <div className="bg-card rounded-xl border border-border p-4">
+              <p className="text-xs text-muted-foreground mb-2">Código PIX copiado:</p>
+              <p className="text-[10px] text-foreground break-all font-mono bg-muted p-2 rounded-lg">{pixData.copyPaste}</p>
+            </div>
+          )}
+
+          {/* Awaiting payment */}
+          <div className="flex items-center justify-center gap-2 py-4">
+            <div className="w-4 h-4 border-2 border-marketplace-red border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-muted-foreground">Aguardando confirmação do pagamento...</span>
           </div>
         </div>
       </div>
