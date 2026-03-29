@@ -104,8 +104,32 @@ const CheckoutPage = () => {
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
     );
   };
+  const handleCepChange = async (value: string) => {
+    const cleaned = value.replace(/\D/g, "");
+    const formatted = cleaned.length > 5 ? `${cleaned.slice(0, 5)}-${cleaned.slice(5, 8)}` : cleaned;
+    setCustomerCep(formatted);
 
-  const handleSubmitOrder = async () => {
+    if (cleaned.length === 8) {
+      setCepLoading(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleaned}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setCustomerAddress(data.logradouro || "");
+          setCustomerNeighborhood(data.bairro || "");
+          setCustomerCity(data.localidade || "");
+          setCustomerState(data.uf || "");
+          setCustomerComplement(data.complemento || "");
+        }
+      } catch {
+        // silently fail
+      } finally {
+        setCepLoading(false);
+      }
+    }
+  };
+
+
     if (!customerName || !customerEmail || !customerPhone || !customerDocument) {
       setShowForm(true);
       toast.error("Preencha todos os campos obrigatórios");
