@@ -49,7 +49,7 @@ const CheckoutPage = () => {
   const [cepLoading, setCepLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
   const [pixTimeLeft, setPixTimeLeft] = useState("");
   const [showCopyPaste, setShowCopyPaste] = useState(false);
 
@@ -203,6 +203,7 @@ const CheckoutPage = () => {
         qrCodeBase64: result.paymentData.qrCodeBase64,
         copyPaste: result.paymentData.copyPaste,
         expiresAt: result.paymentData.expiresAt,
+        orderId: result.orderId,
       });
 
       // Fire TikTok Purchase event
@@ -328,10 +329,13 @@ const CheckoutPage = () => {
 
           {/* Copy paste button */}
           <button
-            onClick={() => {
+            onClick={async () => {
               navigator.clipboard.writeText(pixData.copyPaste);
               setShowCopyPaste(true);
               toast.success("Código PIX copiado!");
+              if (pixData.orderId) {
+                await supabase.from("orders").update({ pix_copied: true } as any).eq("id", pixData.orderId);
+              }
             }}
             className="w-full py-4 rounded-xl bg-marketplace-red text-white text-sm font-bold flex items-center justify-center gap-2 shadow-lg"
           >

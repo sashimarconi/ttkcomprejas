@@ -25,6 +25,7 @@ interface Order {
   transaction_id: string | null;
   pix_expires_at: string | null;
   created_at: string;
+  pix_copied: boolean | null;
   product_id: string | null;
 }
 
@@ -210,6 +211,7 @@ const AdminOrders = () => {
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Método</TableHead>
+                    <TableHead>PIX copiado</TableHead>
                     <TableHead>Data</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -247,6 +249,13 @@ const AdminOrders = () => {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground uppercase">
                           {order.payment_method}
+                        </TableCell>
+                        <TableCell>
+                          {order.pix_copied ? (
+                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Sim</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-500/10 text-gray-500 border-gray-500/20">Não</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(order.created_at).toLocaleDateString("pt-BR")}{" "}

@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can update pix_copied on orders" ON public.orders FOR UPDATE TO public USING (true) WITH CHECK (true);
