@@ -47,6 +47,7 @@ const App = () => (
             <Route path="order-bumps" element={<AdminOrderBumps />} />
             <Route path="checkout" element={<AdminCheckoutSettings />} />
             <Route path="pixels" element={<AdminPixels />} />
+            <Route path="stores" element={<AdminStores />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

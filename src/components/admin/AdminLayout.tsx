@@ -16,6 +16,7 @@ const navItems = [
   { label: "Bumps", path: "/admin/order-bumps", icon: Tag },
   { label: "Checkout", path: "/admin/checkout", icon: ShoppingBag },
   { label: "Pixels", path: "/admin/pixels", icon: BarChart3 },
+  { label: "Lojas", path: "/admin/stores", icon: Store },
 ];
 
 const AdminLayout = () => {
