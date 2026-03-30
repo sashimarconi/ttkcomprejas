@@ -1,11 +1,15 @@
 import { Star, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { StoreInfo } from "@/data/mockData";
 
 interface StoreCardProps {
   store: StoreInfo;
+  storeSlug?: string;
 }
 
-const StoreCard = ({ store }: StoreCardProps) => {
+const StoreCard = ({ store, storeSlug }: StoreCardProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-card px-4 py-3 mt-2">
       <div className="flex items-center justify-between">
@@ -27,7 +31,10 @@ const StoreCard = ({ store }: StoreCardProps) => {
             </div>
           </div>
         </div>
-        <button className="flex items-center gap-1 bg-marketplace-red text-primary-foreground text-xs font-semibold px-4 py-2 rounded-full">
+        <button
+          onClick={() => storeSlug && navigate(`/loja/${storeSlug}`)}
+          className="flex items-center gap-1 bg-marketplace-red text-primary-foreground text-xs font-semibold px-4 py-2 rounded-full"
+        >
           Visitar
           <ChevronRight className="w-3 h-3" />
         </button>
