@@ -172,8 +172,8 @@ const ProductPage = () => {
             store={{
               name: productStore.name,
               avatar: productStore.logo_url || "",
-              totalSales: "0",
-              rating: 0,
+              totalSales: productStore.total_sales || "0",
+              rating: Number(productStore.rating) || 5.0,
             }}
             storeSlug={productStore.slug}
           />
