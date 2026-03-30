@@ -19,6 +19,8 @@ interface StoreForm {
   description: string;
   logo_url: string;
   active: boolean;
+  rating: number;
+  total_sales: string;
 }
 
 const emptyForm: StoreForm = {
@@ -27,6 +29,8 @@ const emptyForm: StoreForm = {
   description: "",
   logo_url: "",
   active: true,
+  rating: 5.0,
+  total_sales: "0",
 };
 
 const AdminStores = () => {
