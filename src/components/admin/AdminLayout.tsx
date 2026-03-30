@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Star, Settings, ShieldCheck, LogOut, Menu, X, CreditCard, Truck, Tag, ShoppingBag, BarChart3, LayoutDashboard, ClipboardList } from "lucide-react";
+import { Package, Star, Settings, ShieldCheck, LogOut, Menu, X, CreditCard, Truck, Tag, ShoppingBag, BarChart3, LayoutDashboard, ClipboardList, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -16,6 +16,7 @@ const navItems = [
   { label: "Bumps", path: "/admin/order-bumps", icon: Tag },
   { label: "Checkout", path: "/admin/checkout", icon: ShoppingBag },
   { label: "Pixels", path: "/admin/pixels", icon: BarChart3 },
+  { label: "Lojas", path: "/admin/stores", icon: Store },
 ];
 
 const AdminLayout = () => {
