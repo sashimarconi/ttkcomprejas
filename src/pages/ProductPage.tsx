@@ -26,14 +26,16 @@ const ProductPage = () => {
     enabled: !!slug,
   });
 
-  const { data: allProducts } = useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
+  const { data: productStore } = useQuery({
+    queryKey: ["product-store", product?.id],
+    queryFn: () => fetchStoreForProduct(product!.id),
+    enabled: !!product?.id,
   });
 
-  const { data: store } = useQuery({
-    queryKey: ["store-settings"],
-    queryFn: fetchStoreSettings,
+  const { data: storeProducts } = useQuery({
+    queryKey: ["store-products", productStore?.id],
+    queryFn: () => fetchStoreProducts(productStore!.id),
+    enabled: !!productStore?.id,
   });
 
   const reviewsRef = useRef<HTMLDivElement>(null);
