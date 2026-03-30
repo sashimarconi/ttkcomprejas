@@ -222,6 +222,28 @@ const AdminStores = () => {
                   placeholder="https://..."
                 />
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Avaliação</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={form.rating}
+                    onChange={(e) => setForm((f) => ({ ...f, rating: parseFloat(e.target.value) || 0 }))}
+                    placeholder="4.9"
+                  />
+                </div>
+                <div>
+                  <Label>Total de Vendas</Label>
+                  <Input
+                    value={form.total_sales}
+                    onChange={(e) => setForm((f) => ({ ...f, total_sales: e.target.value }))}
+                    placeholder="35.4K"
+                  />
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <Switch checked={form.active} onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))} />
                 <Label>Ativa</Label>
