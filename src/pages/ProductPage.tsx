@@ -57,7 +57,7 @@ const ProductPage = () => {
     );
   }
 
-  const otherProducts = allProducts?.filter((p) => p.id !== product.id) || [];
+  const otherProducts = (storeProducts || []).filter((p) => p.id !== product.id);
 
   const images = (product.product_images || []).map((img) => ({
     id: img.id,
