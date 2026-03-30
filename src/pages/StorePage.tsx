@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Star } from "lucide-react";
 import { fetchStoreBySlug, fetchStoreProducts } from "@/lib/supabase-queries";
 import { formatCurrency } from "@/data/mockData";
 import ProductHeader from "@/components/product/ProductHeader";
@@ -47,6 +48,14 @@ const StorePage = () => {
             {store.description && (
               <p className="text-sm text-muted-foreground mt-1">{store.description}</p>
             )}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-0.5">
+                <Star className="w-3 h-3 fill-marketplace-yellow text-marketplace-yellow" />
+                {Number(store.rating || 5).toFixed(1)}
+              </span>
+              <span>•</span>
+              <span>{store.total_sales || "0"} vendidos</span>
+            </div>
           </div>
         </div>
 

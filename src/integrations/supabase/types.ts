@@ -553,8 +553,10 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          rating: number | null
           slug: string
           sort_order: number | null
+          total_sales: string | null
           updated_at: string
         }
         Insert: {
@@ -564,8 +566,10 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          rating?: number | null
           slug: string
           sort_order?: number | null
+          total_sales?: string | null
           updated_at?: string
         }
         Update: {
@@ -575,8 +579,10 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          rating?: number | null
           slug?: string
           sort_order?: number | null
+          total_sales?: string | null
           updated_at?: string
         }
         Relationships: []

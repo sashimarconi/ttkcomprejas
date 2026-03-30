@@ -108,7 +108,7 @@ export async function fetchStoreForProduct(productId: string) {
     .from("store_products")
     .select(`
       stores:store_id (
-        id, name, slug, logo_url, description
+        id, name, slug, logo_url, description, rating, total_sales
       )
     `)
     .eq("product_id", productId)

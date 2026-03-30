@@ -19,6 +19,8 @@ interface StoreForm {
   description: string;
   logo_url: string;
   active: boolean;
+  rating: number;
+  total_sales: string;
 }
 
 const emptyForm: StoreForm = {
@@ -27,6 +29,8 @@ const emptyForm: StoreForm = {
   description: "",
   logo_url: "",
   active: true,
+  rating: 5.0,
+  total_sales: "0",
 };
 
 const AdminStores = () => {
@@ -132,6 +136,8 @@ const AdminStores = () => {
       description: store.description || "",
       logo_url: store.logo_url || "",
       active: store.active ?? true,
+      rating: Number(store.rating) || 5.0,
+      total_sales: store.total_sales || "0",
     });
     setDialogOpen(true);
   };
@@ -215,6 +221,28 @@ const AdminStores = () => {
                   onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))}
                   placeholder="https://..."
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Avaliação</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={form.rating}
+                    onChange={(e) => setForm((f) => ({ ...f, rating: parseFloat(e.target.value) || 0 }))}
+                    placeholder="4.9"
+                  />
+                </div>
+                <div>
+                  <Label>Total de Vendas</Label>
+                  <Input
+                    value={form.total_sales}
+                    onChange={(e) => setForm((f) => ({ ...f, total_sales: e.target.value }))}
+                    placeholder="35.4K"
+                  />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={form.active} onCheckedChange={(v) => setForm((f) => ({ ...f, active: v }))} />
