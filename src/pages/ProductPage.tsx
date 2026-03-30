@@ -167,14 +167,15 @@ const ProductPage = () => {
           )}
         </div>
 
-        {store && (
+        {productStore && (
           <StoreCard
             store={{
-              name: store.name,
-              avatar: store.avatar_url || "",
-              totalSales: store.total_sales || "0",
-              rating: Number(store.rating) || 0,
+              name: productStore.name,
+              avatar: productStore.logo_url || "",
+              totalSales: "0",
+              rating: 0,
             }}
+            storeSlug={productStore.slug}
           />
         )}
 
