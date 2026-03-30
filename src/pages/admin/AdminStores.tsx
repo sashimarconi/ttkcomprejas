@@ -136,6 +136,8 @@ const AdminStores = () => {
       description: store.description || "",
       logo_url: store.logo_url || "",
       active: store.active ?? true,
+      rating: Number(store.rating) || 5.0,
+      total_sales: store.total_sales || "0",
     });
     setDialogOpen(true);
   };
