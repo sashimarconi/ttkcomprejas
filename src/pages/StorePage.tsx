@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Star } from "lucide-react";
 import { fetchStoreBySlug, fetchStoreProducts } from "@/lib/supabase-queries";
 import { formatCurrency } from "@/data/mockData";
 import ProductHeader from "@/components/product/ProductHeader";
