@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { usePageTracking, useVisitorHeartbeat } from "@/hooks/usePageTracking";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProductBySlug, fetchProducts, fetchStoreSettings } from "@/lib/supabase-queries";
+import { fetchProductBySlug, fetchStoreForProduct, fetchStoreProducts, fetchStoreSettings } from "@/lib/supabase-queries";
 import ProductHeader from "@/components/product/ProductHeader";
 import ProductGallery from "@/components/product/ProductGallery";
 import PricingBlock from "@/components/product/PricingBlock";
@@ -26,14 +26,16 @@ const ProductPage = () => {
     enabled: !!slug,
   });
 
-  const { data: allProducts } = useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
+  const { data: productStore } = useQuery({
+    queryKey: ["product-store", product?.id],
+    queryFn: () => fetchStoreForProduct(product!.id),
+    enabled: !!product?.id,
   });
 
-  const { data: store } = useQuery({
-    queryKey: ["store-settings"],
-    queryFn: fetchStoreSettings,
+  const { data: storeProducts } = useQuery({
+    queryKey: ["store-products", productStore?.id],
+    queryFn: () => fetchStoreProducts(productStore!.id),
+    enabled: !!productStore?.id,
   });
 
   const reviewsRef = useRef<HTMLDivElement>(null);
@@ -55,7 +57,7 @@ const ProductPage = () => {
     );
   }
 
-  const otherProducts = allProducts?.filter((p) => p.id !== product.id) || [];
+  const otherProducts = (storeProducts || []).filter((p) => p.id !== product.id);
 
   const images = (product.product_images || []).map((img) => ({
     id: img.id,
@@ -165,14 +167,15 @@ const ProductPage = () => {
           )}
         </div>
 
-        {store && (
+        {productStore && (
           <StoreCard
             store={{
-              name: store.name,
-              avatar: store.avatar_url || "",
-              totalSales: store.total_sales || "0",
-              rating: Number(store.rating) || 0,
+              name: productStore.name,
+              avatar: productStore.logo_url || "",
+              totalSales: "0",
+              rating: 0,
             }}
+            storeSlug={productStore.slug}
           />
         )}
 

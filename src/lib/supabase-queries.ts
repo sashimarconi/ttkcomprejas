@@ -70,6 +70,55 @@ export async function fetchStoreSettings() {
   return data;
 }
 
+export async function fetchStoreBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("stores")
+    .select("*")
+    .eq("slug", slug)
+    .eq("active", true)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchStoreProducts(storeId: string) {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select(`
+      product_id,
+      sort_order,
+      products:product_id (
+        *,
+        product_images(id, url, alt, sort_order)
+      )
+    `)
+    .eq("store_id", storeId)
+    .order("sort_order");
+
+  if (error) throw error;
+  // Flatten the joined data
+  return (data || [])
+    .map((sp: any) => sp.products)
+    .filter(Boolean) as ProductWithRelations[];
+}
+
+export async function fetchStoreForProduct(productId: string) {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select(`
+      stores:store_id (
+        id, name, slug, logo_url, description
+      )
+    `)
+    .eq("product_id", productId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as any)?.stores || null;
+}
+
 export async function fetchTrustBadges() {
   const { data, error } = await supabase
     .from("trust_badges")
