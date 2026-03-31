@@ -193,7 +193,21 @@ const ProductPage = () => {
 
       <FixedFooter
         freeShipping={product.free_shipping || false}
-        onBuyNow={handleBuyNow}
+        onBuyNow={() => setBuySheetOpen(true)}
+      />
+
+      <BuySheet
+        open={buySheetOpen}
+        onClose={() => setBuySheetOpen(false)}
+        onConfirm={handleBuyNow}
+        title={product.title}
+        image={images[0]?.url || ""}
+        originalPrice={Number(product.original_price)}
+        salePrice={Number(product.sale_price)}
+        discountPercent={product.discount_percent}
+        flashSale={product.flash_sale || false}
+        flashSaleEndsIn={product.flash_sale_ends_in || ""}
+        variants={variants}
       />
     </div>
   );
