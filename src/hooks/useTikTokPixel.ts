@@ -25,6 +25,7 @@ const activeTikTokPixelIds = new Set<string>();
 const queuedTikTokEvents: QueuedTikTokEvent[] = [];
 let tikTokLibraryLoaded = false;
 let tikTokReadyHandlerRegistered = false;
+let retryTimerActive = false;
 
 function markTikTokLibraryLoaded() {
   if (tikTokLibraryLoaded) return;
@@ -154,6 +155,23 @@ function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, a
     pixelIds: Array.from(activeTikTokPixelIds),
     libraryLoaded: tikTokLibraryLoaded,
   });
+
+  // Auto-retry: poll until SDK is ready (max 30s)
+  if (!retryTimerActive) {
+    retryTimerActive = true;
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      flushQueuedTikTokEvents();
+      if (queuedTikTokEvents.length === 0 || attempts >= 30) {
+        clearInterval(interval);
+        retryTimerActive = false;
+        if (queuedTikTokEvents.length > 0) {
+          console.error("[TikTok Pixel] Desistiu de enviar eventos após 30 tentativas.");
+        }
+      }
+    }, 1000);
+  }
 }
 
 function flushQueuedTikTokEvents() {

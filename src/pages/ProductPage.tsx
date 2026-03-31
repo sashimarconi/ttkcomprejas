@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { usePageTracking, useVisitorHeartbeat } from "@/hooks/usePageTracking";
+import { useTikTokPixel } from "@/hooks/useTikTokPixel";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProductBySlug, fetchStoreForProduct, fetchStoreProducts, fetchStoreSettings } from "@/lib/supabase-queries";
@@ -20,6 +21,7 @@ const ProductPage = () => {
   const navigate = useNavigate();
   usePageTracking("page_view");
   useVisitorHeartbeat();
+  useTikTokPixel(); // Pre-load pixel so it's ready by checkout
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
