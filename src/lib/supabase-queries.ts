@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export interface VariantGroup {
+  id: string;
+  name: string;
+  sort_order: number | null;
+}
+
 export interface ProductWithRelations {
   id: string;
   slug: string;
@@ -23,7 +29,8 @@ export interface ProductWithRelations {
   sort_order: number | null;
   video_url: string | null;
   product_images: { id: string; url: string; alt: string | null; sort_order: number | null }[];
-  product_variants: { id: string; name: string; color: string | null; thumbnail_url: string | null; sort_order: number | null }[];
+  product_variants: { id: string; name: string; color: string | null; thumbnail_url: string | null; sort_order: number | null; variant_group_id: string | null }[];
+  variant_groups: VariantGroup[];
   reviews: { id: string; user_name: string; user_avatar_url: string | null; city: string | null; rating: number; comment: string | null; photos: string[] | null; review_date: string | null }[];
 }
 
@@ -33,7 +40,8 @@ export async function fetchProducts() {
     .select(`
       *,
       product_images(id, url, alt, sort_order),
-      product_variants(id, name, color, thumbnail_url, sort_order),
+      product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
+      variant_groups(id, name, sort_order),
       reviews(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)
     `)
     .eq("active", true)
@@ -49,7 +57,8 @@ export async function fetchProductBySlug(slug: string) {
     .select(`
       *,
       product_images(id, url, alt, sort_order),
-      product_variants(id, name, color, thumbnail_url, sort_order),
+      product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
+      variant_groups(id, name, sort_order),
       reviews(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)
     `)
     .eq("slug", slug)

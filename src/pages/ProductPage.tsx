@@ -43,13 +43,18 @@ const ProductPage = () => {
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [buySheetOpen, setBuySheetOpen] = useState(false);
 
-  const handleBuyNow = (selectedVariant: string | null, quantity: number) => {
+  const handleBuyNow = (selectedVariants: Record<string, string> | string | null, quantity: number) => {
     setBuySheetOpen(false);
     if (product?.checkout_type === "external" && product.external_checkout_url) {
       window.open(product.external_checkout_url, "_blank");
     } else {
       const params = new URLSearchParams();
-      if (selectedVariant) params.set("variant", selectedVariant);
+      if (typeof selectedVariants === "string") {
+        params.set("variant", selectedVariants);
+      } else if (selectedVariants && typeof selectedVariants === "object") {
+        const variantValues = Object.values(selectedVariants).join(",");
+        if (variantValues) params.set("variant", variantValues);
+      }
       if (quantity > 1) params.set("qty", String(quantity));
       navigate(`/checkout/${slug}?${params.toString()}`);
     }
@@ -76,6 +81,12 @@ const ProductPage = () => {
     name: v.name,
     color: v.color || "",
     thumbnail: v.thumbnail_url || "",
+    groupId: v.variant_group_id || null,
+  }));
+
+  const variantGroups = (product.variant_groups || []).map((g) => ({
+    id: g.id,
+    name: g.name,
   }));
 
   const reviews = (product.reviews || []).map((r) => ({
@@ -132,6 +143,7 @@ const ProductPage = () => {
           reviewCount={product.review_count || 0}
           soldCount={product.sold_count || 0}
           variants={variants}
+          variantGroups={variantGroups}
         />
         <ShippingInfo
           freeShipping={product.free_shipping || false}
@@ -214,6 +226,7 @@ const ProductPage = () => {
         flashSale={product.flash_sale || false}
         flashSaleEndsIn={product.flash_sale_ends_in || ""}
         variants={variants}
+        variantGroups={variantGroups}
       />
     </div>
   );

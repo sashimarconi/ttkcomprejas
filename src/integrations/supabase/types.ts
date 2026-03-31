@@ -277,6 +277,7 @@ export type Database = {
           product_id: string
           sort_order: number | null
           thumbnail_url: string | null
+          variant_group_id: string | null
         }
         Insert: {
           color?: string | null
@@ -286,6 +287,7 @@ export type Database = {
           product_id: string
           sort_order?: number | null
           thumbnail_url?: string | null
+          variant_group_id?: string | null
         }
         Update: {
           color?: string | null
@@ -295,6 +297,7 @@ export type Database = {
           product_id?: string
           sort_order?: number | null
           thumbnail_url?: string | null
+          variant_group_id?: string | null
         }
         Relationships: [
           {
@@ -302,6 +305,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_variant_group_id_fkey"
+            columns: ["variant_group_id"]
+            isOneToOne: false
+            referencedRelation: "variant_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -643,6 +653,38 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      variant_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          product_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          product_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          product_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_groups_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visitor_sessions: {
         Row: {
