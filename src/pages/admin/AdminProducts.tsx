@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Image as ImageIcon, Palette } from "lucide-react";
 
 interface ProductForm {
   slug: string;
@@ -58,11 +58,15 @@ const emptyForm: ProductForm = {
 const AdminProducts = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageAlt, setNewImageAlt] = useState("");
+  const [newVariantName, setNewVariantName] = useState("");
+  const [newVariantColor, setNewVariantColor] = useState("#000000");
+  const [newVariantThumbnail, setNewVariantThumbnail] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -84,6 +88,21 @@ const AdminProducts = () => {
       if (!selectedProductId) return [];
       const { data, error } = await supabase
         .from("product_images")
+        .select("*")
+        .eq("product_id", selectedProductId)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProductId,
+  });
+
+  const { data: productVariants } = useQuery({
+    queryKey: ["product-variants", selectedProductId],
+    queryFn: async () => {
+      if (!selectedProductId) return [];
+      const { data, error } = await supabase
+        .from("product_variants")
         .select("*")
         .eq("product_id", selectedProductId)
         .order("sort_order");
@@ -139,6 +158,29 @@ const AdminProducts = () => {
     },
   });
 
+  const addVariantMutation = useMutation({
+    mutationFn: async ({ product_id, name, color, thumbnail_url }: { product_id: string; name: string; color: string; thumbnail_url: string }) => {
+      const { error } = await supabase.from("product_variants").insert({ product_id, name, color, thumbnail_url });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
+      setNewVariantName("");
+      setNewVariantColor("#000000");
+      setNewVariantThumbnail("");
+      toast({ title: "Variante adicionada!" });
+    },
+  });
+
+  const deleteVariantMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("product_variants").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
+    },
+  });
   const deleteImageMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("product_images").delete().eq("id", id);
@@ -219,6 +261,9 @@ const AdminProducts = () => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => { setSelectedProductId(product.id); setVariantDialogOpen(true); }} title="Variantes">
+                <Palette className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => { setSelectedProductId(product.id); setImageDialogOpen(true); }}>
                 <ImageIcon className="w-4 h-4" />
               </Button>
@@ -422,6 +467,56 @@ const AdminProducts = () => {
                 onClick={() => selectedProductId && addImageMutation.mutate({ product_id: selectedProductId, url: newImageUrl, alt: newImageAlt })}
               >
                 <Plus className="w-4 h-4 mr-1" /> Adicionar Imagem
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Variants dialog */}
+      <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Variantes do Produto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {productVariants?.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 bg-muted/50 p-2 rounded-lg">
+                {v.thumbnail_url ? (
+                  <img src={v.thumbnail_url} alt={v.name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: v.color || '#ccc' }} />
+                ) : (
+                  <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center" style={{ borderColor: v.color || '#ccc', backgroundColor: v.color || '#eee' }}>
+                    <span className="text-[10px] text-white font-bold">{v.name.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{v.name}</p>
+                  <p className="text-xs text-muted-foreground">{v.color}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => deleteVariantMutation.mutate(v.id)}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {productVariants?.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma variante cadastrada</p>
+            )}
+
+            <div className="border-t border-border pt-3 space-y-2">
+              <Input placeholder="Nome (ex: Preta, G, 110V)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} />
+              <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-1">
+                  <Label className="text-xs whitespace-nowrap">Cor</Label>
+                  <Input type="color" value={newVariantColor} onChange={(e) => setNewVariantColor(e.target.value)} className="w-10 h-9 p-1 cursor-pointer" />
+                  <Input value={newVariantColor} onChange={(e) => setNewVariantColor(e.target.value)} placeholder="#000000" className="flex-1" />
+                </div>
+              </div>
+              <Input placeholder="URL da thumbnail (opcional)" value={newVariantThumbnail} onChange={(e) => setNewVariantThumbnail(e.target.value)} />
+              <Button
+                className="w-full"
+                disabled={!newVariantName || !selectedProductId}
+                onClick={() => selectedProductId && addVariantMutation.mutate({ product_id: selectedProductId, name: newVariantName, color: newVariantColor, thumbnail_url: newVariantThumbnail })}
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar Variante
               </Button>
             </div>
           </div>
