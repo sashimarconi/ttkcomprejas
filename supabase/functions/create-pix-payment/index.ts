@@ -70,7 +70,7 @@ async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl
   };
 }
 
-async function callGhostsPay(gateway: any, body: any, items: any[]) {
+async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: string) {
   const products = items.map((item) => ({
     product_name: item.title,
     quantity: item.quantity,
@@ -90,6 +90,8 @@ async function callGhostsPay(gateway: any, body: any, items: any[]) {
       client_document: body.customerDocument.replace(/\D/g, ""),
       client_mobile_phone: body.customerPhone.replace(/\D/g, ""),
       products,
+      webhook_url: webhookUrl,
+      callbackUrl: webhookUrl,
     }),
   });
   const data = await res.json();
@@ -97,7 +99,7 @@ async function callGhostsPay(gateway: any, body: any, items: any[]) {
   return {
     transactionId: data.data?.id,
     qrCode: data.data?.pix?.qrCode,
-    copyPaste: data.data?.pix?.qrCode, // GhostsPay uses qrCode as copy-paste
+    copyPaste: data.data?.pix?.qrCode,
     qrCodeBase64: data.data?.pix?.qrCodeBase64,
     expiresAt: data.data?.pix?.expiresAt,
   };
