@@ -193,7 +193,13 @@ const ProductPage = () => {
 
       <FixedFooter
         freeShipping={product.free_shipping || false}
-        onBuyNow={() => setBuySheetOpen(true)}
+        onBuyNow={() => {
+          if (variants.length > 0) {
+            setBuySheetOpen(true);
+          } else {
+            handleBuyNow(null, 1);
+          }
+        }}
       />
 
       <BuySheet
