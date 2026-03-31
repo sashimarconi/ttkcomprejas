@@ -77,11 +77,30 @@ export function useTikTokPixel() {
 }
 
 export function trackTikTokPurchase(value: number, currency = "BRL") {
-  if (window.ttq) {
-    window.ttq.track("CompletePayment", {
-      content_type: "product",
-      value,
-      currency,
-    });
+  try {
+    if (window.ttq) {
+      console.log("[TikTok Pixel] Firing CompletePayment:", { value, currency });
+      window.ttq.track("CompletePayment", {
+        content_type: "product",
+        value,
+        currency,
+      });
+    } else {
+      console.warn("[TikTok Pixel] ttq not available, retrying in 2s...");
+      setTimeout(() => {
+        if (window.ttq) {
+          console.log("[TikTok Pixel] Retry: Firing CompletePayment:", { value, currency });
+          window.ttq.track("CompletePayment", {
+            content_type: "product",
+            value,
+            currency,
+          });
+        } else {
+          console.error("[TikTok Pixel] ttq still not available after retry");
+        }
+      }, 2000);
+    }
+  } catch (e) {
+    console.error("[TikTok Pixel] Error:", e);
   }
 }
