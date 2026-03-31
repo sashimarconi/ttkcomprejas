@@ -23,6 +23,25 @@ type TrackTikTokPurchaseOptions = {
 
 const activeTikTokPixelIds = new Set<string>();
 const queuedTikTokEvents: QueuedTikTokEvent[] = [];
+let tikTokLibraryLoaded = false;
+let tikTokReadyHandlerRegistered = false;
+
+function markTikTokLibraryLoaded() {
+  if (tikTokLibraryLoaded) return;
+
+  tikTokLibraryLoaded = true;
+  console.log("[TikTok Pixel] Biblioteca carregada com sucesso.");
+  flushQueuedTikTokEvents();
+}
+
+function registerTikTokReadyHandler(ttq: any) {
+  if (!ttq || tikTokReadyHandlerRegistered || typeof ttq.ready !== "function") return;
+
+  tikTokReadyHandlerRegistered = true;
+  ttq.ready(() => {
+    markTikTokLibraryLoaded();
+  });
+}
 
 function getTikTokQueue() {
   if (typeof window === "undefined") return null;
@@ -30,6 +49,7 @@ function getTikTokQueue() {
   window.TiktokAnalyticsObject = "ttq";
 
   if (window.ttq?.methods) {
+    registerTikTokReadyHandler(window.ttq);
     return window.ttq;
   }
 
@@ -66,15 +86,33 @@ function getTikTokQueue() {
     ttq._o = ttq._o || {};
     ttq._o[e] = n || {};
 
+    const existingScript = document.querySelector(`script[data-tiktok-pixel-id="${e}"]`) as HTMLScriptElement | null;
+    if (existingScript) {
+      if (existingScript.dataset.loaded === "true") {
+        markTikTokLibraryLoaded();
+      }
+      return;
+    }
+
     const o = document.createElement("script");
     o.type = "text/javascript";
     o.async = true;
     o.src = r + "?sdkid=" + e + "&lib=ttq";
+    o.dataset.tiktokPixelId = e;
+    o.dataset.loaded = "false";
+    o.addEventListener("load", () => {
+      o.dataset.loaded = "true";
+      markTikTokLibraryLoaded();
+    }, { once: true });
+    o.addEventListener("error", () => {
+      console.error("[TikTok Pixel] Falha ao carregar o script do pixel.", { pixelId: e });
+    }, { once: true });
 
     const a = document.getElementsByTagName("script")[0];
     a?.parentNode?.insertBefore(o, a);
   };
 
+  registerTikTokReadyHandler(ttq);
   return ttq;
 }
 
@@ -83,41 +121,51 @@ function loadTikTokPixel(pixelId: string) {
   if (!ttq || !pixelId || activeTikTokPixelIds.has(pixelId)) return;
 
   activeTikTokPixelIds.add(pixelId);
+  registerTikTokReadyHandler(ttq);
   ttq.load(pixelId);
 }
 
-function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, allowQueue = true) {
+function dispatchTikTokEvent(eventName: string, payload: Record<string, unknown>) {
   const ttq = getTikTokQueue();
-  if (!ttq) return;
-
-  if (!activeTikTokPixelIds.size) {
-    if (allowQueue) {
-      queuedTikTokEvents.push({ eventName, payload });
-      console.warn("[TikTok Pixel] Nenhum pixel ativo carregado ainda. Evento enfileirado.", {
-        eventName,
-        payload,
-      });
-    }
-    return;
+  if (!ttq || !activeTikTokPixelIds.size || !tikTokLibraryLoaded || typeof ttq.track !== "function") {
+    return false;
   }
 
-  activeTikTokPixelIds.forEach((pixelId) => {
-    const instance = typeof ttq.instance === "function" ? ttq.instance(pixelId) : ttq;
-    instance.track(eventName, payload);
-  });
+  ttq.track(eventName, payload);
 
   console.log("[TikTok Pixel] Evento enviado para os pixels ativos.", {
     eventName,
     payload,
     pixelIds: Array.from(activeTikTokPixelIds),
   });
+
+  return true;
+}
+
+function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, allowQueue = true) {
+  if (dispatchTikTokEvent(eventName, payload)) return;
+
+  if (!allowQueue) return;
+
+  queuedTikTokEvents.push({ eventName, payload });
+  console.warn("[TikTok Pixel] Evento enfileirado aguardando pixels/lib prontos.", {
+    eventName,
+    payload,
+    pixelIds: Array.from(activeTikTokPixelIds),
+    libraryLoaded: tikTokLibraryLoaded,
+  });
 }
 
 function flushQueuedTikTokEvents() {
-  if (!queuedTikTokEvents.length || !activeTikTokPixelIds.size) return;
+  if (!queuedTikTokEvents.length || !activeTikTokPixelIds.size || !tikTokLibraryLoaded) return;
 
   const events = queuedTikTokEvents.splice(0, queuedTikTokEvents.length);
-  events.forEach(({ eventName, payload }) => trackTikTokEvent(eventName, payload, false));
+  events.forEach(({ eventName, payload }) => {
+    const sent = dispatchTikTokEvent(eventName, payload);
+    if (!sent) {
+      queuedTikTokEvents.push({ eventName, payload });
+    }
+  });
 }
 
 export function useTikTokPixel() {
