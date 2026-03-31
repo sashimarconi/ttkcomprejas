@@ -21,6 +21,7 @@ const ProductPage = () => {
   const navigate = useNavigate();
   usePageTracking("page_view");
   useVisitorHeartbeat();
+  useTikTokPixel(); // Pre-load pixel so it's ready by checkout
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
