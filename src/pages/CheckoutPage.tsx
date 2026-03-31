@@ -68,40 +68,6 @@ const CheckoutPage = () => {
     return () => clearInterval(interval);
   }, [pixData?.expiresAt]);
 
-  useEffect(() => {
-    if (!pixData?.orderId || paymentConfirmed) return;
-
-    let cancelled = false;
-    const storageKey = `tiktok_purchase_${pixData.orderId}`;
-
-    const checkPaymentStatus = async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("payment_status")
-        .eq("id", pixData.orderId)
-        .maybeSingle();
-
-      if (cancelled || error || !data) return;
-
-      if (data.payment_status === "paid") {
-        setPaymentConfirmed(true);
-
-        if (!sessionStorage.getItem(storageKey)) {
-          trackTikTokPurchase(total);
-          sessionStorage.setItem(storageKey, "1");
-        }
-      }
-    };
-
-    checkPaymentStatus();
-    const interval = window.setInterval(checkPaymentStatus, 5000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [paymentConfirmed, pixData?.orderId, total]);
-
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
     queryFn: () => fetchProductBySlug(slug!),
@@ -191,6 +157,40 @@ const CheckoutPage = () => {
   const originalSubtotal = Number(product?.original_price || 0) * quantity;
   const discount = originalSubtotal - productSubtotal;
   const total = productSubtotal + shippingCost + bumpsTotal;
+
+  useEffect(() => {
+    if (!pixData?.orderId || paymentConfirmed) return;
+
+    let cancelled = false;
+    const storageKey = `tiktok_purchase_${pixData.orderId}`;
+
+    const checkPaymentStatus = async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("payment_status")
+        .eq("id", pixData.orderId)
+        .maybeSingle();
+
+      if (cancelled || error || !data) return;
+
+      if (data.payment_status === "paid") {
+        setPaymentConfirmed(true);
+
+        if (!sessionStorage.getItem(storageKey)) {
+          trackTikTokPurchase(total);
+          sessionStorage.setItem(storageKey, "1");
+        }
+      }
+    };
+
+    checkPaymentStatus();
+    const interval = window.setInterval(checkPaymentStatus, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [paymentConfirmed, pixData?.orderId, total]);
 
   const toggleBump = (id: string) => {
     setSelectedBumps((prev) =>

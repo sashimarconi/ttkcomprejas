@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Filter, RefreshCw, ShoppingCart, AlertTriangle } from "lucide-react";
 
 interface Order {
@@ -262,9 +262,9 @@ const AdminOrders = () => {
                         </TableCell>
                         <TableCell>
                           {order.pix_copied ? (
-                            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Sim</Badge>
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Sim</Badge>
                           ) : (
-                            <Badge variant="outline" className="bg-gray-500/10 text-gray-500 border-gray-500/20">Não</Badge>
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Não</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
