@@ -33,7 +33,8 @@ export async function fetchProducts() {
     .select(`
       *,
       product_images(id, url, alt, sort_order),
-      product_variants(id, name, color, thumbnail_url, sort_order),
+      product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
+      variant_groups(id, name, sort_order),
       reviews(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)
     `)
     .eq("active", true)
