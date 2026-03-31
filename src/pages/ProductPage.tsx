@@ -225,6 +225,7 @@ const ProductPage = () => {
         flashSale={product.flash_sale || false}
         flashSaleEndsIn={product.flash_sale_ends_in || ""}
         variants={variants}
+        variantGroups={variantGroups}
       />
     </div>
   );
