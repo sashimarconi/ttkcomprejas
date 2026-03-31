@@ -158,7 +158,29 @@ const AdminProducts = () => {
     },
   });
 
-  const deleteImageMutation = useMutation({
+  const addVariantMutation = useMutation({
+    mutationFn: async ({ product_id, name, color, thumbnail_url }: { product_id: string; name: string; color: string; thumbnail_url: string }) => {
+      const { error } = await supabase.from("product_variants").insert({ product_id, name, color, thumbnail_url });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
+      setNewVariantName("");
+      setNewVariantColor("#000000");
+      setNewVariantThumbnail("");
+      toast({ title: "Variante adicionada!" });
+    },
+  });
+
+  const deleteVariantMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("product_variants").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
+    },
+  });
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("product_images").delete().eq("id", id);
       if (error) throw error;
