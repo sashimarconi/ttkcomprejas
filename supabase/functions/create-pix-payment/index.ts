@@ -221,6 +221,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Sanitize expiresAt - fallback to 30 min from now if invalid
+    let safeExpiresAt: string | null = null;
+    if (paymentResult.expiresAt) {
+      const parsed = new Date(paymentResult.expiresAt);
+      if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) {
+        safeExpiresAt = parsed.toISOString();
+      }
+    }
+    if (!safeExpiresAt) {
+      safeExpiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    }
+
     // Save order
     const { data: orderData, error: orderError } = await supabase.from("orders").insert({
       product_id: body.productId,
@@ -240,8 +252,9 @@ Deno.serve(async (req) => {
       pix_qr_code: paymentResult.qrCode,
       pix_copy_paste: paymentResult.copyPaste,
       pix_qr_code_base64: paymentResult.qrCodeBase64,
-      pix_expires_at: paymentResult.expiresAt,
+      pix_expires_at: safeExpiresAt,
       selected_bumps: body.selectedBumps,
+      product_variant: body.productVariant || null,
     }).select("id").single();
 
     if (orderError) {
