@@ -32,7 +32,7 @@ const BodySchema = z.object({
 
 // ─── Gateway-specific payment callers ───
 
-async function callBlackCatPay(gateway: any, body: any, items: any[]) {
+async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl: string) {
   const res = await fetch("https://api.blackcatpay.com.br/api/sales/create-sale", {
     method: "POST",
     headers: {
@@ -54,6 +54,9 @@ async function callBlackCatPay(gateway: any, body: any, items: any[]) {
         },
       },
       pix: { expiresInDays: 1 },
+      webhookUrl,
+      callbackUrl: webhookUrl,
+      notificationUrl: webhookUrl,
     }),
   });
   const data = await res.json();
