@@ -181,6 +181,7 @@ const AdminProducts = () => {
       queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
     },
   });
+  const deleteImageMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("product_images").delete().eq("id", id);
       if (error) throw error;
