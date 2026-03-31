@@ -42,12 +42,51 @@ const isQrImageSource = (value?: string | null) => {
 
 const toBase64QrSource = (value?: string | null) => {
   if (!value) return null;
-  const normalized = value.trim();
+  const normalized = value.trim().replace(/\s/g, "");
   if (!normalized) return null;
 
-  return normalized.startsWith("data:")
-    ? normalized
-    : `data:image/png;base64,${normalized}`;
+  if (normalized.startsWith("data:")) {
+    const [meta, encoded] = normalized.split(",", 2);
+    return encoded ? `${meta},${encoded.replace(/\s/g, "")}` : normalized;
+  }
+
+  return `data:image/png;base64,${normalized}`;
+};
+
+const copyTextToClipboard = async (value: string) => {
+  const text = value.trim();
+  if (!text) return false;
+
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fallback below
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, text.length);
+
+  let copied = false;
+
+  try {
+    copied = document.execCommand("copy");
+  } catch {
+    copied = false;
+  }
+
+  document.body.removeChild(textarea);
+  return copied;
 };
 
 const CheckoutPage = () => {
@@ -110,11 +149,7 @@ const CheckoutPage = () => {
     const qrCode = pixData.qrCode?.trim();
     const qrCodeBase64 = pixData.qrCodeBase64?.trim();
     const copyPaste = pixData.copyPaste?.trim();
-
-    if (isQrImageSource(qrCode)) {
-      setPixQrImageSrc(qrCode!);
-      return;
-    }
+    const imageSource = qrCode && isQrImageSource(qrCode) ? qrCode : null;
 
     const base64Src = toBase64QrSource(qrCodeBase64);
     if (base64Src) {
@@ -122,9 +157,9 @@ const CheckoutPage = () => {
       return;
     }
 
-    const qrPayload = qrCode || copyPaste;
+    const qrPayload = copyPaste || (!imageSource ? qrCode : null);
     if (!qrPayload) {
-      setPixQrImageSrc(null);
+      setPixQrImageSrc(imageSource);
       return;
     }
 
@@ -143,7 +178,7 @@ const CheckoutPage = () => {
       .catch((error) => {
         console.error("Erro ao gerar imagem do QR Code PIX:", error);
         if (!cancelled) {
-          setPixQrImageSrc(null);
+          setPixQrImageSrc(imageSource);
         }
       });
 
@@ -482,6 +517,12 @@ const CheckoutPage = () => {
           <button
             onClick={async () => {
               try {
+                const pixCode = pixData.copyPaste?.trim();
+                if (!pixCode) {
+                  toast.error("Código PIX indisponível no momento");
+                  return;
+                }
+
                 // Mark pix as copied first (even if clipboard fails)
                 if (pixData.orderId) {
                   const { error } = await supabase
@@ -495,11 +536,10 @@ const CheckoutPage = () => {
                   }
                 }
                 setShowCopyPaste(true);
-                try {
-                  await navigator.clipboard.writeText(pixData.copyPaste);
+                const copied = await copyTextToClipboard(pixCode);
+                if (copied) {
                   toast.success("Código PIX copiado!");
-                } catch {
-                  // Fallback: show the code for manual copy
+                } else {
                   toast.success("Código PIX exibido abaixo!");
                 }
               } catch (e) {
@@ -514,7 +554,7 @@ const CheckoutPage = () => {
           {showCopyPaste && (
             <div className="bg-card rounded-xl border border-border p-4">
               <p className="text-xs text-muted-foreground mb-2">Código PIX copiado:</p>
-              <p className="text-[10px] text-foreground break-all font-mono bg-muted p-2 rounded-lg">{pixData.copyPaste}</p>
+              <p className="text-[10px] text-foreground break-all font-mono bg-muted p-2 rounded-lg">{pixData.copyPaste?.trim()}</p>
             </div>
           )}
 
