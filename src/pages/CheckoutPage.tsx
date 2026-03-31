@@ -356,12 +356,19 @@ const CheckoutPage = () => {
           <button
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(pixData.copyPaste);
-                setShowCopyPaste(true);
-                toast.success("Código PIX copiado!");
+                // Mark pix as copied first (even if clipboard fails)
                 if (pixData.orderId) {
-                  const { error } = await supabase.from("orders").update({ pix_copied: true }).eq("id", pixData.orderId);
-                  if (error) console.error("Error updating pix_copied:", error);
+                  supabase.from("orders").update({ pix_copied: true }).eq("id", pixData.orderId).then(({ error }) => {
+                    if (error) console.error("Error updating pix_copied:", error);
+                  });
+                }
+                setShowCopyPaste(true);
+                try {
+                  await navigator.clipboard.writeText(pixData.copyPaste);
+                  toast.success("Código PIX copiado!");
+                } catch {
+                  // Fallback: show the code for manual copy
+                  toast.success("Código PIX exibido abaixo!");
                 }
               } catch (e) {
                 console.error("Copy error:", e);
