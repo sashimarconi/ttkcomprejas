@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Image as ImageIcon, Palette } from "lucide-react";
+import { Plus, Pencil, Trash2, Image as ImageIcon, Palette, ChevronDown, ChevronUp } from "lucide-react";
 
 interface ProductForm {
   slug: string;
@@ -64,8 +64,10 @@ const AdminProducts = () => {
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageAlt, setNewImageAlt] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [newVariantName, setNewVariantName] = useState("");
-  const [newVariantColor, setNewVariantColor] = useState("#000000");
+  const [newVariantColor, setNewVariantColor] = useState("");
   const [newVariantThumbnail, setNewVariantThumbnail] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -97,6 +99,21 @@ const AdminProducts = () => {
     enabled: !!selectedProductId,
   });
 
+  const { data: variantGroups } = useQuery({
+    queryKey: ["variant-groups", selectedProductId],
+    queryFn: async () => {
+      if (!selectedProductId) return [];
+      const { data, error } = await supabase
+        .from("variant_groups")
+        .select("*")
+        .eq("product_id", selectedProductId)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProductId,
+  });
+
   const { data: productVariants } = useQuery({
     queryKey: ["product-variants", selectedProductId],
     queryFn: async () => {
@@ -111,6 +128,11 @@ const AdminProducts = () => {
     },
     enabled: !!selectedProductId,
   });
+
+  const invalidateVariants = () => {
+    queryClient.invalidateQueries({ queryKey: ["variant-groups", selectedProductId] });
+    queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
@@ -158,17 +180,58 @@ const AdminProducts = () => {
     },
   });
 
-  const addVariantMutation = useMutation({
-    mutationFn: async ({ product_id, name, color, thumbnail_url }: { product_id: string; name: string; color: string; thumbnail_url: string }) => {
-      const { error } = await supabase.from("product_variants").insert({ product_id, name, color, thumbnail_url });
+  const deleteImageMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("product_images").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
+      queryClient.invalidateQueries({ queryKey: ["product-images", selectedProductId] });
+    },
+  });
+
+  const addGroupMutation = useMutation({
+    mutationFn: async ({ product_id, name }: { product_id: string; name: string }) => {
+      const { error } = await supabase.from("variant_groups").insert({ product_id, name });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateVariants();
+      setNewGroupName("");
+      toast({ title: "Categoria criada!" });
+    },
+  });
+
+  const deleteGroupMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("variant_groups").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateVariants();
+      toast({ title: "Categoria removida!" });
+    },
+  });
+
+  const addVariantMutation = useMutation({
+    mutationFn: async ({ product_id, name, color, thumbnail_url, variant_group_id }: {
+      product_id: string; name: string; color: string; thumbnail_url: string; variant_group_id: string;
+    }) => {
+      const { error } = await supabase.from("product_variants").insert({
+        product_id,
+        name,
+        color: color || null,
+        thumbnail_url: thumbnail_url || null,
+        variant_group_id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateVariants();
       setNewVariantName("");
-      setNewVariantColor("#000000");
+      setNewVariantColor("");
       setNewVariantThumbnail("");
-      toast({ title: "Variante adicionada!" });
+      toast({ title: "Opção adicionada!" });
     },
   });
 
@@ -178,16 +241,7 @@ const AdminProducts = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product-variants", selectedProductId] });
-    },
-  });
-  const deleteImageMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("product_images").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["product-images", selectedProductId] });
+      invalidateVariants();
     },
   });
 
@@ -472,53 +526,162 @@ const AdminProducts = () => {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Variants dialog */}
-      <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
-        <DialogContent className="max-w-md">
+
+      {/* Variants dialog - grouped */}
+      <Dialog open={variantDialogOpen} onOpenChange={(open) => {
+        setVariantDialogOpen(open);
+        if (!open) {
+          setExpandedGroupId(null);
+          setNewGroupName("");
+          setNewVariantName("");
+          setNewVariantColor("");
+          setNewVariantThumbnail("");
+        }
+      }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Variantes do Produto</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            {productVariants?.map((v) => (
-              <div key={v.id} className="flex items-center gap-3 bg-muted/50 p-2 rounded-lg">
-                {v.thumbnail_url ? (
-                  <img src={v.thumbnail_url} alt={v.name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: v.color || '#ccc' }} />
-                ) : (
-                  <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center" style={{ borderColor: v.color || '#ccc', backgroundColor: v.color || '#eee' }}>
-                    <span className="text-[10px] text-white font-bold">{v.name.charAt(0)}</span>
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground">{v.name}</p>
-                  <p className="text-xs text-muted-foreground">{v.color}</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => deleteVariantMutation.mutate(v.id)}>
-                  <Trash2 className="w-4 h-4 text-destructive" />
+          <div className="space-y-4">
+            {/* Create new group */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Nova categoria de variante</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: Tamanho, Cor, Voltagem..."
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  disabled={!newGroupName || !selectedProductId}
+                  onClick={() => selectedProductId && addGroupMutation.mutate({ product_id: selectedProductId, name: newGroupName })}
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Criar
                 </Button>
               </div>
-            ))}
-            {productVariants?.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma variante cadastrada</p>
+            </div>
+
+            {/* Existing groups */}
+            {variantGroups?.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">
+                Crie uma categoria (ex: "Tamanho", "Cor") para adicionar opções de variante.
+              </p>
             )}
 
-            <div className="border-t border-border pt-3 space-y-2">
-              <Input placeholder="Nome (ex: Preta, G, 110V)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} />
-              <div className="flex gap-2">
-                <div className="flex items-center gap-2 flex-1">
-                  <Label className="text-xs whitespace-nowrap">Cor</Label>
-                  <Input type="color" value={newVariantColor} onChange={(e) => setNewVariantColor(e.target.value)} className="w-10 h-9 p-1 cursor-pointer" />
-                  <Input value={newVariantColor} onChange={(e) => setNewVariantColor(e.target.value)} placeholder="#000000" className="flex-1" />
+            {variantGroups?.map((group) => {
+              const groupVariants = (productVariants || []).filter((v) => v.variant_group_id === group.id);
+              const isExpanded = expandedGroupId === group.id;
+
+              return (
+                <div key={group.id} className="border border-border rounded-lg overflow-hidden">
+                  {/* Group header */}
+                  <div
+                    className="flex items-center justify-between px-3 py-2.5 bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setExpandedGroupId(isExpanded ? null : group.id)}
+                  >
+                    <div className="flex items-center gap-2">
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                      <span className="text-sm font-semibold text-foreground">{group.name}</span>
+                      <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                        {groupVariants.length} opções
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Remover categoria "${group.name}" e todas suas opções?`)) {
+                          deleteGroupMutation.mutate(group.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                    </Button>
+                  </div>
+
+                  {/* Group content */}
+                  {isExpanded && (
+                    <div className="p-3 space-y-3">
+                      {/* Existing variants in this group */}
+                      {groupVariants.map((v) => (
+                        <div key={v.id} className="flex items-center gap-3 bg-muted/20 p-2 rounded-lg">
+                          {v.thumbnail_url ? (
+                            <img src={v.thumbnail_url} alt={v.name} className="w-10 h-10 rounded object-cover border" />
+                          ) : v.color ? (
+                            <div className="w-10 h-10 rounded border" style={{ backgroundColor: v.color }} />
+                          ) : (
+                            <div className="w-10 h-10 rounded border border-border bg-muted flex items-center justify-center">
+                              <span className="text-xs font-medium text-muted-foreground">{v.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground">{v.name}</p>
+                            {v.color && <p className="text-[10px] text-muted-foreground">{v.color}</p>}
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => deleteVariantMutation.mutate(v.id)}>
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+
+                      {/* Add new variant to this group */}
+                      <div className="border-t border-border pt-3 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Adicionar opção</p>
+                        <Input
+                          placeholder="Nome (ex: P, M, G, Preta, 110V...)"
+                          value={expandedGroupId === group.id ? newVariantName : ""}
+                          onChange={(e) => setNewVariantName(e.target.value)}
+                        />
+                        <div className="flex gap-2">
+                          <div className="flex items-center gap-2 flex-1">
+                            <Label className="text-[10px] whitespace-nowrap text-muted-foreground">Cor (opcional)</Label>
+                            <Input
+                              type="color"
+                              value={newVariantColor || "#000000"}
+                              onChange={(e) => setNewVariantColor(e.target.value)}
+                              className="w-8 h-8 p-0.5 cursor-pointer"
+                            />
+                            <Input
+                              value={newVariantColor}
+                              onChange={(e) => setNewVariantColor(e.target.value)}
+                              placeholder="Deixe vazio"
+                              className="flex-1 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <Input
+                          placeholder="URL da thumbnail (opcional)"
+                          value={expandedGroupId === group.id ? newVariantThumbnail : ""}
+                          onChange={(e) => setNewVariantThumbnail(e.target.value)}
+                          className="text-xs"
+                        />
+                        <Button
+                          className="w-full"
+                          size="sm"
+                          disabled={!newVariantName || !selectedProductId}
+                          onClick={() => {
+                            if (selectedProductId) {
+                              addVariantMutation.mutate({
+                                product_id: selectedProductId,
+                                name: newVariantName,
+                                color: newVariantColor,
+                                thumbnail_url: newVariantThumbnail,
+                                variant_group_id: group.id,
+                              });
+                            }
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-1" /> Adicionar Opção
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <Input placeholder="URL da thumbnail (opcional)" value={newVariantThumbnail} onChange={(e) => setNewVariantThumbnail(e.target.value)} />
-              <Button
-                className="w-full"
-                disabled={!newVariantName || !selectedProductId}
-                onClick={() => selectedProductId && addVariantMutation.mutate({ product_id: selectedProductId, name: newVariantName, color: newVariantColor, thumbnail_url: newVariantThumbnail })}
-              >
-                <Plus className="w-4 h-4 mr-1" /> Adicionar Variante
-              </Button>
-            </div>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>
