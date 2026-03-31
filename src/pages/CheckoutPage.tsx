@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import QRCode from "qrcode";
 import { useTikTokPixel, trackTikTokPurchase } from "@/hooks/useTikTokPixel";
 import { usePageTracking, trackEvent } from "@/hooks/usePageTracking";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -27,6 +28,28 @@ interface OrderBump {
   price: number;
 }
 
+const isQrImageSource = (value?: string | null) => {
+  if (!value) return false;
+  const normalized = value.trim();
+
+  return (
+    normalized.startsWith("data:image/") ||
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("/")
+  );
+};
+
+const toBase64QrSource = (value?: string | null) => {
+  if (!value) return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  return normalized.startsWith("data:")
+    ? normalized
+    : `data:image/png;base64,${normalized}`;
+};
+
 const CheckoutPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -51,7 +74,8 @@ const CheckoutPage = () => {
   const [cepLoading, setCepLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCode?: string; qrCodeBase64: string; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCode?: string | null; qrCodeBase64?: string | null; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
+  const [pixQrImageSrc, setPixQrImageSrc] = useState<string | null>(null);
   const [pixTimeLeft, setPixTimeLeft] = useState("");
   const [showCopyPaste, setShowCopyPaste] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
@@ -76,6 +100,57 @@ const CheckoutPage = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [pixData?.expiresAt]);
+
+  useEffect(() => {
+    if (!pixData) {
+      setPixQrImageSrc(null);
+      return;
+    }
+
+    const qrCode = pixData.qrCode?.trim();
+    const qrCodeBase64 = pixData.qrCodeBase64?.trim();
+    const copyPaste = pixData.copyPaste?.trim();
+
+    if (isQrImageSource(qrCode)) {
+      setPixQrImageSrc(qrCode!);
+      return;
+    }
+
+    const base64Src = toBase64QrSource(qrCodeBase64);
+    if (base64Src) {
+      setPixQrImageSrc(base64Src);
+      return;
+    }
+
+    const qrPayload = qrCode || copyPaste;
+    if (!qrPayload) {
+      setPixQrImageSrc(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    QRCode.toDataURL(qrPayload, {
+      width: 176,
+      margin: 1,
+      errorCorrectionLevel: "M",
+    })
+      .then((dataUrl) => {
+        if (!cancelled) {
+          setPixQrImageSrc(dataUrl);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao gerar imagem do QR Code PIX:", error);
+        if (!cancelled) {
+          setPixQrImageSrc(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pixData]);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", slug],
@@ -264,9 +339,9 @@ const CheckoutPage = () => {
       if (!res.ok) throw new Error(result.error || "Erro ao gerar pagamento");
 
       setPixData({
-        qrCode: result.paymentData.qrCode,
-        qrCodeBase64: result.paymentData.qrCodeBase64,
-        copyPaste: result.paymentData.copyPaste,
+        qrCode: typeof result.paymentData?.qrCode === "string" ? result.paymentData.qrCode.trim() : null,
+        qrCodeBase64: typeof result.paymentData?.qrCodeBase64 === "string" ? result.paymentData.qrCodeBase64.trim() : null,
+        copyPaste: typeof result.paymentData?.copyPaste === "string" ? result.paymentData.copyPaste.trim() : "",
         expiresAt: result.paymentData.expiresAt,
         orderId: result.orderId,
       });
@@ -355,14 +430,8 @@ const CheckoutPage = () => {
                 Valor no pix: <span className="text-marketplace-red">{formatCurrency(total)}</span>
               </p>
               <div className="flex justify-center py-2">
-                {pixData.qrCode ? (
-                  <img src={pixData.qrCode} alt="QR Code PIX" className="w-44 h-44" />
-                ) : pixData.qrCodeBase64 ? (
-                  <img 
-                    src={pixData.qrCodeBase64.startsWith("data:") ? pixData.qrCodeBase64 : `data:image/png;base64,${pixData.qrCodeBase64}`} 
-                    alt="QR Code PIX" 
-                    className="w-44 h-44" 
-                  />
+                {pixQrImageSrc ? (
+                  <img src={pixQrImageSrc} alt="QR Code PIX" className="w-44 h-44" />
                 ) : (
                   <p className="text-sm text-muted-foreground">QR Code indisponível</p>
                 )}
