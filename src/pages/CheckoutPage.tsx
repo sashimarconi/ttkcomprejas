@@ -149,7 +149,6 @@ const CheckoutPage = () => {
     const qrCode = pixData.qrCode?.trim();
     const qrCodeBase64 = pixData.qrCodeBase64?.trim();
     const copyPaste = pixData.copyPaste?.trim();
-    const imageSource = qrCode && isQrImageSource(qrCode) ? qrCode : null;
 
     const base64Src = toBase64QrSource(qrCodeBase64);
     if (base64Src) {
@@ -157,7 +156,11 @@ const CheckoutPage = () => {
       return;
     }
 
-    const qrPayload = copyPaste || (!imageSource ? qrCode : null);
+    // Always prefer generating QR locally from EMV code (copyPaste) since
+    // gateway image URLs may be unreliable (404, auth-required, etc.)
+    const qrPayload = copyPaste || qrCode;
+    const imageSource = qrCode && isQrImageSource(qrCode) ? qrCode : null;
+
     if (!qrPayload) {
       setPixQrImageSrc(imageSource);
       return;

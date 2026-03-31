@@ -148,8 +148,8 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
       data.payment_id,
     ),
     qrCode: pickString(
-      toAbsoluteUrl("https://api.ghostspaysv1.com", pix.qr_code_url),
-      toAbsoluteUrl("https://api.ghostspaysv1.com", pix.qr_code_image),
+      toAbsoluteUrl("https://ghostspaysv1.com", pix.qr_code_url),
+      toAbsoluteUrl("https://ghostspaysv1.com", pix.qr_code_image),
       pix.qrCode,
       pix.code,
     ),
@@ -300,8 +300,12 @@ Deno.serve(async (req) => {
     let safeExpiresAt: string | null = null;
     if (paymentResult.expiresAt) {
       const parsed = new Date(paymentResult.expiresAt);
+      const maxExpiry = Date.now() + 30 * 60 * 1000;
       if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) {
-        safeExpiresAt = parsed.toISOString();
+        // Cap expiration at 30 minutes from now (some gateways return 30-day expiry)
+        safeExpiresAt = parsed.getTime() > maxExpiry
+          ? new Date(maxExpiry).toISOString()
+          : parsed.toISOString();
       }
     }
     if (!safeExpiresAt) {
