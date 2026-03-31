@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTikTokPixel, trackTikTokPurchase } from "@/hooks/useTikTokPixel";
 import { usePageTracking, trackEvent } from "@/hooks/usePageTracking";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProductBySlug } from "@/lib/supabase-queries";
@@ -30,6 +30,8 @@ interface OrderBump {
 const CheckoutPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedVariant = searchParams.get("variant");
   useTikTokPixel();
   usePageTracking("checkout_view");
   const [quantity, setQuantity] = useState(1);
@@ -252,6 +254,7 @@ const CheckoutPage = () => {
             selectedBumps: (orderBumps || [])
               .filter((b) => selectedBumps.includes(b.id))
               .map((b) => ({ id: b.id, title: b.title, price: Math.round(Number(b.price) * 100) })),
+            productVariant: selectedVariant || undefined,
           }),
         }
       );
@@ -621,6 +624,9 @@ const CheckoutPage = () => {
           <img src={mainImage} alt={product.title} className="w-16 h-16 rounded-lg object-cover bg-muted" />
           <div className="flex-1 min-w-0">
             <p className="text-xs text-foreground line-clamp-2 leading-snug">{product.title}</p>
+            {selectedVariant && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">{selectedVariant.split(",").join(" · ")}</p>
+            )}
             <div className="mt-1 flex items-center gap-2">
               <span className="text-sm font-bold text-marketplace-red">{formatCurrency(Number(product.sale_price))}</span>
               <span className="text-xs text-muted-foreground line-through">{formatCurrency(Number(product.original_price))}</span>
