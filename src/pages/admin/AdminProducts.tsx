@@ -58,11 +58,15 @@ const emptyForm: ProductForm = {
 const AdminProducts = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [newImageAlt, setNewImageAlt] = useState("");
+  const [newVariantName, setNewVariantName] = useState("");
+  const [newVariantColor, setNewVariantColor] = useState("#000000");
+  const [newVariantThumbnail, setNewVariantThumbnail] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
