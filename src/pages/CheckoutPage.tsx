@@ -354,7 +354,17 @@ const CheckoutPage = () => {
                 Valor no pix: <span className="text-marketplace-red">{formatCurrency(total)}</span>
               </p>
               <div className="flex justify-center py-2">
-                <img src={pixData.qrCodeBase64} alt="QR Code PIX" className="w-44 h-44" />
+                {pixData.qrCode ? (
+                  <img src={pixData.qrCode} alt="QR Code PIX" className="w-44 h-44" />
+                ) : pixData.qrCodeBase64 ? (
+                  <img 
+                    src={pixData.qrCodeBase64.startsWith("data:") ? pixData.qrCodeBase64 : `data:image/png;base64,${pixData.qrCodeBase64}`} 
+                    alt="QR Code PIX" 
+                    className="w-44 h-44" 
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">QR Code indisponível</p>
+                )}
               </div>
             </div>
 
