@@ -87,16 +87,41 @@ const CheckoutPage = () => {
   });
 
   const { data: orderBumps } = useQuery({
-    queryKey: ["order-bumps"],
+    queryKey: ["order-bumps", product?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch all active bumps
+      const { data: allBumps, error } = await supabase
         .from("order_bumps")
         .select("*")
         .eq("active", true)
         .order("sort_order");
       if (error) throw error;
-      return data as OrderBump[];
+
+      if (!product?.id || !allBumps?.length) return allBumps as OrderBump[];
+
+      // Fetch product assignments for these bumps
+      const bumpIds = allBumps.map((b: any) => b.id);
+      const { data: assignments, error: aErr } = await supabase
+        .from("order_bump_products")
+        .select("order_bump_id, product_id")
+        .in("order_bump_id", bumpIds);
+      if (aErr) throw aErr;
+
+      // Group assignments by bump
+      const assignmentMap = new Map<string, string[]>();
+      (assignments || []).forEach((a: any) => {
+        const list = assignmentMap.get(a.order_bump_id) || [];
+        list.push(a.product_id);
+        assignmentMap.set(a.order_bump_id, list);
+      });
+
+      // Filter: show bump if it has no assignments (global) or if product is in its list
+      return (allBumps as OrderBump[]).filter((bump) => {
+        const assigned = assignmentMap.get(bump.id);
+        return !assigned || assigned.length === 0 || assigned.includes(product.id);
+      });
     },
+    enabled: !!product,
   });
 
   const { data: checkoutSettings } = useQuery({
