@@ -43,13 +43,18 @@ const ProductPage = () => {
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [buySheetOpen, setBuySheetOpen] = useState(false);
 
-  const handleBuyNow = (selectedVariant: string | null, quantity: number) => {
+  const handleBuyNow = (selectedVariants: Record<string, string> | string | null, quantity: number) => {
     setBuySheetOpen(false);
     if (product?.checkout_type === "external" && product.external_checkout_url) {
       window.open(product.external_checkout_url, "_blank");
     } else {
       const params = new URLSearchParams();
-      if (selectedVariant) params.set("variant", selectedVariant);
+      if (typeof selectedVariants === "string") {
+        params.set("variant", selectedVariants);
+      } else if (selectedVariants && typeof selectedVariants === "object") {
+        const variantValues = Object.values(selectedVariants).join(",");
+        if (variantValues) params.set("variant", variantValues);
+      }
       if (quantity > 1) params.set("qty", String(quantity));
       navigate(`/checkout/${slug}?${params.toString()}`);
     }
