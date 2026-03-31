@@ -23,45 +23,46 @@ Deno.serve(async (req) => {
     let transactionId: string | null = null;
     let isPaid = false;
 
-    // BlackCatPay format
-    if (body.transactionId && body.status) {
-      transactionId = body.transactionId;
-      isPaid = body.status === "paid" || body.status === "approved" || body.status === "completed";
+    // Check event-level flags first
+    if (body.event === "payment.paid" || body.event === "payment_confirmed" || body.event === "transaction.paid" || body.event === "PAYMENT_RECEIVED") {
+      isPaid = true;
     }
-    // BlackCatPay nested format
+
+    // BlackCatPay format - various field names
+    if (body.transactionId) {
+      transactionId = body.transactionId;
+      if (!isPaid) isPaid = body.status === "paid" || body.status === "approved" || body.status === "completed";
+    }
     if (body.data?.transactionId) {
       transactionId = body.data.transactionId;
-      isPaid = body.data.status === "paid" || body.data.status === "approved" || body.data.status === "completed" || body.status === "paid";
+      if (!isPaid) isPaid = body.data.status === "paid" || body.data.status === "approved" || body.data.status === "completed" || body.status === "paid";
     }
 
     // GhostsPay format
-    if (body.id && body.payment_status) {
+    if (!transactionId && body.id && body.payment_status) {
       transactionId = body.id;
-      isPaid = body.payment_status === "paid" || body.payment_status === "approved" || body.payment_status === "completed";
+      if (!isPaid) isPaid = body.payment_status === "paid" || body.payment_status === "approved" || body.payment_status === "completed";
     }
-    if (body.data?.id && (body.data?.payment_status || body.data?.status)) {
+    if (!transactionId && body.data?.id) {
       transactionId = body.data.id;
       const s = body.data.payment_status || body.data.status;
-      isPaid = s === "paid" || s === "approved" || s === "completed";
+      if (!isPaid && s) isPaid = s === "paid" || s === "approved" || s === "completed";
     }
 
     // Duck format
-    if (body.transaction_id) {
+    if (!transactionId && body.transaction_id) {
       transactionId = body.transaction_id;
-      isPaid = body.status === "paid" || body.status === "approved" || body.status === "completed";
+      if (!isPaid) isPaid = body.status === "paid" || body.status === "approved" || body.status === "completed";
     }
-    if (body.data?.transaction_id) {
+    if (!transactionId && body.data?.transaction_id) {
       transactionId = body.data.transaction_id;
       const s = body.data?.status || body.status;
-      isPaid = s === "paid" || s === "approved" || s === "completed";
+      if (!isPaid && s) isPaid = s === "paid" || s === "approved" || s === "completed";
     }
 
     // Fallback: try common patterns
     if (!transactionId) {
       transactionId = body.transaction_id || body.transactionId || body.id || body.data?.transaction_id || body.data?.transactionId || body.data?.id || null;
-      if (body.event === "payment.paid" || body.event === "payment_confirmed" || body.event === "transaction.paid") {
-        isPaid = true;
-      }
     }
 
     if (!transactionId) {
