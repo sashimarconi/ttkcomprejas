@@ -52,6 +52,7 @@ const CheckoutPage = () => {
   const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
   const [pixTimeLeft, setPixTimeLeft] = useState("");
   const [showCopyPaste, setShowCopyPaste] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   useEffect(() => {
     if (!pixData?.expiresAt) return;
@@ -157,6 +158,40 @@ const CheckoutPage = () => {
   const discount = originalSubtotal - productSubtotal;
   const total = productSubtotal + shippingCost + bumpsTotal;
 
+  useEffect(() => {
+    if (!pixData?.orderId || paymentConfirmed) return;
+
+    let cancelled = false;
+    const storageKey = `tiktok_purchase_${pixData.orderId}`;
+
+    const checkPaymentStatus = async () => {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("payment_status")
+        .eq("id", pixData.orderId)
+        .maybeSingle();
+
+      if (cancelled || error || !data) return;
+
+      if (data.payment_status === "paid") {
+        setPaymentConfirmed(true);
+
+        if (!sessionStorage.getItem(storageKey)) {
+          trackTikTokPurchase(total);
+          sessionStorage.setItem(storageKey, "1");
+        }
+      }
+    };
+
+    checkPaymentStatus();
+    const interval = window.setInterval(checkPaymentStatus, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [paymentConfirmed, pixData?.orderId, total]);
+
   const toggleBump = (id: string) => {
     setSelectedBumps((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
@@ -230,9 +265,8 @@ const CheckoutPage = () => {
         expiresAt: result.paymentData.expiresAt,
         orderId: result.orderId,
       });
+      setPaymentConfirmed(false);
 
-      // Fire TikTok Purchase event
-      trackTikTokPurchase(total);
       // Track PIX generation
       trackEvent("pix_generated", { total, product_slug: slug });
     } catch (err: any) {
@@ -358,9 +392,15 @@ const CheckoutPage = () => {
               try {
                 // Mark pix as copied first (even if clipboard fails)
                 if (pixData.orderId) {
-                  supabase.from("orders").update({ pix_copied: true }).eq("id", pixData.orderId).then(({ error }) => {
-                    if (error) console.error("Error updating pix_copied:", error);
-                  });
+                  const { error } = await supabase
+                    .from("orders")
+                    .update({ pix_copied: true })
+                    .eq("id", pixData.orderId);
+
+                  if (error) {
+                    console.error("Error updating pix_copied:", error);
+                    toast.error("Não foi possível registrar o clique do PIX");
+                  }
                 }
                 setShowCopyPaste(true);
                 try {

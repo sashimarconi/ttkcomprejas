@@ -6,6 +6,112 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PAID_STATUS_TOKENS = new Set([
+  "paid",
+  "approved",
+  "completed",
+  "complete",
+  "success",
+  "succeeded",
+  "confirmed",
+  "confirmado",
+  "payment_received",
+  "pix_paid",
+  "received",
+  "recebido",
+]);
+
+const PAID_EVENT_TOKENS = new Set([
+  "payment.paid",
+  "payment_paid",
+  "payment_confirmed",
+  "payment.confirmed",
+  "payment_received",
+  "payment.received",
+  "payment_approved",
+  "payment.approved",
+  "transaction.paid",
+  "transaction_paid",
+  "pix_paid",
+  "pix.received",
+  "pix_received",
+]);
+
+function normalizeToken(value: unknown) {
+  if (value === null || value === undefined) return "";
+  return String(value).trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function firstString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function extractTransactionId(body: any) {
+  return firstString(
+    body?.transactionId,
+    body?.transaction_id,
+    body?.id,
+    body?.paymentId,
+    body?.payment_id,
+    body?.data?.transactionId,
+    body?.data?.transaction_id,
+    body?.data?.id,
+    body?.data?.paymentId,
+    body?.data?.payment_id,
+    body?.transaction?.id,
+    body?.transaction?.transactionId,
+    body?.transaction?.transaction_id,
+    body?.payment?.id,
+    body?.payment?.transactionId,
+    body?.payment?.transaction_id,
+    body?.charge?.id,
+    body?.resource?.id,
+    body?.data?.transaction?.id,
+    body?.data?.payment?.id,
+  );
+}
+
+function isPaidPayload(body: any) {
+  const candidates = [
+    body?.event,
+    body?.type,
+    body?.status,
+    body?.payment_status,
+    body?.paymentStatus,
+    body?.transaction_status,
+    body?.transactionStatus,
+    body?.data?.event,
+    body?.data?.type,
+    body?.data?.status,
+    body?.data?.payment_status,
+    body?.data?.paymentStatus,
+    body?.data?.transaction_status,
+    body?.data?.transactionStatus,
+    body?.payment?.status,
+    body?.transaction?.status,
+    body?.transaction?.payment_status,
+    body?.charge?.status,
+    body?.pix?.status,
+    body?.data?.payment?.status,
+    body?.data?.transaction?.status,
+    body?.data?.charge?.status,
+    body?.data?.pix?.status,
+  ]
+    .map(normalizeToken)
+    .filter(Boolean);
+
+  return candidates.some((token) => PAID_EVENT_TOKENS.has(token) || PAID_STATUS_TOKENS.has(token));
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -19,51 +125,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("Webhook received:", JSON.stringify(body));
 
-    // Try to extract transaction ID and status from different gateway formats
-    let transactionId: string | null = null;
-    let isPaid = false;
-
-    // Check event-level flags first
-    if (body.event === "payment.paid" || body.event === "payment_confirmed" || body.event === "transaction.paid" || body.event === "PAYMENT_RECEIVED") {
-      isPaid = true;
-    }
-
-    // BlackCatPay format - various field names
-    if (body.transactionId) {
-      transactionId = body.transactionId;
-      if (!isPaid) isPaid = body.status === "paid" || body.status === "approved" || body.status === "completed";
-    }
-    if (body.data?.transactionId) {
-      transactionId = body.data.transactionId;
-      if (!isPaid) isPaid = body.data.status === "paid" || body.data.status === "approved" || body.data.status === "completed" || body.status === "paid";
-    }
-
-    // GhostsPay format
-    if (!transactionId && body.id && body.payment_status) {
-      transactionId = body.id;
-      if (!isPaid) isPaid = body.payment_status === "paid" || body.payment_status === "approved" || body.payment_status === "completed";
-    }
-    if (!transactionId && body.data?.id) {
-      transactionId = body.data.id;
-      const s = body.data.payment_status || body.data.status;
-      if (!isPaid && s) isPaid = s === "paid" || s === "approved" || s === "completed";
-    }
-
-    // Duck format
-    if (!transactionId && body.transaction_id) {
-      transactionId = body.transaction_id;
-      if (!isPaid) isPaid = body.status === "paid" || body.status === "approved" || body.status === "completed";
-    }
-    if (!transactionId && body.data?.transaction_id) {
-      transactionId = body.data.transaction_id;
-      const s = body.data?.status || body.status;
-      if (!isPaid && s) isPaid = s === "paid" || s === "approved" || s === "completed";
-    }
-
-    // Fallback: try common patterns
-    if (!transactionId) {
-      transactionId = body.transaction_id || body.transactionId || body.id || body.data?.transaction_id || body.data?.transactionId || body.data?.id || null;
-    }
+    const transactionId = extractTransactionId(body);
+    const isPaid = isPaidPayload(body);
 
     if (!transactionId) {
       console.error("Could not extract transaction ID from webhook:", JSON.stringify(body));
@@ -76,23 +139,31 @@ Deno.serve(async (req) => {
     console.log(`Transaction: ${transactionId}, isPaid: ${isPaid}`);
 
     if (isPaid) {
-      const { data: order, error } = await supabase
+      let { data: order, error } = await supabase
         .from("orders")
         .update({ payment_status: "paid" })
         .eq("transaction_id", transactionId)
         .select("id")
-        .single();
+        .maybeSingle();
+
+      if ((!order || error) && isUuid(transactionId)) {
+        const fallback = await supabase
+          .from("orders")
+          .update({ payment_status: "paid" })
+          .eq("id", transactionId)
+          .select("id")
+          .maybeSingle();
+
+        order = fallback.data;
+        error = fallback.error;
+      }
 
       if (error) {
         console.error("Error updating order:", error);
-        // Try without .single() in case no match
-        const { error: error2 } = await supabase
-          .from("orders")
-          .update({ payment_status: "paid" })
-          .eq("transaction_id", transactionId);
-        if (error2) console.error("Retry error:", error2);
-      } else {
+      } else if (order) {
         console.log(`Order ${order.id} marked as paid`);
+      } else {
+        console.warn(`No order matched transaction ${transactionId}`);
       }
     }
 

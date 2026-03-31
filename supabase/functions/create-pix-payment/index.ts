@@ -10,6 +10,7 @@ const corsHeaders = {
 const BodySchema = z.object({
   productId: z.string().uuid(),
   productTitle: z.string().min(1).max(500),
+  productVariant: z.string().max(255).nullable().optional(),
   quantity: z.number().int().min(1).max(100),
   amount: z.number().int().min(1),
   customerName: z.string().min(1).max(255),
@@ -30,9 +31,24 @@ const BodySchema = z.object({
     .default([]),
 });
 
+function getWebhookFields(webhookUrl: string) {
+  return {
+    webhookUrl,
+    webhook_url: webhookUrl,
+    callbackUrl: webhookUrl,
+    callback_url: webhookUrl,
+    notificationUrl: webhookUrl,
+    notification_url: webhookUrl,
+    post_back_url: webhookUrl,
+    postbackUrl: webhookUrl,
+    postback_url: webhookUrl,
+  };
+}
+
 // ─── Gateway-specific payment callers ───
 
 async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl: string) {
+  const webhookFields = getWebhookFields(webhookUrl);
   const res = await fetch("https://api.blackcatpay.com.br/api/sales/create-sale", {
     method: "POST",
     headers: {
@@ -54,9 +70,7 @@ async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl
         },
       },
       pix: { expiresInDays: 1 },
-      webhookUrl,
-      callbackUrl: webhookUrl,
-      notificationUrl: webhookUrl,
+      ...webhookFields,
     }),
   });
   const data = await res.json();
@@ -71,6 +85,7 @@ async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl
 }
 
 async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: string) {
+  const webhookFields = getWebhookFields(webhookUrl);
   const products = items.map((item) => ({
     product_name: item.title,
     quantity: item.quantity,
@@ -90,8 +105,7 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
       client_document: body.customerDocument.replace(/\D/g, ""),
       client_mobile_phone: body.customerPhone.replace(/\D/g, ""),
       products,
-      webhook_url: webhookUrl,
-      callbackUrl: webhookUrl,
+      ...webhookFields,
     }),
   });
   const data = await res.json();
@@ -106,6 +120,7 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
 }
 
 async function callDuck(gateway: any, body: any, items: any[], webhookUrl: string) {
+  const webhookFields = getWebhookFields(webhookUrl);
   const res = await fetch("https://api.duckoficial.com/api/v1/gateway/pix/receive", {
     method: "POST",
     headers: {
@@ -126,8 +141,7 @@ async function callDuck(gateway: any, body: any, items: any[], webhookUrl: strin
         quantity: item.quantity,
         unitPrice: item.unitPrice / 100,
       })),
-      webhook_url: webhookUrl,
-      callbackUrl: webhookUrl,
+      ...webhookFields,
     }),
   });
   const data = await res.json();
