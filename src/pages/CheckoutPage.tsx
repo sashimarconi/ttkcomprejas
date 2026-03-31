@@ -272,6 +272,9 @@ const CheckoutPage = () => {
 
       // Track PIX generation
       trackEvent("pix_generated", { total, product_slug: slug });
+
+      // Fire TikTok CompletePayment on PIX generation
+      trackTikTokPurchase(total);
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {
