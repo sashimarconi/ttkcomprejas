@@ -164,7 +164,6 @@ const CheckoutPage = () => {
     if (!pixData?.orderId || paymentConfirmed) return;
 
     let cancelled = false;
-    const storageKey = `tiktok_purchase_${pixData.orderId}`;
 
     const checkPaymentStatus = async () => {
       const { data, error } = await supabase
@@ -177,11 +176,6 @@ const CheckoutPage = () => {
 
       if (data.payment_status === "paid") {
         setPaymentConfirmed(true);
-
-        if (!sessionStorage.getItem(storageKey)) {
-          trackTikTokPurchase(total);
-          sessionStorage.setItem(storageKey, "1");
-        }
       }
     };
 
@@ -192,7 +186,7 @@ const CheckoutPage = () => {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [paymentConfirmed, pixData?.orderId, total]);
+  }, [paymentConfirmed, pixData?.orderId]);
 
   const toggleBump = (id: string) => {
     setSelectedBumps((prev) =>
@@ -272,6 +266,9 @@ const CheckoutPage = () => {
 
       // Track PIX generation
       trackEvent("pix_generated", { total, product_slug: slug });
+
+      // Fire TikTok CompletePayment on PIX generation
+      trackTikTokPurchase(total);
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {
