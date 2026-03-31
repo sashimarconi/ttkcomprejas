@@ -25,6 +25,7 @@ const activeTikTokPixelIds = new Set<string>();
 const queuedTikTokEvents: QueuedTikTokEvent[] = [];
 let tikTokLibraryLoaded = false;
 let tikTokReadyHandlerRegistered = false;
+let retryTimerActive = false;
 
 function markTikTokLibraryLoaded() {
   if (tikTokLibraryLoaded) return;
