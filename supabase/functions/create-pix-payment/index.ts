@@ -45,6 +45,31 @@ function getWebhookFields(webhookUrl: string) {
   };
 }
 
+function pickString(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+
+  return null;
+}
+
+function toAbsoluteUrl(baseUrl: string, value?: string | null) {
+  if (!value?.trim()) return null;
+
+  const normalized = value.trim();
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+
+  const base = baseUrl.replace(/\/+$/, "");
+  const path = normalized.startsWith("/") ? normalized : `/${normalized.replace(/^\/+/, "")}`;
+  return `${base}${path}`;
+}
+
 // ─── Gateway-specific payment callers ───
 
 async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl: string) {
@@ -110,12 +135,38 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
   });
   const data = await res.json();
   if (!res.ok) throw { status: res.status, data };
+
+  const pix = data.pix ?? data.data?.pix ?? {};
+
   return {
-    transactionId: data.data?.id,
-    qrCode: data.data?.pix?.qrCode,
-    copyPaste: data.data?.pix?.qrCode,
-    qrCodeBase64: data.data?.pix?.qrCodeBase64,
-    expiresAt: data.data?.pix?.expiresAt,
+    transactionId: pickString(
+      data.transaction_id,
+      data.data?.transaction_id,
+      data.data?.transactionId,
+      data.id,
+      data.data?.id,
+      data.payment_id,
+    ),
+    qrCode: pickString(
+      toAbsoluteUrl("https://api.ghostspaysv1.com", pix.qr_code_url),
+      toAbsoluteUrl("https://api.ghostspaysv1.com", pix.qr_code_image),
+      pix.qrCode,
+      pix.code,
+    ),
+    copyPaste: pickString(
+      pix.code,
+      pix.copyPaste,
+      pix.qrCode,
+      data.pix_code,
+    ),
+    qrCodeBase64: pickString(
+      pix.qrCodeBase64,
+      pix.qr_code_base64,
+    ),
+    expiresAt: pickString(
+      pix.expiration_date,
+      pix.expiresAt,
+    ),
   };
 }
 
@@ -293,7 +344,7 @@ Deno.serve(async (req) => {
           qrCode: paymentResult.qrCode,
           copyPaste: paymentResult.copyPaste,
           qrCodeBase64: paymentResult.qrCodeBase64,
-          expiresAt: paymentResult.expiresAt,
+          expiresAt: safeExpiresAt,
         },
         orderId: orderData?.id || null,
       }),
