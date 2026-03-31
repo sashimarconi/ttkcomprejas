@@ -51,21 +51,28 @@ const CheckoutPage = () => {
   const [cepLoading, setCepLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [pixData, setPixData] = useState<{ qrCodeBase64: string; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
+  const [pixData, setPixData] = useState<{ qrCode?: string; qrCodeBase64: string; copyPaste: string; expiresAt: string; orderId?: string } | null>(null);
   const [pixTimeLeft, setPixTimeLeft] = useState("");
   const [showCopyPaste, setShowCopyPaste] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   useEffect(() => {
     if (!pixData?.expiresAt) return;
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
+    const calcTimeLeft = () => {
+      const now = Date.now();
       const expires = new Date(pixData.expiresAt).getTime();
+      if (isNaN(expires)) return "30:00";
       const diff = expires - now;
-      if (diff <= 0) { setPixTimeLeft("00:00"); clearInterval(interval); return; }
+      if (diff <= 0) return "00:00";
       const mins = Math.floor(diff / 60000);
       const secs = Math.floor((diff % 60000) / 1000);
-      setPixTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    };
+    setPixTimeLeft(calcTimeLeft());
+    const interval = setInterval(() => {
+      const val = calcTimeLeft();
+      setPixTimeLeft(val);
+      if (val === "00:00") clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
   }, [pixData?.expiresAt]);
@@ -257,6 +264,7 @@ const CheckoutPage = () => {
       if (!res.ok) throw new Error(result.error || "Erro ao gerar pagamento");
 
       setPixData({
+        qrCode: result.paymentData.qrCode,
         qrCodeBase64: result.paymentData.qrCodeBase64,
         copyPaste: result.paymentData.copyPaste,
         expiresAt: result.paymentData.expiresAt,
@@ -347,7 +355,17 @@ const CheckoutPage = () => {
                 Valor no pix: <span className="text-marketplace-red">{formatCurrency(total)}</span>
               </p>
               <div className="flex justify-center py-2">
-                <img src={pixData.qrCodeBase64} alt="QR Code PIX" className="w-44 h-44" />
+                {pixData.qrCode ? (
+                  <img src={pixData.qrCode} alt="QR Code PIX" className="w-44 h-44" />
+                ) : pixData.qrCodeBase64 ? (
+                  <img 
+                    src={pixData.qrCodeBase64.startsWith("data:") ? pixData.qrCodeBase64 : `data:image/png;base64,${pixData.qrCodeBase64}`} 
+                    alt="QR Code PIX" 
+                    className="w-44 h-44" 
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">QR Code indisponível</p>
+                )}
               </div>
             </div>
 
