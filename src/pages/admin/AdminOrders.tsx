@@ -62,6 +62,16 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
+
+    const interval = window.setInterval(fetchOrders, 10000);
+    const handleFocus = () => fetchOrders();
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   const isAbandoned = (order: Order) => {
