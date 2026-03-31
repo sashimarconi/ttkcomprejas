@@ -105,7 +105,7 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
   };
 }
 
-async function callDuck(gateway: any, body: any, items: any[]) {
+async function callDuck(gateway: any, body: any, items: any[], webhookUrl: string) {
   const res = await fetch("https://api.duckoficial.com/api/v1/gateway/pix/receive", {
     method: "POST",
     headers: {
@@ -126,6 +126,8 @@ async function callDuck(gateway: any, body: any, items: any[]) {
         quantity: item.quantity,
         unitPrice: item.unitPrice / 100,
       })),
+      webhook_url: webhookUrl,
+      callbackUrl: webhookUrl,
     }),
   });
   const data = await res.json();
