@@ -13,6 +13,7 @@ import ReviewsSection from "@/components/product/ReviewsSection";
 import StoreCard from "@/components/product/StoreCard";
 import RelatedProducts from "@/components/product/RelatedProducts";
 import FixedFooter from "@/components/product/FixedFooter";
+import BuySheet from "@/components/product/BuySheet";
 
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
