@@ -58,14 +58,21 @@ const CheckoutPage = () => {
 
   useEffect(() => {
     if (!pixData?.expiresAt) return;
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
+    const calcTimeLeft = () => {
+      const now = Date.now();
       const expires = new Date(pixData.expiresAt).getTime();
+      if (isNaN(expires)) return "30:00";
       const diff = expires - now;
-      if (diff <= 0) { setPixTimeLeft("00:00"); clearInterval(interval); return; }
+      if (diff <= 0) return "00:00";
       const mins = Math.floor(diff / 60000);
       const secs = Math.floor((diff % 60000) / 1000);
-      setPixTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    };
+    setPixTimeLeft(calcTimeLeft());
+    const interval = setInterval(() => {
+      const val = calcTimeLeft();
+      setPixTimeLeft(val);
+      if (val === "00:00") clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
   }, [pixData?.expiresAt]);
