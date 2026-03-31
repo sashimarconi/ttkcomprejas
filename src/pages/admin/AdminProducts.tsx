@@ -472,6 +472,56 @@ const AdminProducts = () => {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Variants dialog */}
+      <Dialog open={variantDialogOpen} onOpenChange={setVariantDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Variantes do Produto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {productVariants?.map((v) => (
+              <div key={v.id} className="flex items-center gap-3 bg-muted/50 p-2 rounded-lg">
+                {v.thumbnail_url ? (
+                  <img src={v.thumbnail_url} alt={v.name} className="w-12 h-12 rounded-full object-cover border-2" style={{ borderColor: v.color || '#ccc' }} />
+                ) : (
+                  <div className="w-12 h-12 rounded-full border-2 flex items-center justify-center" style={{ borderColor: v.color || '#ccc', backgroundColor: v.color || '#eee' }}>
+                    <span className="text-[10px] text-white font-bold">{v.name.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{v.name}</p>
+                  <p className="text-xs text-muted-foreground">{v.color}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => deleteVariantMutation.mutate(v.id)}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {productVariants?.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhuma variante cadastrada</p>
+            )}
+
+            <div className="border-t border-border pt-3 space-y-2">
+              <Input placeholder="Nome (ex: Preta, G, 110V)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} />
+              <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-1">
+                  <Label className="text-xs whitespace-nowrap">Cor</Label>
+                  <Input type="color" value={newVariantColor} onChange={(e) => setNewVariantColor(e.target.value)} className="w-10 h-9 p-1 cursor-pointer" />
+                  <Input value={newVariantColor} onChange={(e) => setNewVariantColor(e.target.value)} placeholder="#000000" className="flex-1" />
+                </div>
+              </div>
+              <Input placeholder="URL da thumbnail (opcional)" value={newVariantThumbnail} onChange={(e) => setNewVariantThumbnail(e.target.value)} />
+              <Button
+                className="w-full"
+                disabled={!newVariantName || !selectedProductId}
+                onClick={() => selectedProductId && addVariantMutation.mutate({ product_id: selectedProductId, name: newVariantName, color: newVariantColor, thumbnail_url: newVariantThumbnail })}
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar Variante
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
