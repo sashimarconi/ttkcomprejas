@@ -148,8 +148,8 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
       data.payment_id,
     ),
     qrCode: pickString(
-      toAbsoluteUrl("https://api.ghostspaysv1.com", pix.qr_code_url),
-      toAbsoluteUrl("https://api.ghostspaysv1.com", pix.qr_code_image),
+      toAbsoluteUrl("https://ghostspaysv1.com", pix.qr_code_url),
+      toAbsoluteUrl("https://ghostspaysv1.com", pix.qr_code_image),
       pix.qrCode,
       pix.code,
     ),
