@@ -80,6 +80,42 @@ export type Database = {
         }
         Relationships: []
       }
+      order_bump_products: {
+        Row: {
+          created_at: string
+          id: string
+          order_bump_id: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_bump_id: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_bump_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_bump_products_order_bump_id_fkey"
+            columns: ["order_bump_id"]
+            isOneToOne: false
+            referencedRelation: "order_bumps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_bump_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_bumps: {
         Row: {
           active: boolean | null
