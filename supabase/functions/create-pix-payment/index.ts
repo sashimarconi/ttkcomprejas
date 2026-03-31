@@ -32,7 +32,7 @@ const BodySchema = z.object({
 
 // ─── Gateway-specific payment callers ───
 
-async function callBlackCatPay(gateway: any, body: any, items: any[]) {
+async function callBlackCatPay(gateway: any, body: any, items: any[], webhookUrl: string) {
   const res = await fetch("https://api.blackcatpay.com.br/api/sales/create-sale", {
     method: "POST",
     headers: {
@@ -54,6 +54,9 @@ async function callBlackCatPay(gateway: any, body: any, items: any[]) {
         },
       },
       pix: { expiresInDays: 1 },
+      webhookUrl,
+      callbackUrl: webhookUrl,
+      notificationUrl: webhookUrl,
     }),
   });
   const data = await res.json();
@@ -67,7 +70,7 @@ async function callBlackCatPay(gateway: any, body: any, items: any[]) {
   };
 }
 
-async function callGhostsPay(gateway: any, body: any, items: any[]) {
+async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: string) {
   const products = items.map((item) => ({
     product_name: item.title,
     quantity: item.quantity,
@@ -87,6 +90,8 @@ async function callGhostsPay(gateway: any, body: any, items: any[]) {
       client_document: body.customerDocument.replace(/\D/g, ""),
       client_mobile_phone: body.customerPhone.replace(/\D/g, ""),
       products,
+      webhook_url: webhookUrl,
+      callbackUrl: webhookUrl,
     }),
   });
   const data = await res.json();
@@ -94,13 +99,13 @@ async function callGhostsPay(gateway: any, body: any, items: any[]) {
   return {
     transactionId: data.data?.id,
     qrCode: data.data?.pix?.qrCode,
-    copyPaste: data.data?.pix?.qrCode, // GhostsPay uses qrCode as copy-paste
+    copyPaste: data.data?.pix?.qrCode,
     qrCodeBase64: data.data?.pix?.qrCodeBase64,
     expiresAt: data.data?.pix?.expiresAt,
   };
 }
 
-async function callDuck(gateway: any, body: any, items: any[]) {
+async function callDuck(gateway: any, body: any, items: any[], webhookUrl: string) {
   const res = await fetch("https://api.duckoficial.com/api/v1/gateway/pix/receive", {
     method: "POST",
     headers: {
@@ -121,6 +126,8 @@ async function callDuck(gateway: any, body: any, items: any[]) {
         quantity: item.quantity,
         unitPrice: item.unitPrice / 100,
       })),
+      webhook_url: webhookUrl,
+      callbackUrl: webhookUrl,
     }),
   });
   const data = await res.json();
@@ -194,18 +201,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Build webhook URL
+    const webhookUrl = `${supabaseUrl}/functions/v1/payment-webhook`;
+
     // Route to correct gateway
     let paymentResult;
     try {
       switch (gateway.gateway_name) {
         case "blackcatpay":
-          paymentResult = await callBlackCatPay(gateway, body, items);
+          paymentResult = await callBlackCatPay(gateway, body, items, webhookUrl);
           break;
         case "ghostspay":
-          paymentResult = await callGhostsPay(gateway, body, items);
+          paymentResult = await callGhostsPay(gateway, body, items, webhookUrl);
           break;
         case "duck":
-          paymentResult = await callDuck(gateway, body, items);
+          paymentResult = await callDuck(gateway, body, items, webhookUrl);
           break;
         default:
           return new Response(
