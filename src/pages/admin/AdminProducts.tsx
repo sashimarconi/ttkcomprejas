@@ -97,6 +97,21 @@ const AdminProducts = () => {
     enabled: !!selectedProductId,
   });
 
+  const { data: productVariants } = useQuery({
+    queryKey: ["product-variants", selectedProductId],
+    queryFn: async () => {
+      if (!selectedProductId) return [];
+      const { data, error } = await supabase
+        .from("product_variants")
+        .select("*")
+        .eq("product_id", selectedProductId)
+        .order("sort_order");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedProductId,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (data: ProductForm) => {
       if (editingId) {
