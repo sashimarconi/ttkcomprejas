@@ -261,6 +261,9 @@ const AdminProducts = () => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => { setSelectedProductId(product.id); setVariantDialogOpen(true); }} title="Variantes">
+                <Palette className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => { setSelectedProductId(product.id); setImageDialogOpen(true); }}>
                 <ImageIcon className="w-4 h-4" />
               </Button>
