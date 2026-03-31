@@ -77,29 +77,22 @@ export function useTikTokPixel() {
 }
 
 export function trackTikTokPurchase(value: number, currency = "BRL") {
-  const fireEvent = (attempt = 0) => {
-    try {
-      if (window.ttq?.track) {
-        console.log("[TikTok Pixel] Firing CompletePayment:", { value, currency, attempt });
-        window.ttq.track("CompletePayment", {
-          content_type: "product",
-          value,
-          currency,
-        });
-        return;
-      }
-
-      if (attempt >= 10) {
-        console.error("[TikTok Pixel] ttq not available after retries");
-        return;
-      }
-
-      console.warn("[TikTok Pixel] ttq not available, retrying...", { attempt: attempt + 1 });
-      setTimeout(() => fireEvent(attempt + 1), attempt === 0 ? 500 : 1000);
-    } catch (e) {
-      console.error("[TikTok Pixel] Error:", e);
+  console.log("[TikTok Pixel] trackTikTokPurchase called:", { value, currency, ttqExists: !!window.ttq });
+  
+  try {
+    if (!window.ttq) {
+      console.error("[TikTok Pixel] ttq object does not exist at all - pixel may not have loaded");
+      return;
     }
-  };
 
-  fireEvent();
+    console.log("[TikTok Pixel] Firing CompletePayment:", { value, currency });
+    window.ttq.track("CompletePayment", {
+      content_type: "product",
+      value: Number(value),
+      currency,
+    });
+    console.log("[TikTok Pixel] CompletePayment event queued successfully");
+  } catch (e) {
+    console.error("[TikTok Pixel] Error firing event:", e);
+  }
 }
