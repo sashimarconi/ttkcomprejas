@@ -13,6 +13,7 @@ import ReviewsSection from "@/components/product/ReviewsSection";
 import StoreCard from "@/components/product/StoreCard";
 import RelatedProducts from "@/components/product/RelatedProducts";
 import FixedFooter from "@/components/product/FixedFooter";
+import BuySheet from "@/components/product/BuySheet";
 
 const ProductPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -40,12 +41,17 @@ const ProductPage = () => {
 
   const reviewsRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const [buySheetOpen, setBuySheetOpen] = useState(false);
 
-  const handleBuyNow = () => {
+  const handleBuyNow = (selectedVariant: string | null, quantity: number) => {
+    setBuySheetOpen(false);
     if (product?.checkout_type === "external" && product.external_checkout_url) {
       window.open(product.external_checkout_url, "_blank");
     } else {
-      navigate(`/checkout/${slug}`);
+      const params = new URLSearchParams();
+      if (selectedVariant) params.set("variant", selectedVariant);
+      if (quantity > 1) params.set("qty", String(quantity));
+      navigate(`/checkout/${slug}?${params.toString()}`);
     }
   };
 
@@ -187,7 +193,21 @@ const ProductPage = () => {
 
       <FixedFooter
         freeShipping={product.free_shipping || false}
-        onBuyNow={handleBuyNow}
+        onBuyNow={() => setBuySheetOpen(true)}
+      />
+
+      <BuySheet
+        open={buySheetOpen}
+        onClose={() => setBuySheetOpen(false)}
+        onConfirm={handleBuyNow}
+        title={product.title}
+        image={images[0]?.url || ""}
+        originalPrice={Number(product.original_price)}
+        salePrice={Number(product.sale_price)}
+        discountPercent={product.discount_percent}
+        flashSale={product.flash_sale || false}
+        flashSaleEndsIn={product.flash_sale_ends_in || ""}
+        variants={variants}
       />
     </div>
   );
