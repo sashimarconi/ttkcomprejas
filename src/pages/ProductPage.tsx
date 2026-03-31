@@ -81,6 +81,12 @@ const ProductPage = () => {
     name: v.name,
     color: v.color || "",
     thumbnail: v.thumbnail_url || "",
+    groupId: v.variant_group_id || null,
+  }));
+
+  const variantGroups = (product.variant_groups || []).map((g) => ({
+    id: g.id,
+    name: g.name,
   }));
 
   const reviews = (product.reviews || []).map((r) => ({
