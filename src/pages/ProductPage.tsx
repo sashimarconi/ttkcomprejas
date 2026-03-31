@@ -143,6 +143,7 @@ const ProductPage = () => {
           reviewCount={product.review_count || 0}
           soldCount={product.sold_count || 0}
           variants={variants}
+          variantGroups={variantGroups}
         />
         <ShippingInfo
           freeShipping={product.free_shipping || false}
