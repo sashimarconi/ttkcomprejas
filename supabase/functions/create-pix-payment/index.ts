@@ -201,18 +201,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Build webhook URL
+    const webhookUrl = `${supabaseUrl}/functions/v1/payment-webhook`;
+
     // Route to correct gateway
     let paymentResult;
     try {
       switch (gateway.gateway_name) {
         case "blackcatpay":
-          paymentResult = await callBlackCatPay(gateway, body, items);
+          paymentResult = await callBlackCatPay(gateway, body, items, webhookUrl);
           break;
         case "ghostspay":
-          paymentResult = await callGhostsPay(gateway, body, items);
+          paymentResult = await callGhostsPay(gateway, body, items, webhookUrl);
           break;
         case "duck":
-          paymentResult = await callDuck(gateway, body, items);
+          paymentResult = await callDuck(gateway, body, items, webhookUrl);
           break;
         default:
           return new Response(
