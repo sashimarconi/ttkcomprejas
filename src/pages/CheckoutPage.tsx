@@ -264,6 +264,7 @@ const CheckoutPage = () => {
       if (!res.ok) throw new Error(result.error || "Erro ao gerar pagamento");
 
       setPixData({
+        qrCode: result.paymentData.qrCode,
         qrCodeBase64: result.paymentData.qrCodeBase64,
         copyPaste: result.paymentData.copyPaste,
         expiresAt: result.paymentData.expiresAt,
