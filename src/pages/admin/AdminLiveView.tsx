@@ -210,7 +210,7 @@ const AdminLiveView = () => {
             </div>
 
             <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
-              <InteractiveGlobe
+              <LiveGlobe
                 visitors={sessions.map(s => ({ session_id: s.session_id }))}
                 className="w-full h-full min-h-[400px]"
               />
