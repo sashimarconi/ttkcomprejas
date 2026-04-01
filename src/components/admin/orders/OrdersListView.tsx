@@ -46,7 +46,6 @@ export const OrdersListView = ({
     { label: "Pedidos totais", value: stats.total, icon: Package2, tone: "text-foreground" },
     { label: "Pagos", value: stats.paid, icon: Wallet, tone: "text-marketplace-green" },
     { label: "Pendentes", value: stats.pending, icon: Clock3, tone: "text-marketplace-yellow" },
-    { label: "Abandonados", value: stats.abandoned, icon: CircleAlert, tone: "text-marketplace-red" },
     { label: "Pix copiado", value: stats.copied, icon: CopyCheck, tone: "text-marketplace-blue" },
   ];
 
