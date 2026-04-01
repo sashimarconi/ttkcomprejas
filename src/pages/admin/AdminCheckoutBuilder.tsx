@@ -172,10 +172,9 @@ const AdminCheckoutBuilder = () => {
         .from("checkout_settings" as any)
         .select("id")
         .limit(1)
-        .single();
+        .single() as any;
       if (existing) {
-        await supabase
-          .from("checkout_settings" as any)
+        await (supabase.from("checkout_settings" as any) as any)
           .update({
             checkout_header_text: config.appearance.header_text,
             checkout_security_text: config.appearance.security_text,
