@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, DollarSign, Percent, ShoppingCart } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
-import InteractiveGlobe from "@/components/admin/live-view/InteractiveGlobe";
+import LiveGlobe from "@/components/admin/live-view/LiveGlobe";
 import AnimatedFunnel from "@/components/admin/live-view/AnimatedFunnel";
 import ClientBehavior from "@/components/admin/live-view/ClientBehavior";
 
