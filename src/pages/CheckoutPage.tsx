@@ -136,6 +136,11 @@ const CheckoutPage = () => {
   const [showCopyPaste, setShowCopyPaste] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [showEmailSuggestions, setShowEmailSuggestions] = useState(false);
+  const [pixCopiedRegistered, setPixCopiedRegistered] = useState(false);
+
+  useEffect(() => {
+    setPixCopiedRegistered(false);
+  }, [pixData?.orderId]);
 
   useEffect(() => {
     if (!pixData?.expiresAt) return;
@@ -439,6 +444,37 @@ const CheckoutPage = () => {
     }
   };
 
+
+  const registerPixCopiedClick = async (orderId?: string) => {
+    if (!orderId) {
+      return false;
+    }
+
+    if (pixCopiedRegistered) {
+      return true;
+    }
+
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/mark-pix-copied`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Erro ao registrar clique do PIX");
+      }
+
+      setPixCopiedRegistered(true);
+      return true;
+    } catch (error) {
+      console.error("Error marking pix_copied:", error);
+      return false;
+    }
+  };
+
   if (isLoading || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -567,20 +603,15 @@ const CheckoutPage = () => {
                   return;
                 }
 
-                // Mark pix as copied first (even if clipboard fails)
-                if (pixData.orderId) {
-                  const { error } = await supabase
-                    .from("orders")
-                    .update({ pix_copied: true })
-                    .eq("id", pixData.orderId);
-
-                  if (error) {
-                    console.error("Error updating pix_copied:", error);
-                    toast.error("Não foi possível registrar o clique do PIX");
-                  }
-                }
                 setShowCopyPaste(true);
+                const registerPromise = registerPixCopiedClick(pixData.orderId);
                 const copied = await copyTextToClipboard(pixCode);
+                const registered = await registerPromise;
+
+                if (!registered) {
+                  toast.error("Não foi possível registrar o clique do PIX");
+                }
+
                 if (copied) {
                   toast.success("Código PIX copiado!");
                 } else {
