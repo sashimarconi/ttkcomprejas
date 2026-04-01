@@ -81,11 +81,6 @@ const AdminStoreSettings = () => {
           <Input value={form.product_page_logo_url} onChange={(e) => setForm((p) => ({ ...p, product_page_logo_url: e.target.value }))} placeholder="https://... (deixe vazio para não exibir)" />
           {form.product_page_logo_url && <img src={form.product_page_logo_url} alt="" className="h-8 object-contain mt-2" />}
         </div>
-        <div className="space-y-1">
-          <Label>Logo no Checkout (opcional)</Label>
-          <Input value={form.checkout_logo_url} onChange={(e) => setForm((p) => ({ ...p, checkout_logo_url: e.target.value }))} placeholder="https://... (deixe vazio para não exibir)" />
-          {form.checkout_logo_url && <img src={form.checkout_logo_url} alt="" className="h-8 object-contain mt-2" />}
-        </div>
         <Button onClick={() => saveMutation.mutate()} className="bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending}>
           {saveMutation.isPending ? "Salvando..." : "Salvar Configurações"}
         </Button>
