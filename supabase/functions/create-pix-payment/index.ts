@@ -194,13 +194,13 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "accept": "application/json",
       "Authorization": `Basic ${authToken}`,
     },
     body: JSON.stringify({
-      amount: body.amount,
-      currency: "BRL",
-      paymentMethod: "pix",
-      description: body.productTitle,
+      amount: body.amount, // in cents
+      payment_method: "pix",
+      postback_url: webhookUrl,
       customer: {
         name: body.customerName,
         email: body.customerEmail,
@@ -210,33 +210,38 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
       items: items.map((item) => ({
         title: item.title,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unit_price: item.unitPrice,
+        tangible: false,
       })),
-      callbackUrl: webhookUrl,
-      webhookUrl: webhookUrl,
-      webhook_url: webhookUrl,
-      notificationUrl: webhookUrl,
-      postback_url: webhookUrl,
+      pix: {
+        expires_in_minutes: 30,
+      },
+      metadata: {
+        provider_name: "Lovable Checkout",
+      },
     }),
   });
   const data = await res.json();
+  console.log("HiSo response:", JSON.stringify(data));
   if (!res.ok) throw { status: res.status, data };
 
-  // Extract from common response patterns
+  // HiSo webhook format has Id, Status fields
+  // Response likely has transaction id and pix data
   const txn = data.data ?? data.transaction ?? data;
   const pix = txn?.pix ?? txn?.paymentData ?? txn;
 
   return {
     transactionId: pickString(
-      txn?.transactionId, txn?.transaction_id, txn?.id,
-      data?.transactionId, data?.transaction_id, data?.id,
+      txn?.Id, txn?.id, txn?.transactionId, txn?.transaction_id,
+      data?.Id, data?.id, data?.transactionId, data?.transaction_id,
     ),
     qrCode: pickString(
       pix?.qrCode, pix?.qr_code, pix?.qrCodeUrl, pix?.qr_code_url,
     ),
     copyPaste: pickString(
-      pix?.copyPaste, pix?.copy_paste, pix?.qrCode, pix?.qr_code,
-      pix?.pixCode, pix?.pix_code, pix?.code,
+      pix?.copyPaste, pix?.copy_paste, pix?.code,
+      pix?.qrCode, pix?.qr_code,
+      pix?.pixCode, pix?.pix_code,
     ),
     qrCodeBase64: pickString(
       pix?.qrCodeBase64, pix?.qr_code_base64,
