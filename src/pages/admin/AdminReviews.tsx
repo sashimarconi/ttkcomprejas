@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Star, Upload } from "lucide-react";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2, Star, Upload, Pencil } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ReviewForm {
+  id?: string;
   product_id: string;
   user_name: string;
   user_avatar_url: string;
@@ -19,6 +20,7 @@ interface ReviewForm {
   rating: number;
   comment: string;
   photos: string[];
+  selected_product_ids: string[];
 }
 
 const emptyForm: ReviewForm = {
@@ -29,12 +31,14 @@ const emptyForm: ReviewForm = {
   rating: 5,
   comment: "",
   photos: [],
+  selected_product_ids: [],
 };
 
 const AdminReviews = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<ReviewForm>(emptyForm);
   const [photoInput, setPhotoInput] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -55,20 +59,77 @@ const AdminReviews = () => {
         .select("*, products(title)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+
+      // Fetch review_products for each review
+      const reviewIds = (data || []).map((r: any) => r.id);
+      let reviewProductsMap: Record<string, string[]> = {};
+      if (reviewIds.length) {
+        const { data: rp } = await supabase
+          .from("review_products")
+          .select("review_id, product_id")
+          .in("review_id", reviewIds);
+        (rp || []).forEach((item: any) => {
+          if (!reviewProductsMap[item.review_id]) reviewProductsMap[item.review_id] = [];
+          reviewProductsMap[item.review_id].push(item.product_id);
+        });
+      }
+
+      return (data || []).map((r: any) => ({
+        ...r,
+        selected_product_ids: reviewProductsMap[r.id] || [],
+      }));
     },
   });
 
   const saveMutation = useMutation({
     mutationFn: async (data: ReviewForm) => {
-      const { error } = await supabase.from("reviews").insert(data);
-      if (error) throw error;
+      if (data.id) {
+        // Update existing review
+        const { error } = await supabase.from("reviews").update({
+          product_id: data.product_id,
+          user_name: data.user_name,
+          user_avatar_url: data.user_avatar_url,
+          city: data.city,
+          rating: data.rating,
+          comment: data.comment,
+          photos: data.photos,
+        }).eq("id", data.id);
+        if (error) throw error;
+
+        // Update review_products
+        await supabase.from("review_products").delete().eq("review_id", data.id);
+        if (data.selected_product_ids.length) {
+          const { error: rpError } = await supabase.from("review_products").insert(
+            data.selected_product_ids.map((pid) => ({ review_id: data.id!, product_id: pid }))
+          );
+          if (rpError) throw rpError;
+        }
+      } else {
+        // Insert new review
+        const { data: newReview, error } = await supabase.from("reviews").insert({
+          product_id: data.product_id,
+          user_name: data.user_name,
+          user_avatar_url: data.user_avatar_url,
+          city: data.city,
+          rating: data.rating,
+          comment: data.comment,
+          photos: data.photos,
+        }).select("id").single();
+        if (error) throw error;
+
+        // Insert review_products
+        if (data.selected_product_ids.length && newReview) {
+          await supabase.from("review_products").insert(
+            data.selected_product_ids.map((pid) => ({ review_id: newReview.id, product_id: pid }))
+          );
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
       setDialogOpen(false);
       setForm(emptyForm);
-      toast({ title: "Avaliação cadastrada!" });
+      toast({ title: form.id ? "Avaliação atualizada!" : "Avaliação cadastrada!" });
     },
     onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -97,8 +158,6 @@ const AdminReviews = () => {
     setForm((prev) => ({ ...prev, photos: prev.photos.filter((_, i) => i !== index) }));
   };
 
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -109,16 +168,40 @@ const AdminReviews = () => {
     setUploadingPhoto(true);
     const ext = file.name.split(".").pop();
     const path = `reviews/${Date.now()}.${ext}`;
-    const { error } = await supabaseClient.storage.from("product-images").upload(path, file);
+    const { error } = await supabase.storage.from("product-images").upload(path, file);
     if (error) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
       setUploadingPhoto(false);
       return;
     }
-    const { data: urlData } = supabaseClient.storage.from("product-images").getPublicUrl(path);
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     setForm((prev) => ({ ...prev, photos: [...prev.photos, urlData.publicUrl] }));
     setUploadingPhoto(false);
     e.target.value = "";
+  };
+
+  const openEdit = (review: any) => {
+    setForm({
+      id: review.id,
+      product_id: review.product_id,
+      user_name: review.user_name,
+      user_avatar_url: review.user_avatar_url || "",
+      city: review.city || "",
+      rating: review.rating,
+      comment: review.comment || "",
+      photos: review.photos || [],
+      selected_product_ids: review.selected_product_ids || [],
+    });
+    setDialogOpen(true);
+  };
+
+  const toggleProductSelection = (productId: string) => {
+    setForm((prev) => {
+      const ids = prev.selected_product_ids.includes(productId)
+        ? prev.selected_product_ids.filter((id) => id !== productId)
+        : [...prev.selected_product_ids, productId];
+      return { ...prev, selected_product_ids: ids };
+    });
   };
 
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
@@ -127,7 +210,7 @@ const AdminReviews = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">Avaliações</h2>
-        <Button onClick={() => { setForm(emptyForm); setDialogOpen(true); }} className="bg-marketplace-red hover:bg-marketplace-red/90">
+        <Button onClick={() => { setForm(emptyForm); setDialogOpen(true); }} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-1" /> Nova Avaliação
         </Button>
       </div>
@@ -145,17 +228,29 @@ const AdminReviews = () => {
                   <p className="text-xs text-muted-foreground">{review.city}</p>
                   <div className="flex gap-0.5 mt-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`w-3 h-3 ${i < review.rating ? "fill-marketplace-yellow text-marketplace-yellow" : "text-border"}`} />
+                      <Star key={i} className={`w-3 h-3 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-border"}`} />
                     ))}
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => { if (confirm("Remover?")) deleteMutation.mutate(review.id); }}>
-                <Trash2 className="w-4 h-4 text-destructive" />
-              </Button>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={() => openEdit(review)}>
+                  <Pencil className="w-4 h-4 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { if (confirm("Remover?")) deleteMutation.mutate(review.id); }}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
             </div>
             <p className="text-xs text-foreground mt-2">{review.comment}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">Produto: {review.products?.title}</p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              <span className="text-[10px] text-muted-foreground">Produto principal: {review.products?.title}</span>
+              {review.selected_product_ids?.length > 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                  · Aparece em {review.selected_product_ids.length} produto(s)
+                </span>
+              )}
+            </div>
           </div>
         ))}
         {reviews?.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhuma avaliação</p>}
@@ -164,11 +259,11 @@ const AdminReviews = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova Avaliação</DialogTitle>
+            <DialogTitle>{form.id ? "Editar Avaliação" : "Nova Avaliação"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(form); }} className="space-y-3">
             <div className="space-y-1">
-              <Label>Produto</Label>
+              <Label>Produto principal</Label>
               <Select value={form.product_id} onValueChange={(v) => setForm((p) => ({ ...p, product_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
@@ -178,6 +273,22 @@ const AdminReviews = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1">
+              <Label>Exibir também nos produtos</Label>
+              <div className="max-h-32 overflow-y-auto border border-border rounded-md p-2 space-y-1">
+                {products?.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={form.selected_product_ids.includes(p.id)}
+                      onCheckedChange={() => toggleProductSelection(p.id)}
+                    />
+                    {p.title}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>Nome</Label>
@@ -230,8 +341,8 @@ const AdminReviews = () => {
                 </label>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending || !form.product_id}>
-              {saveMutation.isPending ? "Salvando..." : "Salvar"}
+            <Button type="submit" className="w-full" disabled={saveMutation.isPending || !form.product_id}>
+              {saveMutation.isPending ? "Salvando..." : form.id ? "Atualizar" : "Salvar"}
             </Button>
           </form>
         </DialogContent>

@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_carts: {
+        Row: {
+          created_at: string
+          customer_document: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          product_id: string | null
+          product_variant: string | null
+          session_id: string | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          product_id?: string | null
+          product_variant?: string | null
+          session_id?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_document?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          product_id?: string | null
+          product_variant?: string | null
+          session_id?: string | null
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checkout_builder_config: {
         Row: {
           config: Json
@@ -488,6 +530,42 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      review_products: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          review_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          review_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_products_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {

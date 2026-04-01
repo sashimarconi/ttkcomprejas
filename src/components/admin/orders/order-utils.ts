@@ -4,7 +4,6 @@ export const orderStatusOptions: Array<{ value: "all" | OrderStatus; label: stri
   { value: "all", label: "Todos" },
   { value: "paid", label: "Pagos" },
   { value: "pending", label: "Pendentes" },
-  { value: "abandoned", label: "Abandonados" },
   { value: "expired", label: "Expirados" },
 ];
 
@@ -18,7 +17,7 @@ export const orderDateOptions: Array<{ value: DateFilter; label: string }> = [
 const statusMeta: Record<OrderStatus, { label: string; className: string }> = {
   pending: {
     label: "Pendente",
-    className: "border-marketplace-yellow/20 bg-marketplace-yellow/10 text-marketplace-yellow",
+    className: "border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400",
   },
   paid: {
     label: "Pago",
@@ -28,10 +27,6 @@ const statusMeta: Record<OrderStatus, { label: string; className: string }> = {
     label: "Expirado",
     className: "border-marketplace-red/20 bg-marketplace-red-light text-marketplace-red",
   },
-  abandoned: {
-    label: "Abandonado",
-    className: "border-border bg-muted text-muted-foreground",
-  },
 };
 
 export const getOrderStatusMeta = (status: OrderStatus) => statusMeta[status] ?? statusMeta.pending;
@@ -39,16 +34,7 @@ export const getOrderStatusMeta = (status: OrderStatus) => statusMeta[status] ??
 export const isUuid = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
-export const isAbandoned = (order: AdminOrderRecord) => {
-  if (order.payment_status !== "pending") return false;
-  if (!order.pix_expires_at) return false;
-
-  const expiresAt = new Date(order.pix_expires_at).getTime();
-  return Number.isFinite(expiresAt) && expiresAt < Date.now();
-};
-
 export const getEffectiveStatus = (order: AdminOrderRecord): OrderStatus => {
-  if (isAbandoned(order)) return "abandoned";
   if (order.payment_status === "paid") return "paid";
   if (order.payment_status === "expired") return "expired";
   return "pending";

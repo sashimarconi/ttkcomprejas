@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { OrderDetailsView } from "@/components/admin/orders/OrderDetailsView";
 import { OrdersListView } from "@/components/admin/orders/OrdersListView";
 import { getEffectiveStatus, isUuid, matchesDateFilter } from "@/components/admin/orders/order-utils";
+
 import type { AdminOrderRecord, DateFilter, OrderStats, StatusFilter } from "@/components/admin/orders/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -105,16 +106,6 @@ const AdminOrders = () => {
 
   useEffect(() => {
     fetchOrders();
-
-    const interval = window.setInterval(fetchOrders, 10000);
-    const handleFocus = () => fetchOrders();
-
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
   }, [fetchOrders]);
 
   const filteredOrders = useMemo(
@@ -158,7 +149,6 @@ const AdminOrders = () => {
       total: orders.length,
       paid: orders.filter((order) => getEffectiveStatus(order) === "paid").length,
       pending: orders.filter((order) => getEffectiveStatus(order) === "pending").length,
-      abandoned: orders.filter((order) => getEffectiveStatus(order) === "abandoned").length,
       copied: orders.filter((order) => Boolean(order.pix_copied)).length,
     }),
     [orders],

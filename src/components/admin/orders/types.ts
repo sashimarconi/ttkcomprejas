@@ -1,4 +1,4 @@
-export type OrderStatus = "pending" | "paid" | "expired" | "abandoned";
+export type OrderStatus = "pending" | "paid" | "expired";
 
 export type StatusFilter = "all" | OrderStatus;
 
@@ -36,6 +36,5 @@ export interface OrderStats {
   total: number;
   paid: number;
   pending: number;
-  abandoned: number;
   copied: number;
 }

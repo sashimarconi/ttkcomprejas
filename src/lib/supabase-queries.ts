@@ -65,6 +65,31 @@ export async function fetchProductBySlug(slug: string) {
     .single();
 
   if (error) throw error;
+
+  // Also fetch reviews linked via review_products join table
+  const { data: linkedReviewProducts } = await supabase
+    .from("review_products")
+    .select("review_id")
+    .eq("product_id", data.id);
+
+  if (linkedReviewProducts && linkedReviewProducts.length > 0) {
+    const linkedReviewIds = linkedReviewProducts.map((rp: any) => rp.review_id);
+    // Filter out reviews already present
+    const existingIds = new Set((data.reviews || []).map((r: any) => r.id));
+    const missingIds = linkedReviewIds.filter((id: string) => !existingIds.has(id));
+
+    if (missingIds.length > 0) {
+      const { data: extraReviews } = await supabase
+        .from("reviews")
+        .select("id, user_name, user_avatar_url, city, rating, comment, photos, review_date")
+        .in("id", missingIds);
+
+      if (extraReviews) {
+        data.reviews = [...(data.reviews || []), ...extraReviews];
+      }
+    }
+  }
+
   return data as ProductWithRelations;
 }
 

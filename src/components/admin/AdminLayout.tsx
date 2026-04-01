@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Package, Star, ShieldCheck, LogOut, Menu, CreditCard, Truck, Tag,
   BarChart3, LayoutDashboard, ClipboardList, Store, PenTool, Radio,
-  ChevronLeft, ExternalLink, Sun, Moon
+  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ const navSections = [
     title: "Vendas",
     items: [
       { label: "Pedidos", path: "/admin/orders", icon: ClipboardList },
+      { label: "Carrinhos Abandonados", path: "/admin/abandoned-carts", icon: ShoppingCart },
     ],
   },
   {

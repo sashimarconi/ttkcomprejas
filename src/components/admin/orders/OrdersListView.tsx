@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, CircleAlert, Clock3, CopyCheck, Eye, Filter, Package2, RefreshCw, Search, Wallet } from "lucide-react";
+import { CheckCircle2, Clock3, CopyCheck, Eye, Filter, Package2, RefreshCw, Search, Wallet, X } from "lucide-react";
 import { OrderStatusBadge } from "./OrderStatusBadge";
-import { formatCurrency, formatDateTime, getDisplayVariantLabel, getPaymentMethodLabel, getShortOrderId, orderDateOptions, orderStatusOptions } from "./order-utils";
+import { formatCurrency, formatDateTime, getDisplayVariantLabel, getShortOrderId, orderDateOptions, orderStatusOptions } from "./order-utils";
 import type { AdminOrderRecord, DateFilter, OrderStats, StatusFilter } from "./types";
 
 interface OrdersListViewProps {
@@ -46,7 +45,6 @@ export const OrdersListView = ({
     { label: "Pedidos totais", value: stats.total, icon: Package2, tone: "text-foreground" },
     { label: "Pagos", value: stats.paid, icon: Wallet, tone: "text-marketplace-green" },
     { label: "Pendentes", value: stats.pending, icon: Clock3, tone: "text-marketplace-yellow" },
-    { label: "Abandonados", value: stats.abandoned, icon: CircleAlert, tone: "text-marketplace-red" },
     { label: "Pix copiado", value: stats.copied, icon: CopyCheck, tone: "text-marketplace-blue" },
   ];
 
@@ -224,13 +222,11 @@ export const OrdersListView = ({
                         <TableCell className="whitespace-nowrap text-sm text-muted-foreground">{formatDateTime(order.created_at)}</TableCell>
                         <TableCell className="whitespace-nowrap font-semibold text-foreground">{formatCurrency(order.total)}</TableCell>
                         <TableCell><OrderStatusBadge order={order} /></TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {order.pix_copied ? (
-                            <Badge variant="outline" className="rounded-full border-marketplace-green/20 bg-marketplace-green-light text-marketplace-green">
-                              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Sim
-                            </Badge>
+                            <CheckCircle2 className="h-5 w-5 text-marketplace-green inline-block" />
                           ) : (
-                            <Badge variant="outline" className="rounded-full border-border bg-muted text-muted-foreground">Não</Badge>
+                            <X className="h-5 w-5 text-muted-foreground/40 inline-block" />
                           )}
                         </TableCell>
                         <TableCell className="text-right">
