@@ -5,7 +5,7 @@ import { usePageTracking, trackEvent } from "@/hooks/usePageTracking";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProductBySlug, fetchStoreSettings } from "@/lib/supabase-queries";
+import { fetchProductBySlug } from "@/lib/supabase-queries";
 import { formatCurrency } from "@/data/mockData";
 import { ArrowLeft, Minus, Plus, Check, ShieldCheck, Clock, X } from "lucide-react";
 import { toast } from "sonner";
