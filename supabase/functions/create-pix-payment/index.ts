@@ -194,13 +194,13 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "accept": "application/json",
       "Authorization": `Basic ${authToken}`,
     },
     body: JSON.stringify({
-      amount: body.amount,
-      currency: "BRL",
-      paymentMethod: "pix",
-      description: body.productTitle,
+      amount: body.amount, // in cents
+      payment_method: "pix",
+      postback_url: webhookUrl,
       customer: {
         name: body.customerName,
         email: body.customerEmail,
@@ -210,33 +210,38 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
       items: items.map((item) => ({
         title: item.title,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unit_price: item.unitPrice,
+        tangible: false,
       })),
-      callbackUrl: webhookUrl,
-      webhookUrl: webhookUrl,
-      webhook_url: webhookUrl,
-      notificationUrl: webhookUrl,
-      postback_url: webhookUrl,
+      pix: {
+        expires_in_minutes: 30,
+      },
+      metadata: {
+        provider_name: "Lovable Checkout",
+      },
     }),
   });
   const data = await res.json();
+  console.log("HiSo response:", JSON.stringify(data));
   if (!res.ok) throw { status: res.status, data };
 
-  // Extract from common response patterns
+  // HiSo webhook format has Id, Status fields
+  // Response likely has transaction id and pix data
   const txn = data.data ?? data.transaction ?? data;
   const pix = txn?.pix ?? txn?.paymentData ?? txn;
 
   return {
     transactionId: pickString(
-      txn?.transactionId, txn?.transaction_id, txn?.id,
-      data?.transactionId, data?.transaction_id, data?.id,
+      txn?.Id, txn?.id, txn?.transactionId, txn?.transaction_id,
+      data?.Id, data?.id, data?.transactionId, data?.transaction_id,
     ),
     qrCode: pickString(
       pix?.qrCode, pix?.qr_code, pix?.qrCodeUrl, pix?.qr_code_url,
     ),
     copyPaste: pickString(
-      pix?.copyPaste, pix?.copy_paste, pix?.qrCode, pix?.qr_code,
-      pix?.pixCode, pix?.pix_code, pix?.code,
+      pix?.copyPaste, pix?.copy_paste, pix?.code,
+      pix?.qrCode, pix?.qr_code,
+      pix?.pixCode, pix?.pix_code,
     ),
     qrCodeBase64: pickString(
       pix?.qrCodeBase64, pix?.qr_code_base64,
@@ -248,7 +253,7 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
 }
 
 async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: string) {
-  // Paradise uses X-API-Key header, amount in centavos, source=api_externa
+  // Paradise uses X-API-Key header, amount in centavos
   const reference = `order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const res = await fetch("https://multi.paradisepags.com/api/v1/transaction.php", {
@@ -258,10 +263,10 @@ async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: 
       "X-API-Key": gateway.secret_key,
     },
     body: JSON.stringify({
-      amount: body.amount,
+      amount: body.amount, // centavos
       description: body.productTitle,
       reference,
-      source: "api_externa",
+      source: "api_externa", // skip productHash validation
       postback_url: webhookUrl,
       customer: {
         name: body.customerName,
@@ -272,12 +277,13 @@ async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: 
     }),
   });
   const data = await res.json();
+  console.log("Paradise response:", JSON.stringify(data));
   if (!res.ok && data?.status !== "success") throw { status: res.status, data };
 
-  // Response: { status, transaction_id, id, qr_code, qr_code_base64, amount, expires_at }
+  // Response: { status:"success", transaction_id:238, id:"REF", qr_code:"EMV...", qr_code_base64:"data:image/png;base64,...", amount, expires_at }
   return {
     transactionId: pickString(data?.transaction_id, data?.id, reference),
-    qrCode: null, // Paradise returns qr_code as EMV string, not image URL
+    qrCode: null, // qr_code is EMV string not image URL
     copyPaste: pickString(data?.qr_code, data?.pix_code),
     qrCodeBase64: pickString(data?.qr_code_base64),
     expiresAt: pickString(data?.expires_at),

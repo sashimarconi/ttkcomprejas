@@ -55,9 +55,12 @@ function extractTransactionId(body: any) {
   return firstString(
     body?.transactionId,
     body?.transaction_id,
+    body?.Id, // HiSo uses capital Id
     body?.id,
     body?.paymentId,
     body?.payment_id,
+    body?.ExternalId, // HiSo ExternalId
+    body?.external_id, // Paradise external_id
     body?.data?.transactionId,
     body?.data?.transaction_id,
     body?.data?.id,
@@ -81,6 +84,7 @@ function isPaidPayload(body: any) {
     body?.event,
     body?.type,
     body?.status,
+    body?.Status, // HiSo uses capital Status
     body?.payment_status,
     body?.paymentStatus,
     body?.transaction_status,
@@ -88,6 +92,7 @@ function isPaidPayload(body: any) {
     body?.data?.event,
     body?.data?.type,
     body?.data?.status,
+    body?.data?.Status,
     body?.data?.payment_status,
     body?.data?.paymentStatus,
     body?.data?.transaction_status,
