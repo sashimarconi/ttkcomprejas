@@ -191,7 +191,7 @@ const AdminLiveView = () => {
         </div>
 
         {/* Right: Interactive Globe */}
-        <Card className="border-border relative overflow-hidden min-h-[600px]">
+        <Card className="border-border relative overflow-hidden min-h-[400px]">
           <CardContent className="p-0 h-full relative">
             <div className="absolute top-4 right-4 z-10 rounded-xl p-3 border border-border bg-card/90 backdrop-blur">
               <div className="flex items-center gap-2 mb-1.5">
@@ -212,7 +212,7 @@ const AdminLiveView = () => {
             <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
               <InteractiveGlobe
                 visitors={sessions.map(s => ({ session_id: s.session_id }))}
-                className="w-full h-full min-h-[600px]"
+                className="w-full h-full min-h-[400px]"
               />
             </Suspense>
           </CardContent>
