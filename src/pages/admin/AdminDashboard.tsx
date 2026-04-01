@@ -15,7 +15,7 @@ interface Stats {
   onlineNow: number;
   visits: number;
   checkouts: number;
-  pixGenerated: number;
+  pendingOrders: number;
   totalOrders: number;
   paidOrders: number;
   totalRevenue: number;
@@ -36,7 +36,7 @@ const AdminDashboard = () => {
     to: new Date(),
   });
   const [stats, setStats] = useState<Stats>({
-    onlineNow: 0, visits: 0, checkouts: 0, pixGenerated: 0,
+    onlineNow: 0, visits: 0, checkouts: 0, pendingOrders: 0,
     totalOrders: 0, paidOrders: 0, totalRevenue: 0, paidRevenue: 0, conversionRate: 0,
   });
   const [revenueData, setRevenueData] = useState<{ hour: string; value: number }[]>([]);
@@ -61,17 +61,17 @@ const AdminDashboard = () => {
     const events = eventsRes.data || [];
     const orders = ordersRes.data || [];
     const paid = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
+    const pending = orders.filter(o => o.payment_status === "pending");
     const paidRevenue = paid.reduce((s, o) => s + Number(o.total), 0);
     const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
     const checkouts = events.filter(e => e.event_type === "checkout_view").length;
     const visits = events.filter(e => e.event_type === "page_view").length;
-    const pixGen = events.filter(e => e.event_type === "pix_generated").length;
 
     setStats({
       onlineNow: onlineRes.count || 0,
       visits,
       checkouts,
-      pixGenerated: pixGen,
+      pendingOrders: pending.length,
       totalOrders: orders.length,
       paidOrders: paid.length,
       totalRevenue,
@@ -131,9 +131,9 @@ const AdminDashboard = () => {
     { label: "Visitantes agora", value: String(stats.onlineNow), icon: Users, live: true, tone: "text-marketplace-green" },
     { label: "Visitas", value: String(stats.visits), icon: TrendingUp, tone: "text-marketplace-blue" },
     { label: "Checkouts", value: String(stats.checkouts), icon: ShoppingCart, tone: "text-marketplace-yellow" },
-    { label: "PIX gerados", value: String(stats.pixGenerated), icon: DollarSign, tone: "text-marketplace-orange" },
-    { label: "Pedidos totais", value: String(stats.totalOrders), icon: Package2, tone: "text-foreground" },
+    { label: "Vendas pendentes", value: String(stats.pendingOrders), icon: Package2, tone: "text-marketplace-orange" },
     { label: "Vendas aprovadas", value: String(stats.paidOrders), icon: CheckCircle2, tone: "text-marketplace-green" },
+    { label: "Pedidos totais", value: String(stats.totalOrders), icon: Package2, tone: "text-foreground" },
     { label: "Receita total", value: formatCurrency(stats.totalRevenue), icon: DollarSign, tone: "text-foreground" },
     { label: "Receita aprovada", value: formatCurrency(stats.paidRevenue), icon: DollarSign, tone: "text-marketplace-green" },
     { label: "Conversão", value: `${stats.conversionRate.toFixed(1)}%`, icon: TrendingUp, tone: "text-primary" },
