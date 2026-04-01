@@ -29,6 +29,8 @@ const AdminStoreSettings = () => {
         avatar_url: data.avatar_url || "",
         total_sales: data.total_sales || "",
         rating: Number(data.rating) || 4.9,
+        product_page_logo_url: (data as any).product_page_logo_url || "",
+        checkout_logo_url: (data as any).checkout_logo_url || "",
       });
     }
   }, [data]);
