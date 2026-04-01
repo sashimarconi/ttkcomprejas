@@ -624,7 +624,7 @@ const CheckoutPage = () => {
           </button>
           <div className="flex-1 text-center">
             {checkoutLogoUrl ? (
-              <img src={checkoutLogoUrl} alt="Logo" className="h-7 object-contain max-w-[140px] mx-auto" />
+              <img src={checkoutLogoUrl} alt="Logo" style={{ height: checkoutLogoHeight }} className="object-contain max-w-[180px] mx-auto" />
             ) : (
               <>
                 <p className="text-sm font-semibold text-foreground">{checkoutSettings?.checkout_header_text || "Resumo do pedido"}</p>
