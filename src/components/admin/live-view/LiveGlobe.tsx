@@ -10,11 +10,23 @@ interface VisitorPoint {
   id: string;
 }
 
+interface ArcData {
+  startLat: number;
+  startLng: number;
+  endLat: number;
+  endLng: number;
+}
+
 interface LiveGlobeProps {
   visitors: { session_id: string }[];
   className?: string;
 }
 
+// Server location (São Paulo)
+const SERVER_LAT = -23.55;
+const SERVER_LNG = -46.63;
+
+// Generate pseudo-random coords from session ID spread across Brazil
 function sessionToCoords(sessionId: string): { lat: number; lng: number } {
   let hash = 0;
   for (let i = 0; i < sessionId.length; i++) {
@@ -32,7 +44,7 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const [polygons, setPolygons] = useState<any[]>([]);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
 
-  // Fetch lightweight TopoJSON and convert to GeoJSON
+  // Fetch TopoJSON
   useEffect(() => {
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json")
       .then(r => r.json())
@@ -55,13 +67,28 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     return () => obs.disconnect();
   }, []);
 
-  // Map visitors to points
+  // Visitor points
   const points: VisitorPoint[] = useMemo(() => {
     return visitors.map(v => {
       const { lat, lng } = sessionToCoords(v.session_id);
       return { lat, lng, size: 0.6, id: v.session_id };
     });
   }, [visitors]);
+
+  // Arcs from each visitor to server
+  const arcs: ArcData[] = useMemo(() => {
+    return points.map(p => ({
+      startLat: p.lat,
+      startLng: p.lng,
+      endLat: SERVER_LAT,
+      endLng: SERVER_LNG,
+    }));
+  }, [points]);
+
+  // Server point
+  const serverPoint = useMemo(() => [
+    { lat: SERVER_LAT, lng: SERVER_LNG, size: 1.2, id: "server", color: "#a78bfa" }
+  ], []);
 
   const handleGlobeReady = useCallback(() => {
     if (globeRef.current) {
@@ -80,6 +107,8 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     }
   }, []);
 
+  const allPoints = useMemo(() => [...points, ...serverPoint], [points, serverPoint]);
+
   return (
     <div ref={containerRef} className={className} style={{ width: "100%", height: "100%", minHeight: 300 }}>
       {polygons.length > 0 && (
@@ -94,6 +123,7 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
           atmosphereColor="#6c3ce0"
           atmosphereAltitude={0.15}
 
+          // Continents
           polygonsData={polygons}
           polygonCapColor={() => "rgba(100, 60, 200, 0.15)"}
           polygonSideColor={() => "rgba(100, 60, 200, 0.05)"}
@@ -107,13 +137,27 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
           hexPolygonColor={() => "rgba(139, 108, 224, 0.6)"}
           hexPolygonAltitude={0.007}
 
-          pointsData={points}
+          // Points (visitors + server)
+          pointsData={allPoints}
           pointLat="lat"
           pointLng="lng"
-          pointColor={() => "#4ADE80"}
+          pointColor={(d: any) => d.color || "#4ADE80"}
           pointAltitude={0.02}
           pointRadius="size"
           pointsMerge={false}
+
+          // Arcs from visitors to server
+          arcsData={arcs}
+          arcStartLat="startLat"
+          arcStartLng="startLng"
+          arcEndLat="endLat"
+          arcEndLng="endLng"
+          arcColor={() => ["rgba(74, 222, 128, 0.6)", "rgba(167, 139, 250, 0.6)"]}
+          arcAltitude={0.15}
+          arcStroke={0.5}
+          arcDashLength={0.4}
+          arcDashGap={0.2}
+          arcDashAnimateTime={2000}
         />
       )}
     </div>
