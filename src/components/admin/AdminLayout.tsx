@@ -7,6 +7,7 @@ import {
   ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import SaleNotification from "@/components/admin/SaleNotification";
 
 const navSections = [
   {
