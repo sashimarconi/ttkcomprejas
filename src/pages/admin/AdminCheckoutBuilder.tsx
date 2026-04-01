@@ -23,10 +23,6 @@ import {
   Monitor,
   ShieldCheck,
   ArrowLeft,
-  Minus,
-  Plus,
-  Check,
-  Image,
   Upload,
 } from "lucide-react";
 
