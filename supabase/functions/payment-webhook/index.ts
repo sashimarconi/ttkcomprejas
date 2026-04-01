@@ -84,6 +84,7 @@ function isPaidPayload(body: any) {
     body?.event,
     body?.type,
     body?.status,
+    body?.Status, // HiSo uses capital Status
     body?.payment_status,
     body?.paymentStatus,
     body?.transaction_status,
@@ -91,6 +92,7 @@ function isPaidPayload(body: any) {
     body?.data?.event,
     body?.data?.type,
     body?.data?.status,
+    body?.data?.Status,
     body?.data?.payment_status,
     body?.data?.paymentStatus,
     body?.data?.transaction_status,
