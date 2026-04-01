@@ -53,6 +53,12 @@ const AdminLiveView = () => {
     const sessionsArr = Array.from(uniqueSessions.values());
     setSessions(sessionsArr);
 
+    // Today's unique sessions for location tracking
+    const todayAll = todaySessionsRes.data || [];
+    const uniqueToday = new Map<string, { session_id: string }>();
+    todayAll.forEach(s => { if (!uniqueToday.has(s.session_id)) uniqueToday.set(s.session_id, s); });
+    setTodaySessions(Array.from(uniqueToday.values()));
+
     const orders = ordersRes.data || [];
     const paidOrders = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
     const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
