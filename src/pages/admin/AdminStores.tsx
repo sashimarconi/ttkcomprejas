@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Store, ExternalLink } from "lucide-react";
+import { Plus, Pencil, Trash2, Store, ExternalLink, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { fetchStoreSettings } from "@/lib/supabase-queries";
 
 interface StoreForm {
   name: string;
