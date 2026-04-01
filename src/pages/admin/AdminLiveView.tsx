@@ -230,7 +230,7 @@ const AdminLiveView = () => {
           </Card>
 
           {/* Sessions by Location */}
-          <SessionsByLocation sessions={sessions.map(s => ({ session_id: s.session_id }))} />
+          <SessionsByLocation sessions={todaySessions} />
         </div>
       </div>
     </div>
