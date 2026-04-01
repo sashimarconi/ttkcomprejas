@@ -132,7 +132,7 @@ const ProductPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <ProductHeader />
+      <ProductHeader logoUrl={storeSettings?.product_page_logo_url || undefined} />
 
       <div className="pt-12">
         <ProductGallery images={images} />
