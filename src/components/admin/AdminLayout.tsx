@@ -20,6 +20,7 @@ const navSections = [
     title: "Vendas",
     items: [
       { label: "Pedidos", path: "/admin/orders", icon: ClipboardList },
+      { label: "Carrinhos Abandonados", path: "/admin/abandoned-carts", icon: ShoppingCart },
     ],
   },
   {
