@@ -140,32 +140,70 @@ export type Database = {
       order_bumps: {
         Row: {
           active: boolean | null
+          apply_to_all: boolean
+          auto_add: boolean
+          bump_type: string
           created_at: string
           id: string
           image_url: string | null
+          mandatory: boolean
+          max_cart_value: number
+          max_quantity: number
+          min_cart_value: number
+          original_price: number | null
+          position: number
           price: number
+          product_id: string | null
           sort_order: number | null
           title: string
         }
         Insert: {
           active?: boolean | null
+          apply_to_all?: boolean
+          auto_add?: boolean
+          bump_type?: string
           created_at?: string
           id?: string
           image_url?: string | null
+          mandatory?: boolean
+          max_cart_value?: number
+          max_quantity?: number
+          min_cart_value?: number
+          original_price?: number | null
+          position?: number
           price?: number
+          product_id?: string | null
           sort_order?: number | null
           title: string
         }
         Update: {
           active?: boolean | null
+          apply_to_all?: boolean
+          auto_add?: boolean
+          bump_type?: string
           created_at?: string
           id?: string
           image_url?: string | null
+          mandatory?: boolean
+          max_cart_value?: number
+          max_quantity?: number
+          min_cart_value?: number
+          original_price?: number | null
+          position?: number
           price?: number
+          product_id?: string | null
           sort_order?: number | null
           title?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "order_bumps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {
