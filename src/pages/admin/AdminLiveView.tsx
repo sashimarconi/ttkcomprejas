@@ -28,6 +28,7 @@ const AdminLiveView = () => {
     visitors: 0, revenue: 0, orders: 0, paidOrders: 0, conversionRate: 0, avgTicket: 0,
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [todaySessions, setTodaySessions] = useState<{ session_id: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
   const [funnelData, setFunnelData] = useState<{ label: string; value: number; pct: number }[]>([]);
   const [behavior, setBehavior] = useState({ activeCarts: 0, inCheckout: 0, purchased: 0 });
@@ -37,10 +38,11 @@ const AdminLiveView = () => {
     const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-    const [sessionsRes, ordersRes, eventsRes] = await Promise.all([
+    const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at").gte("last_seen_at", fiveMinAgo),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
       supabase.from("page_events").select("event_type, created_at").gte("created_at", todayStart),
+      supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", todayStart),
     ]);
 
     const activeSessions = sessionsRes.data || [];
@@ -50,6 +52,12 @@ const AdminLiveView = () => {
     });
     const sessionsArr = Array.from(uniqueSessions.values());
     setSessions(sessionsArr);
+
+    // Today's unique sessions for location tracking
+    const todayAll = todaySessionsRes.data || [];
+    const uniqueToday = new Map<string, { session_id: string }>();
+    todayAll.forEach(s => { if (!uniqueToday.has(s.session_id)) uniqueToday.set(s.session_id, s); });
+    setTodaySessions(Array.from(uniqueToday.values()));
 
     const orders = ordersRes.data || [];
     const paidOrders = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
@@ -194,7 +202,7 @@ const AdminLiveView = () => {
         {/* Right column */}
         <div className="space-y-4">
           {/* Interactive Globe */}
-          <Card className="border-border relative overflow-hidden min-h-[400px]">
+          <Card className="border-border relative overflow-hidden min-h-[550px]">
             <CardContent className="p-0 h-full relative">
               <div className="absolute top-4 right-4 z-10 rounded-xl p-3 border border-border bg-card/90 backdrop-blur">
                 <div className="flex items-center gap-2 mb-1.5">
@@ -215,14 +223,14 @@ const AdminLiveView = () => {
               <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
                 <LiveGlobe
                   visitors={sessions.map(s => ({ session_id: s.session_id }))}
-                  className="w-full h-full min-h-[400px]"
+                  className="w-full h-full min-h-[550px]"
                 />
               </Suspense>
             </CardContent>
           </Card>
 
           {/* Sessions by Location */}
-          <SessionsByLocation sessions={sessions.map(s => ({ session_id: s.session_id }))} />
+          <SessionsByLocation sessions={todaySessions} />
         </div>
       </div>
     </div>
