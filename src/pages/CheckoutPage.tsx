@@ -141,20 +141,19 @@ const CheckoutPage = () => {
   // Track abandoned cart when user leaves with filled form but no PIX generated
   useEffect(() => {
     const saveAbandonedCart = () => {
-      if (pixData || !customerName || !customerEmail || !product) return;
+      if (pixData || !customerName || !customerEmail) return;
       supabase.from("abandoned_carts").insert({
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: customerPhone || null,
         customer_document: customerDocument || null,
-        product_id: product.id,
+        product_id: slug || null,
         product_variant: selectedVariant || null,
-        total: totalWithBumpsAndShipping,
       }).then(() => {});
     };
     window.addEventListener("beforeunload", saveAbandonedCart);
     return () => window.removeEventListener("beforeunload", saveAbandonedCart);
-  }, [pixData, customerName, customerEmail, customerPhone, customerDocument, product, selectedVariant, totalWithBumpsAndShipping]);
+  }, [pixData, customerName, customerEmail, customerPhone, customerDocument, slug, selectedVariant]);
 
   useEffect(() => {
     setPixCopiedRegistered(false);
