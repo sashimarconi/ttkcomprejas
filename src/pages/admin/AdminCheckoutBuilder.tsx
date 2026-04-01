@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ import {
   Minus,
   Plus,
   Check,
+  Image,
+  Upload,
 } from "lucide-react";
 
 interface Section {
@@ -52,6 +54,11 @@ interface Appearance {
   timer_enabled: boolean;
   timer_minutes: number;
   timer_text: string;
+  logo_url: string;
+  logo_height: number;
+  pix_payment_title: string;
+  pix_expiration_minutes: number;
+  pix_instruction_text: string;
 }
 
 interface BuilderConfig {
@@ -89,6 +96,11 @@ const DEFAULT_CONFIG: BuilderConfig = {
     timer_enabled: true,
     timer_minutes: 10,
     timer_text: "Oferta termina em:",
+    logo_url: "",
+    logo_height: 28,
+    pix_payment_title: "Pagamento Seguro",
+    pix_expiration_minutes: 30,
+    pix_instruction_text: "Efetue o pagamento agora mesmo escaneando o QR Code",
   },
 };
 
@@ -117,6 +129,8 @@ const AdminCheckoutBuilder = () => {
   const [activePanel, setActivePanel] = useState<string>("layout");
   const [previewMode, setPreviewMode] = useState<"mobile" | "desktop">("mobile");
   const [dragItem, setDragItem] = useState<number | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["checkout-builder-config"],
@@ -146,20 +160,75 @@ const AdminCheckoutBuilder = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!configId) return;
+      // Save builder config
       const { error } = await supabase
         .from("checkout_builder_config")
         .update({ config: config as any, updated_at: new Date().toISOString() })
         .eq("id", configId);
       if (error) throw error;
+
+      // Also sync checkout_settings texts
+      const { data: existing } = await supabase
+        .from("checkout_settings" as any)
+        .select("id")
+        .limit(1)
+        .single();
+      if (existing) {
+        await supabase
+          .from("checkout_settings" as any)
+          .update({
+            checkout_header_text: config.appearance.header_text,
+            checkout_security_text: config.appearance.security_text,
+            checkout_button_text: config.appearance.button_text,
+            pix_payment_title: config.appearance.pix_payment_title,
+            pix_expiration_minutes: config.appearance.pix_expiration_minutes,
+            pix_instruction_text: config.appearance.pix_instruction_text,
+          })
+          .eq("id", existing.id);
+      }
+
+      // Also sync logo to store_settings
+      const { data: storeSettings } = await supabase
+        .from("store_settings")
+        .select("id")
+        .limit(1)
+        .single();
+      if (storeSettings) {
+        await supabase
+          .from("store_settings")
+          .update({ checkout_logo_url: config.appearance.logo_url || null })
+          .eq("id", storeSettings.id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["checkout-builder-config"] });
+      queryClient.invalidateQueries({ queryKey: ["checkout-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["store-settings"] });
       toast({ title: "Builder salvo com sucesso!" });
     },
     onError: (err: Error) => {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     },
   });
+
+  const handleLogoUpload = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `checkout-logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+      updateAppearance("logo_url", urlData.publicUrl);
+      toast({ title: "Logo enviada com sucesso!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar logo", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const moveSection = (from: number, to: number) => {
     const newSections = [...config.sections];
@@ -192,9 +261,10 @@ const AdminCheckoutBuilder = () => {
   const panels = [
     { id: "layout", label: "Layout", icon: <Layout className="w-4 h-4" />, desc: "Seções e ordem" },
     { id: "campos", label: "Campos", icon: <Type className="w-4 h-4" />, desc: "Campos do formulário" },
-    { id: "aparencia", label: "Aparência", icon: <Palette className="w-4 h-4" />, desc: "Cores e estilo" },
+    { id: "aparencia", label: "Aparência", icon: <Palette className="w-4 h-4" />, desc: "Cores, logo e estilo" },
     { id: "conversao", label: "Conversão", icon: <Sparkles className="w-4 h-4" />, desc: "Timer e urgência" },
     { id: "config", label: "Textos", icon: <Settings className="w-4 h-4" />, desc: "Textos e rótulos" },
+    { id: "pix", label: "PIX", icon: <Clock className="w-4 h-4" />, desc: "Configurações do PIX" },
   ];
 
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
@@ -316,6 +386,69 @@ const AdminCheckoutBuilder = () => {
 
                   {panel.id === "aparencia" && (
                     <div className="space-y-3">
+                      {/* Logo section */}
+                      <div className="space-y-2">
+                        <Label className="text-xs font-semibold">Logo do Checkout (opcional)</Label>
+                        {config.appearance.logo_url && (
+                          <div className="bg-muted/50 rounded-lg p-3 flex flex-col items-center gap-2">
+                            <img
+                              src={config.appearance.logo_url}
+                              alt="Logo"
+                              style={{ height: config.appearance.logo_height }}
+                              className="object-contain"
+                            />
+                            <button
+                              onClick={() => updateAppearance("logo_url", "")}
+                              className="text-[10px] text-destructive hover:underline"
+                            >
+                              Remover logo
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex gap-1">
+                          <Input
+                            value={config.appearance.logo_url}
+                            onChange={(e) => updateAppearance("logo_url", e.target.value)}
+                            className="h-8 text-xs flex-1"
+                            placeholder="URL da logo ou faça upload"
+                          />
+                          <input
+                            ref={logoInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleLogoUpload(file);
+                            }}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2"
+                            disabled={uploadingLogo}
+                            onClick={() => logoInputRef.current?.click()}
+                          >
+                            <Upload className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        {config.appearance.logo_url && (
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">
+                              Altura da logo: {config.appearance.logo_height}px
+                            </Label>
+                            <input
+                              type="range"
+                              min={16}
+                              max={80}
+                              value={config.appearance.logo_height}
+                              onChange={(e) => updateAppearance("logo_height", parseInt(e.target.value))}
+                              className="w-full h-1.5 accent-primary"
+                            />
+                          </div>
+                        )}
+                      </div>
+
                       <div className="space-y-1">
                         <Label className="text-xs">Cor principal</Label>
                         <div className="flex items-center gap-2">
@@ -429,6 +562,37 @@ const AdminCheckoutBuilder = () => {
                       </div>
                     </div>
                   )}
+
+                  {panel.id === "pix" && (
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Nome da empresa (tela do PIX)</Label>
+                        <Input
+                          value={config.appearance.pix_payment_title}
+                          onChange={(e) => updateAppearance("pix_payment_title", e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tempo para pagamento (minutos)</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={config.appearance.pix_expiration_minutes}
+                          onChange={(e) => updateAppearance("pix_expiration_minutes", parseInt(e.target.value) || 30)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Instrução do QR Code</Label>
+                        <Input
+                          value={config.appearance.pix_instruction_text}
+                          onChange={(e) => updateAppearance("pix_instruction_text", e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -484,11 +648,22 @@ const AdminCheckoutBuilder = () => {
               <div className="flex items-center h-11 px-4">
                 <ArrowLeft className="w-4 h-4 text-muted-foreground" />
                 <div className="flex-1 text-center">
-                  <p className="text-xs font-semibold text-foreground">{config.appearance.header_text}</p>
-                  {config.appearance.show_security_badge && (
-                    <p className="text-[9px] text-green-600 flex items-center justify-center gap-1">
-                      <ShieldCheck className="w-2.5 h-2.5" /> {config.appearance.security_text}
-                    </p>
+                  {config.appearance.logo_url ? (
+                    <img
+                      src={config.appearance.logo_url}
+                      alt="Logo"
+                      style={{ height: config.appearance.logo_height }}
+                      className="object-contain mx-auto"
+                    />
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold text-foreground">{config.appearance.header_text}</p>
+                      {config.appearance.show_security_badge && (
+                        <p className="text-[9px] text-green-600 flex items-center justify-center gap-1">
+                          <ShieldCheck className="w-2.5 h-2.5" /> {config.appearance.security_text}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="w-4" />
