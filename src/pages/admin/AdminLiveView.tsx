@@ -38,10 +38,11 @@ const AdminLiveView = () => {
     const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-    const [sessionsRes, ordersRes, eventsRes] = await Promise.all([
+    const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at").gte("last_seen_at", fiveMinAgo),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
       supabase.from("page_events").select("event_type, created_at").gte("created_at", todayStart),
+      supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", todayStart),
     ]);
 
     const activeSessions = sessionsRes.data || [];
