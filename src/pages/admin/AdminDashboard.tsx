@@ -15,7 +15,7 @@ interface Stats {
   onlineNow: number;
   visits: number;
   checkouts: number;
-  pixGenerated: number;
+  pendingOrders: number;
   totalOrders: number;
   paidOrders: number;
   totalRevenue: number;
