@@ -9,7 +9,7 @@ interface ClientBehaviorProps {
 
 export default function ClientBehavior({ activeCarts, inCheckout, purchased }: ClientBehaviorProps) {
   const items = [
-    { label: "Carrinhos ativos", value: activeCarts, icon: ShoppingCart },
+    { label: "Na loja", value: activeCarts, icon: ShoppingCart },
     { label: "No checkout", value: inCheckout, icon: CreditCard },
     { label: "Comprado", value: purchased, icon: CheckCircle },
   ];

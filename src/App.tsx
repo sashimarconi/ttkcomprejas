@@ -22,6 +22,7 @@ import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
 import AdminLiveView from "./pages/admin/AdminLiveView";
 import AdminAbandonedCarts from "./pages/admin/AdminAbandonedCarts";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="live-view" element={<AdminLiveView />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
             <Route path="products" element={<AdminProducts />} />

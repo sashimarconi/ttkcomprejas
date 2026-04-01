@@ -22,11 +22,9 @@ interface LiveGlobeProps {
   className?: string;
 }
 
-// Server location (São Paulo)
 const SERVER_LAT = -23.55;
 const SERVER_LNG = -46.63;
 
-// Generate pseudo-random coords from session ID spread across Brazil
 function sessionToCoords(sessionId: string): { lat: number; lng: number } {
   let hash = 0;
   for (let i = 0; i < sessionId.length; i++) {
@@ -44,7 +42,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const [polygons, setPolygons] = useState<any[]>([]);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
 
-  // Fetch TopoJSON
   useEffect(() => {
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json")
       .then(r => r.json())
@@ -56,18 +53,18 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
       .catch(console.error);
   }, []);
 
-  // Responsive sizing
   useEffect(() => {
     if (!containerRef.current) return;
     const obs = new ResizeObserver(entries => {
       const { width, height } = entries[0].contentRect;
-      setDimensions({ width, height: Math.max(height, 300) });
+      if (width > 0 && height > 0) {
+        setDimensions({ width, height });
+      }
     });
     obs.observe(containerRef.current);
     return () => obs.disconnect();
   }, []);
 
-  // Visitor points
   const points: VisitorPoint[] = useMemo(() => {
     return visitors.map(v => {
       const { lat, lng } = sessionToCoords(v.session_id);
@@ -75,7 +72,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     });
   }, [visitors]);
 
-  // Arcs from each visitor to server
   const arcs: ArcData[] = useMemo(() => {
     return points.map(p => ({
       startLat: p.lat,
@@ -85,7 +81,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     }));
   }, [points]);
 
-  // Server point
   const serverPoint = useMemo(() => [
     { lat: SERVER_LAT, lng: SERVER_LNG, size: 1.2, id: "server", color: "#a78bfa" }
   ], []);
@@ -110,8 +105,12 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const allPoints = useMemo(() => [...points, ...serverPoint], [points, serverPoint]);
 
   return (
-    <div ref={containerRef} className={className} style={{ width: "100%", height: "100%", minHeight: 300 }}>
-      {polygons.length > 0 && (
+    <div
+      ref={containerRef}
+      className={className}
+      style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+    >
+      {polygons.length > 0 && dimensions.width > 0 && (
         <Globe
           ref={globeRef}
           width={dimensions.width}
@@ -123,21 +122,12 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
           atmosphereColor="#6c3ce0"
           atmosphereAltitude={0.15}
 
-          // Continents
           polygonsData={polygons}
           polygonCapColor={() => "rgba(100, 60, 200, 0.15)"}
           polygonSideColor={() => "rgba(100, 60, 200, 0.05)"}
           polygonStrokeColor={() => "rgba(140, 100, 230, 0.4)"}
           polygonAltitude={0.006}
 
-          hexPolygonsData={polygons}
-          hexPolygonResolution={3}
-          hexPolygonMargin={0.4}
-          hexPolygonUseDots={true}
-          hexPolygonColor={() => "rgba(139, 108, 224, 0.6)"}
-          hexPolygonAltitude={0.007}
-
-          // Points (visitors + server)
           pointsData={allPoints}
           pointLat="lat"
           pointLng="lng"
@@ -146,7 +136,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
           pointRadius="size"
           pointsMerge={false}
 
-          // Arcs from visitors to server
           arcsData={arcs}
           arcStartLat="startLat"
           arcStartLng="startLng"
