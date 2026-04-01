@@ -154,6 +154,18 @@ const ProductPage = () => {
         />
         <TrustBadges />
 
+        {productStore && (
+          <StoreCard
+            store={{
+              name: productStore.name,
+              avatar: productStore.logo_url || "",
+              totalSales: productStore.total_sales || "0",
+              rating: Number(productStore.rating) || 5.0,
+            }}
+            storeSlug={productStore.slug}
+          />
+        )}
+
         <div ref={reviewsRef}>
           <ReviewsSection reviews={reviews} totalReviews={product.review_count || 0} />
         </div>
@@ -186,18 +198,6 @@ const ProductPage = () => {
             </p>
           )}
         </div>
-
-        {productStore && (
-          <StoreCard
-            store={{
-              name: productStore.name,
-              avatar: productStore.logo_url || "",
-              totalSales: productStore.total_sales || "0",
-              rating: Number(productStore.rating) || 5.0,
-            }}
-            storeSlug={productStore.slug}
-          />
-        )}
 
         <RelatedProducts title="Mais desta loja" products={relatedFormatted} />
         {relatedFormatted.length > 2 && (

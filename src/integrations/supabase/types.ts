@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      checkout_builder_config: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checkout_settings: {
         Row: {
           checkout_button_text: string
