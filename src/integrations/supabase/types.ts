@@ -531,6 +531,42 @@ export type Database = {
         }
         Relationships: []
       }
+      review_products: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          review_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          review_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_products_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           active: boolean | null
