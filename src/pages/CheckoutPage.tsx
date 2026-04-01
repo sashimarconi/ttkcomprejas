@@ -394,6 +394,8 @@ const CheckoutPage = () => {
         contentId: product.id,
         contentName: selectedVariant ? `${product.title} - ${selectedVariant}` : product.title,
         quantity,
+        email: customerEmail,
+        phone: customerPhone,
       });
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar pagamento");
