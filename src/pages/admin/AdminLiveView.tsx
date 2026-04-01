@@ -224,7 +224,8 @@ const AdminLiveView = () => {
           {/* Sessions by Location */}
           <SessionsByLocation sessions={sessions.map(s => ({ session_id: s.session_id }))} />
         </div>
-  );
+      </div>
+    </div>
 };
 
 export default AdminLiveView;
