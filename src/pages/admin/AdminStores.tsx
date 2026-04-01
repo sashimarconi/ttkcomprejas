@@ -41,7 +41,60 @@ const AdminStores = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [productsDialogOpen, setProductsDialogOpen] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
+  const [productLogoUrl, setProductLogoUrl] = useState("");
+  const [uploadingProductLogo, setUploadingProductLogo] = useState(false);
+  const productLogoInputRef = useRef<HTMLInputElement>(null);
 
+  const { data: storeSettings } = useQuery({
+    queryKey: ["store-settings-admin"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("store_settings").select("*").limit(1).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  useEffect(() => {
+    if (storeSettings) {
+      setProductLogoUrl((storeSettings as any).product_page_logo_url || "");
+    }
+  }, [storeSettings]);
+
+  const saveProductLogoMutation = useMutation({
+    mutationFn: async (url: string) => {
+      if (!storeSettings) return;
+      const { error } = await supabase
+        .from("store_settings")
+        .update({ product_page_logo_url: url || null } as any)
+        .eq("id", storeSettings.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["store-settings-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+      toast({ title: "Logo da página de produto salva!" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleProductLogoUpload = async (file: File) => {
+    setUploadingProductLogo(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `product-logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("product-images").upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+      setProductLogoUrl(urlData.publicUrl);
+      toast({ title: "Logo enviada!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingProductLogo(false);
+    }
+  };
   const { data: stores, isLoading } = useQuery({
     queryKey: ["admin-stores"],
     queryFn: async () => {
