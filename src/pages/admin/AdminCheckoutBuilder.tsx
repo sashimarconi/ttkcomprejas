@@ -722,7 +722,7 @@ const AdminCheckoutBuilder = () => {
               {config.sections
                 .filter((s) => s.enabled)
                 .map((section) => (
-                  <div key={section.id} className="border-b border-border/50">
+                  <div key={section.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                     {section.type === "timer" && config.appearance.timer_enabled && (
                       <div
                         className="mx-3 mt-3 rounded-xl py-2.5 px-4 flex items-center justify-center gap-2"
@@ -746,10 +746,10 @@ const AdminCheckoutBuilder = () => {
 
                     {section.type === "customer_info" && (
                       <div className="px-3 py-3">
-                        <button className="w-full border border-dashed border-border rounded-lg py-3 text-xs text-muted-foreground">
+                        <button className="w-full border border-dashed rounded-lg py-3 text-xs" style={{ borderColor: "#d1d5db", color: "#9ca3af" }}>
                           + Adicionar endereço de entrega
                         </button>
-                        <button className="w-full border border-dashed border-border rounded-lg py-3 text-xs text-muted-foreground mt-2">
+                        <button className="w-full border border-dashed rounded-lg py-3 text-xs mt-2" style={{ borderColor: "#d1d5db", color: "#9ca3af" }}>
                           + Adicionar CPF
                         </button>
                       </div>
@@ -758,56 +758,89 @@ const AdminCheckoutBuilder = () => {
                     {section.type === "product_card" && (
                       <div className="px-3 py-3">
                         <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#1a1a1a" }}>
                             🛒 Resumo do Pedido
                           </p>
                           <span className="text-xs font-semibold" style={{ color: config.appearance.primary_color }}>
-                            R$ 97,70
+                            {previewProduct ? `R$ ${previewProduct.sale_price.toFixed(2).replace(".", ",")}` : "R$ 97,70"}
                           </span>
                         </div>
+                        {previewProduct && (
+                          <div className="flex items-center gap-3 p-2 rounded-lg" style={{ backgroundColor: "#f9fafb" }}>
+                            <div className="w-12 h-12 rounded-lg" style={{ backgroundColor: "#e5e7eb" }} />
+                            <div className="flex-1">
+                              <p className="text-[11px] font-medium" style={{ color: "#1a1a1a" }}>{previewProduct.title}</p>
+                              <p className="text-[10px]" style={{ color: "#9ca3af" }}>Qtd: 1</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[11px] font-bold" style={{ color: config.appearance.primary_color }}>
+                                R$ {previewProduct.sale_price.toFixed(2).replace(".", ",")}
+                              </p>
+                              {previewProduct.original_price > previewProduct.sale_price && (
+                                <p className="text-[9px] line-through" style={{ color: "#9ca3af" }}>
+                                  R$ {previewProduct.original_price.toFixed(2).replace(".", ",")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 
                     {section.type === "shipping" && (
                       <div className="px-3 py-2">
-                        <p className="text-[10px] font-medium text-muted-foreground mb-1">Entrega</p>
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
-                          <div
-                            className="w-3 h-3 rounded-full border-2"
-                            style={{ borderColor: config.appearance.primary_color }}
-                          >
+                        <p className="text-[10px] font-medium mb-1" style={{ color: "#6b7280" }}>Entrega</p>
+                        {(previewShipping && previewShipping.length > 0 ? previewShipping : [{ name: "Frete Grátis", price: 0, free: true }]).map((ship, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg mb-1" style={{ backgroundColor: idx === 0 ? "#f0fdf4" : "#f9fafb" }}>
                             <div
-                              className="w-1.5 h-1.5 rounded-full m-[1px]"
-                              style={{ backgroundColor: config.appearance.primary_color }}
-                            />
+                              className="w-3 h-3 rounded-full border-2"
+                              style={{ borderColor: idx === 0 ? config.appearance.primary_color : "#d1d5db" }}
+                            >
+                              {idx === 0 && <div className="w-1.5 h-1.5 rounded-full m-[1px]" style={{ backgroundColor: config.appearance.primary_color }} />}
+                            </div>
+                            <span className="text-[10px] flex-1" style={{ color: "#1a1a1a" }}>{ship.name}</span>
+                            <span className="text-[10px] font-medium" style={{ color: ship.free ? "#16a34a" : "#1a1a1a" }}>
+                              {ship.free ? "Grátis" : `R$ ${Number(ship.price).toFixed(2).replace(".", ",")}`}
+                            </span>
                           </div>
-                          <span className="text-[10px] text-foreground">Frete Grátis</span>
-                        </div>
+                        ))}
                       </div>
                     )}
 
                     {section.type === "order_bumps" && (
-                      <div
-                        className="px-3 py-2"
-                        style={{ backgroundColor: `${config.appearance.primary_color}10` }}
-                      >
-                        <p
-                          className="text-[10px] font-bold uppercase"
-                          style={{ color: config.appearance.primary_color }}
-                        >
+                      <div className="px-3 py-2" style={{ backgroundColor: `${config.appearance.primary_color}10` }}>
+                        <p className="text-[10px] font-bold uppercase mb-2" style={{ color: config.appearance.primary_color }}>
                           ⚡ Ofertas especiais
                         </p>
+                        {(previewBumps && previewBumps.length > 0 ? previewBumps : [{ title: "Produto extra", price: 19.90, original_price: 39.90 }]).map((bump, idx) => (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg mb-1" style={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
+                            <div className="w-4 h-4 rounded border" style={{ borderColor: "#d1d5db" }} />
+                            <div className="flex-1">
+                              <p className="text-[10px] font-medium" style={{ color: "#1a1a1a" }}>{bump.title}</p>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-bold" style={{ color: config.appearance.primary_color }}>
+                                  R$ {Number(bump.price).toFixed(2).replace(".", ",")}
+                                </span>
+                                {bump.original_price && Number(bump.original_price) > Number(bump.price) && (
+                                  <span className="text-[8px] line-through" style={{ color: "#9ca3af" }}>
+                                    R$ {Number(bump.original_price).toFixed(2).replace(".", ",")}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 
                     {section.type === "summary" && (
                       <div className="px-3 py-3 space-y-1">
-                        <p className="text-xs font-semibold text-foreground">Informações de Contato</p>
+                        <p className="text-xs font-semibold" style={{ color: "#1a1a1a" }}>Informações de Contato</p>
                         {Object.entries(config.fields)
                           .filter(([, f]) => f.enabled)
                           .map(([key, field]) => (
-                            <div key={key} className="border-b border-border/50 py-2">
-                              <span className="text-[10px] text-muted-foreground">
+                            <div key={key} className="py-2" style={{ borderBottom: "1px solid #f3f4f6" }}>
+                              <span className="text-[10px]" style={{ color: "#9ca3af" }}>
                                 {field.label}
                                 {field.required && " *"}
                               </span>
@@ -818,12 +851,12 @@ const AdminCheckoutBuilder = () => {
 
                     {section.type === "payment" && (
                       <div className="px-3 py-3">
-                        <p className="text-xs font-semibold text-foreground mb-2">Forma de pagamento</p>
+                        <p className="text-xs font-semibold mb-2" style={{ color: "#1a1a1a" }}>Forma de pagamento</p>
                         <div className="flex items-center gap-2 p-2 rounded-lg border border-green-200 bg-green-50">
                           <div className="w-3 h-3 rounded-full border-2 border-green-600">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-600 m-[1px]" />
                           </div>
-                          <span className="text-[10px] font-medium text-foreground">Pix</span>
+                          <span className="text-[10px] font-medium" style={{ color: "#1a1a1a" }}>Pix</span>
                         </div>
                       </div>
                     )}
@@ -831,7 +864,7 @@ const AdminCheckoutBuilder = () => {
                     {section.type === "savings" && (
                       <div className="px-3 py-2 text-center">
                         <p className="text-[10px] text-green-600">
-                          😊 Você está economizando R$ 100,00
+                          😊 Você está economizando R$ {previewProduct ? (previewProduct.original_price - previewProduct.sale_price).toFixed(2).replace(".", ",") : "100,00"}
                         </p>
                       </div>
                     )}
@@ -840,11 +873,11 @@ const AdminCheckoutBuilder = () => {
             </div>
 
             {/* Fixed bottom preview */}
-            <div className="sticky bottom-0 bg-card border-t border-border p-3 flex items-center justify-between">
+            <div className="sticky bottom-0 p-3 flex items-center justify-between" style={{ backgroundColor: "#ffffff", borderTop: "1px solid #e5e7eb" }}>
               <div>
-                <p className="text-[9px] text-muted-foreground">Total (1 item)</p>
+                <p className="text-[9px]" style={{ color: "#9ca3af" }}>Total (1 item)</p>
                 <p className="text-sm font-bold" style={{ color: config.appearance.primary_color }}>
-                  R$ 97,70
+                  {previewProduct ? `R$ ${previewProduct.sale_price.toFixed(2).replace(".", ",")}` : "R$ 97,70"}
                 </p>
               </div>
               <button
