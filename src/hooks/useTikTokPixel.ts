@@ -251,7 +251,18 @@ export function trackTikTokPurchase(
     ttqExists: typeof window !== "undefined" && !!window.ttq,
   });
 
+  // Identify user with email/phone before tracking
   try {
+    const ttq = getTikTokQueue();
+    if (ttq && typeof ttq.identify === "function") {
+      const identifyData: Record<string, string> = {};
+      if (options.email) identifyData.email = options.email;
+      if (options.phone) identifyData.phone_number = options.phone;
+      if (Object.keys(identifyData).length > 0) {
+        ttq.identify(identifyData);
+        console.log("[TikTok Pixel] identify called:", identifyData);
+      }
+    }
     trackTikTokEvent("CompletePayment", payload);
   } catch (e) {
     console.error("[TikTok Pixel] Error firing event:", e);
