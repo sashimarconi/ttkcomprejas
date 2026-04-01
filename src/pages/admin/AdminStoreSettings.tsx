@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminStoreSettings = () => {
-  const [form, setForm] = useState({ name: "", avatar_url: "", total_sales: "", rating: 4.9 });
+  const [form, setForm] = useState({ name: "", avatar_url: "", total_sales: "", rating: 4.9, product_page_logo_url: "", checkout_logo_url: "" });
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
