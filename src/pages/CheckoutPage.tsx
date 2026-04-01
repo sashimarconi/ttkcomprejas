@@ -278,12 +278,22 @@ const CheckoutPage = () => {
     },
   });
 
-  const { data: storeSettings } = useQuery({
-    queryKey: ["store-settings"],
-    queryFn: () => fetchStoreSettings(),
+  const { data: builderConfig } = useQuery({
+    queryKey: ["checkout-builder-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("checkout_builder_config")
+        .select("*")
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
   });
 
-  const checkoutLogoUrl = (storeSettings as any)?.checkout_logo_url || "";
+  const builderAppearance = (builderConfig?.config as any)?.appearance || {};
+  const checkoutLogoUrl = builderAppearance.logo_url || "";
+  const checkoutLogoHeight = builderAppearance.logo_height || 28;
 
   useEffect(() => {
     if (shippingOptions?.length && !selectedShipping) {
