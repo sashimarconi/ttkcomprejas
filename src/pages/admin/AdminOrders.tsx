@@ -1,64 +1,107 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { OrderDetailsView } from "@/components/admin/orders/OrderDetailsView";
+import { OrdersListView } from "@/components/admin/orders/OrdersListView";
+import { getEffectiveStatus, isUuid, matchesDateFilter } from "@/components/admin/orders/order-utils";
+import type { AdminOrderRecord, DateFilter, OrderStats, StatusFilter } from "@/components/admin/orders/types";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, RefreshCw, ShoppingCart, AlertTriangle } from "lucide-react";
 
-interface Order {
+interface ProductSummary {
   id: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  customer_document: string;
-  payment_status: string;
-  payment_method: string;
-  total: number;
-  subtotal: number;
-  shipping_cost: number | null;
-  bumps_total: number | null;
-  product_variant: string | null;
-  transaction_id: string | null;
-  pix_expires_at: string | null;
-  created_at: string;
-  pix_copied: boolean | null;
-  product_id: string | null;
+  title: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-  paid: "bg-green-500/10 text-green-600 border-green-500/20",
-  expired: "bg-red-500/10 text-red-600 border-red-500/20",
-  abandoned: "bg-gray-500/10 text-gray-600 border-gray-500/20",
-};
+interface ShippingSummary {
+  id: string;
+  name: string | null;
+}
 
-const statusLabels: Record<string, string> = {
-  pending: "Pendente",
-  paid: "Pago",
-  expired: "Expirado",
-  abandoned: "Abandonado",
-};
+interface VariantSummary {
+  id: string;
+  name: string;
+}
 
 const AdminOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("all");
-  const [tab, setTab] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from("orders").select("*").order("created_at", { ascending: false });
 
-    const { data, error } = await query;
-    if (!error) setOrders(data || []);
-    setLoading(false);
-  };
+    try {
+      const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      const rows = (data || []) as AdminOrderRecord[];
+      const productIds = Array.from(new Set(rows.map((order) => order.product_id).filter((value): value is string => Boolean(value))));
+      const shippingIds = Array.from(new Set(rows.map((order) => order.shipping_option_id).filter((value): value is string => Boolean(value))));
+      const variantIds = Array.from(
+        new Set(rows.map((order) => order.product_variant).filter((value): value is string => Boolean(value) && isUuid(value))),
+      );
+
+      const productPromise = productIds.length
+        ? supabase
+            .from("products")
+            .select("id, title")
+            .in("id", productIds)
+            .then((result) => ({ data: (result.data || []) as ProductSummary[], error: result.error }))
+        : Promise.resolve({ data: [] as ProductSummary[], error: null });
+
+      const shippingPromise = shippingIds.length
+        ? supabase
+            .from("shipping_options")
+            .select("id, name")
+            .in("id", shippingIds)
+            .then((result) => ({ data: (result.data || []) as ShippingSummary[], error: result.error }))
+        : Promise.resolve({ data: [] as ShippingSummary[], error: null });
+
+      const variantPromise = variantIds.length
+        ? supabase
+            .from("product_variants")
+            .select("id, name")
+            .in("id", variantIds)
+            .then((result) => ({ data: (result.data || []) as VariantSummary[], error: result.error }))
+        : Promise.resolve({ data: [] as VariantSummary[], error: null });
+
+      const [productsResult, shippingResult, variantResult] = await Promise.all([
+        productPromise,
+        shippingPromise,
+        variantPromise,
+      ]);
+
+      if (productsResult.error) throw productsResult.error;
+      if (shippingResult.error) throw shippingResult.error;
+      if (variantResult.error) throw variantResult.error;
+
+      const productMap = new Map(productsResult.data.map((product) => [product.id, product.title]));
+      const shippingMap = new Map(shippingResult.data.map((shipping) => [shipping.id, shipping.name]));
+      const variantMap = new Map(variantResult.data.map((variant) => [variant.id, variant.name]));
+
+      setOrders(
+        rows.map((order) => ({
+          ...order,
+          product: order.product_id ? { title: productMap.get(order.product_id) ?? null } : null,
+          shipping_option: order.shipping_option_id ? { name: shippingMap.get(order.shipping_option_id) ?? null } : null,
+          variant_name: order.product_variant
+            ? variantMap.get(order.product_variant) ?? (isUuid(order.product_variant) ? null : order.product_variant)
+            : null,
+        })),
+      );
+    } catch (error) {
+      console.error("Erro ao carregar pedidos:", error);
+      toast.error("Não foi possível carregar os pedidos");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchOrders();
@@ -72,215 +115,89 @@ const AdminOrders = () => {
       window.clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [fetchOrders]);
 
-  const isAbandoned = (order: Order) => {
-    if (order.payment_status !== "pending") return false;
-    if (!order.pix_expires_at) return false;
-    return new Date(order.pix_expires_at) < new Date();
+  const filteredOrders = useMemo(
+    () =>
+      orders.filter((order) => {
+        const effectiveStatus = getEffectiveStatus(order);
+
+        if (statusFilter !== "all" && effectiveStatus !== statusFilter) {
+          return false;
+        }
+
+        if (!matchesDateFilter(order, dateFilter)) {
+          return false;
+        }
+
+        const normalizedSearch = search.trim().toLowerCase();
+        if (!normalizedSearch) {
+          return true;
+        }
+
+        const searchableValues = [
+          order.id,
+          order.customer_name,
+          order.customer_email,
+          order.customer_phone,
+          order.customer_document,
+          order.transaction_id,
+          order.product?.title,
+          order.variant_name,
+          order.product_variant,
+          order.shipping_option?.name,
+        ];
+
+        return searchableValues.some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
+      }),
+    [dateFilter, orders, search, statusFilter],
+  );
+
+  const stats = useMemo<OrderStats>(
+    () => ({
+      total: orders.length,
+      paid: orders.filter((order) => getEffectiveStatus(order) === "paid").length,
+      pending: orders.filter((order) => getEffectiveStatus(order) === "pending").length,
+      abandoned: orders.filter((order) => getEffectiveStatus(order) === "abandoned").length,
+      copied: orders.filter((order) => Boolean(order.pix_copied)).length,
+    }),
+    [orders],
+  );
+
+  const selectedOrderId = searchParams.get("order");
+  const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? null;
+
+  const openOrderDetails = (orderId: string) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("order", orderId);
+    setSearchParams(nextParams);
   };
 
-  const getEffectiveStatus = (order: Order) => {
-    if (isAbandoned(order)) return "abandoned";
-    return order.payment_status;
+  const closeOrderDetails = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("order");
+    setSearchParams(nextParams);
   };
 
-  const filterByDate = (order: Order) => {
-    if (dateFilter === "all") return true;
-    const created = new Date(order.created_at);
-    const now = new Date();
-    if (dateFilter === "today") {
-      return created.toDateString() === now.toDateString();
-    }
-    if (dateFilter === "week") {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return created >= weekAgo;
-    }
-    if (dateFilter === "month") {
-      return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-    }
-    return true;
-  };
-
-  const filtered = orders.filter((o) => {
-    const effectiveStatus = getEffectiveStatus(o);
-
-    // Tab filter
-    if (tab === "abandoned" && effectiveStatus !== "abandoned") return false;
-    if (tab === "paid" && effectiveStatus !== "paid") return false;
-    if (tab === "pending" && effectiveStatus !== "pending") return false;
-
-    // Status filter
-    if (statusFilter !== "all" && effectiveStatus !== statusFilter) return false;
-
-    // Date filter
-    if (!filterByDate(o)) return false;
-
-    // Search
-    if (search) {
-      const s = search.toLowerCase();
-      return (
-        o.customer_name.toLowerCase().includes(s) ||
-        o.customer_email.toLowerCase().includes(s) ||
-        o.customer_phone.includes(s) ||
-        o.customer_document.includes(s) ||
-        (o.transaction_id && o.transaction_id.toLowerCase().includes(s))
-      );
-    }
-    return true;
-  });
-
-  const abandonedCount = orders.filter((o) => isAbandoned(o)).length;
-  const paidCount = orders.filter((o) => o.payment_status === "paid").length;
-  const pendingCount = orders.filter((o) => o.payment_status === "pending" && !isAbandoned(o)).length;
+  if (selectedOrder) {
+    return <OrderDetailsView order={selectedOrder} onBack={closeOrderDetails} onRefresh={fetchOrders} />;
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Pedidos</h1>
-          <p className="text-sm text-muted-foreground">{orders.length} pedidos no total</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchOrders}>
-          <RefreshCw className="w-4 h-4 mr-1" /> Atualizar
-        </Button>
-      </div>
-
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="all" className="gap-1.5">
-            <ShoppingCart className="w-3.5 h-3.5" /> Todos ({orders.length})
-          </TabsTrigger>
-          <TabsTrigger value="paid" className="gap-1.5">
-            Pagos ({paidCount})
-          </TabsTrigger>
-          <TabsTrigger value="pending" className="gap-1.5">
-            Pendentes ({pendingCount})
-          </TabsTrigger>
-          <TabsTrigger value="abandoned" className="gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" /> Abandonados ({abandonedCount})
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, email, telefone, CPF ou transação..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <Filter className="w-4 h-4 mr-1" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos status</SelectItem>
-                <SelectItem value="paid">Pago</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-                <SelectItem value="expired">Expirado</SelectItem>
-                <SelectItem value="abandoned">Abandonado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={dateFilter} onValueChange={setDateFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todo período</SelectItem>
-                <SelectItem value="today">Hoje</SelectItem>
-                <SelectItem value="week">Últimos 7 dias</SelectItem>
-                <SelectItem value="month">Este mês</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Orders Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center text-muted-foreground">Carregando...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Nenhum pedido encontrado</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Contato</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Método</TableHead>
-                    <TableHead>PIX copiado</TableHead>
-                    <TableHead>Data</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((order) => {
-                    const effectiveStatus = getEffectiveStatus(order);
-                    return (
-                      <TableRow key={order.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium text-foreground">{order.customer_name}</p>
-                            <p className="text-xs text-muted-foreground">{order.customer_document}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm text-foreground">{order.customer_email}</p>
-                            <p className="text-xs text-muted-foreground">{order.customer_phone}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <p className="font-semibold text-foreground">
-                            R$ {Number(order.total).toFixed(2).replace(".", ",")}
-                          </p>
-                          {order.shipping_cost ? (
-                            <p className="text-xs text-muted-foreground">
-                              Frete: R$ {Number(order.shipping_cost).toFixed(2).replace(".", ",")}
-                            </p>
-                          ) : null}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={statusColors[effectiveStatus] || ""}>
-                            {statusLabels[effectiveStatus] || effectiveStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground uppercase">
-                          {order.payment_method}
-                        </TableCell>
-                        <TableCell>
-                          {order.pix_copied ? (
-                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Sim</Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Não</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(order.created_at).toLocaleDateString("pt-BR")}{" "}
-                          {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <OrdersListView
+      orders={orders}
+      filteredOrders={filteredOrders}
+      loading={loading}
+      search={search}
+      statusFilter={statusFilter}
+      dateFilter={dateFilter}
+      stats={stats}
+      onSearchChange={setSearch}
+      onStatusFilterChange={setStatusFilter}
+      onDateFilterChange={setDateFilter}
+      onRefresh={fetchOrders}
+      onSelectOrder={openOrderDetails}
+    />
   );
 };
 
