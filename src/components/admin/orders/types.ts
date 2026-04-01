@@ -1,4 +1,4 @@
-export type OrderStatus = "pending" | "paid" | "expired" | "abandoned";
+export type OrderStatus = "pending" | "paid" | "expired";
 
 export type StatusFilter = "all" | OrderStatus;
 
