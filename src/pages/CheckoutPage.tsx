@@ -613,10 +613,16 @@ const CheckoutPage = () => {
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
           <div className="flex-1 text-center">
-            <p className="text-sm font-semibold text-foreground">{checkoutSettings?.checkout_header_text || "Resumo do pedido"}</p>
-            <p className="text-[10px] text-marketplace-green flex items-center justify-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> {checkoutSettings?.checkout_security_text || "Finalização da compra segura garantida"}
-            </p>
+            {checkoutLogoUrl ? (
+              <img src={checkoutLogoUrl} alt="Logo" className="h-7 object-contain max-w-[140px] mx-auto" />
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-foreground">{checkoutSettings?.checkout_header_text || "Resumo do pedido"}</p>
+                <p className="text-[10px] text-marketplace-green flex items-center justify-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> {checkoutSettings?.checkout_security_text || "Finalização da compra segura garantida"}
+                </p>
+              </>
+            )}
           </div>
           <div className="w-5" />
         </div>
