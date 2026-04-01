@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminStoreSettings = () => {
-  const [form, setForm] = useState({ name: "", avatar_url: "", total_sales: "", rating: 4.9 });
+  const [form, setForm] = useState({ name: "", avatar_url: "", total_sales: "", rating: 4.9, product_page_logo_url: "", checkout_logo_url: "" });
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -29,6 +29,8 @@ const AdminStoreSettings = () => {
         avatar_url: data.avatar_url || "",
         total_sales: data.total_sales || "",
         rating: Number(data.rating) || 4.9,
+        product_page_logo_url: (data as any).product_page_logo_url || "",
+        checkout_logo_url: (data as any).checkout_logo_url || "",
       });
     }
   }, [data]);
@@ -74,6 +76,16 @@ const AdminStoreSettings = () => {
             <Label>Avaliação</Label>
             <Input type="number" step="0.1" value={form.rating} onChange={(e) => setForm((p) => ({ ...p, rating: parseFloat(e.target.value) }))} />
           </div>
+        </div>
+        <div className="space-y-1">
+          <Label>Logo na Página do Produto (opcional)</Label>
+          <Input value={form.product_page_logo_url} onChange={(e) => setForm((p) => ({ ...p, product_page_logo_url: e.target.value }))} placeholder="https://... (deixe vazio para não exibir)" />
+          {form.product_page_logo_url && <img src={form.product_page_logo_url} alt="" className="h-8 object-contain mt-2" />}
+        </div>
+        <div className="space-y-1">
+          <Label>Logo no Checkout (opcional)</Label>
+          <Input value={form.checkout_logo_url} onChange={(e) => setForm((p) => ({ ...p, checkout_logo_url: e.target.value }))} placeholder="https://... (deixe vazio para não exibir)" />
+          {form.checkout_logo_url && <img src={form.checkout_logo_url} alt="" className="h-8 object-contain mt-2" />}
         </div>
         <Button onClick={() => saveMutation.mutate()} className="bg-marketplace-red hover:bg-marketplace-red/90" disabled={saveMutation.isPending}>
           {saveMutation.isPending ? "Salvando..." : "Salvar Configurações"}

@@ -5,9 +5,10 @@ interface ProductHeaderProps {
   activeSection?: string;
   onSectionClick?: (section: string) => void;
   cartCount?: number;
+  logoUrl?: string;
 }
 
-const ProductHeader = ({ cartCount = 0 }: ProductHeaderProps) => {
+const ProductHeader = ({ cartCount = 0, logoUrl }: ProductHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -16,6 +17,9 @@ const ProductHeader = ({ cartCount = 0 }: ProductHeaderProps) => {
         <button onClick={() => navigate(-1)} className="p-1">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
+        {logoUrl && (
+          <img src={logoUrl} alt="Logo" className="h-7 object-contain max-w-[140px]" />
+        )}
         <div className="flex items-center gap-3">
           <button className="p-1 relative">
             <ShoppingCart className="w-5 h-5 text-foreground" />
