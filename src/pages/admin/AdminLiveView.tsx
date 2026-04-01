@@ -157,7 +157,7 @@ const AdminLiveView = () => {
           const t = (j / 40) * Math.PI;
           const x = cx + r * Math.sin(t) * Math.cos(angle);
           const y = cy - r * Math.cos(t);
-          j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          if (j === 0) { ctx.moveTo(x, y); } else { ctx.lineTo(x, y); }
         }
         ctx.stroke();
       }
