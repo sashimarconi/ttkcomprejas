@@ -61,17 +61,17 @@ const AdminDashboard = () => {
     const events = eventsRes.data || [];
     const orders = ordersRes.data || [];
     const paid = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
+    const pending = orders.filter(o => o.payment_status === "pending");
     const paidRevenue = paid.reduce((s, o) => s + Number(o.total), 0);
     const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
     const checkouts = events.filter(e => e.event_type === "checkout_view").length;
     const visits = events.filter(e => e.event_type === "page_view").length;
-    const pixGen = events.filter(e => e.event_type === "pix_generated").length;
 
     setStats({
       onlineNow: onlineRes.count || 0,
       visits,
       checkouts,
-      pixGenerated: pixGen,
+      pendingOrders: pending.length,
       totalOrders: orders.length,
       paidOrders: paid.length,
       totalRevenue,
