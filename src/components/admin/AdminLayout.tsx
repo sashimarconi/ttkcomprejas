@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Package, Star, ShieldCheck, LogOut, Menu, CreditCard, Truck, Tag,
   BarChart3, LayoutDashboard, ClipboardList, Store, PenTool, Radio,
-  ChevronLeft, ExternalLink
+  ChevronLeft, ExternalLink, Sun, Moon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +54,26 @@ const AdminLayout = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("admin-theme") !== "light";
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+      localStorage.setItem("admin-theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("admin-theme", "light");
+    }
+    return () => {
+      root.classList.remove("dark");
+    };
+  }, [isDark]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -77,8 +97,8 @@ const AdminLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f0a1e]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -90,28 +110,26 @@ const AdminLayout = () => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="p-4 flex items-center justify-between border-b border-white/10">
+      <div className="p-4 flex items-center justify-between border-b border-border">
         <Link to="/admin" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">A</span>
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">A</span>
           </div>
-          {sidebarOpen && <span className="text-white font-bold text-lg">Admin</span>}
+          {sidebarOpen && <span className="text-foreground font-bold text-lg">Admin</span>}
         </Link>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="hidden md:flex text-white/50 hover:text-white transition-colors"
+          className="hidden md:flex text-muted-foreground hover:text-foreground transition-colors"
         >
           <ChevronLeft className={cn("w-4 h-4 transition-transform", !sidebarOpen && "rotate-180")} />
         </button>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
         {navSections.map((section) => (
           <div key={section.title}>
             {sidebarOpen && (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/30">
+              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 {section.title}
               </p>
             )}
@@ -124,16 +142,16 @@ const AdminLayout = () => {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                     isActive(item.path)
-                      ? "bg-purple-600/30 text-purple-300 shadow-[inset_0_1px_0_rgba(168,85,247,0.3)]"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
-                  <item.icon className={cn("w-4 h-4 shrink-0", isActive(item.path) && "text-purple-400")} />
+                  <item.icon className={cn("w-4 h-4 shrink-0", isActive(item.path) && "text-primary")} />
                   {sidebarOpen && <span>{item.label}</span>}
                   {item.label === "Live View" && sidebarOpen && (
                     <span className="ml-auto flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                      <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-marketplace-green opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-marketplace-green" />
                     </span>
                   )}
                 </Link>
@@ -143,18 +161,17 @@ const AdminLayout = () => {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-white/10 space-y-1">
+      <div className="p-3 border-t border-border space-y-1">
         <Link
           to="/"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <ExternalLink className="w-4 h-4 shrink-0" />
           {sidebarOpen && <span>Ver loja</span>}
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           {sidebarOpen && <span>Sair</span>}
@@ -164,48 +181,53 @@ const AdminLayout = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#0f0a1e] flex">
-      {/* Desktop Sidebar */}
+    <div className="min-h-screen bg-background flex">
       <aside
         className={cn(
-          "hidden md:flex flex-col fixed top-0 left-0 h-screen bg-[#150e2b] border-r border-white/[0.06] z-50 transition-all duration-300",
+          "hidden md:flex flex-col fixed top-0 left-0 h-screen bg-card border-r border-border z-50 transition-all duration-300",
           sidebarOpen ? "w-56" : "w-16"
         )}
       >
         <SidebarContent />
       </aside>
 
-      {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setMobileMenuOpen(false)} />
       )}
 
-      {/* Mobile Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 h-screen w-56 bg-[#150e2b] border-r border-white/[0.06] z-50 transition-transform duration-300 md:hidden",
+          "fixed top-0 left-0 h-screen w-56 bg-card border-r border-border z-50 transition-transform duration-300 md:hidden",
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <SidebarContent />
       </aside>
 
-      {/* Main content */}
       <div className={cn("flex-1 transition-all duration-300", sidebarOpen ? "md:ml-56" : "md:ml-16")}>
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 h-14 bg-[#0f0a1e]/80 backdrop-blur-xl border-b border-white/[0.06] flex items-center px-4 gap-3">
-          <button className="md:hidden text-white/60 hover:text-white" onClick={() => setMobileMenuOpen(true)}>
+        <header className="sticky top-0 z-30 h-14 bg-card/80 backdrop-blur-xl border-b border-border flex items-center px-4 gap-3">
+          <button className="md:hidden text-muted-foreground hover:text-foreground" onClick={() => setMobileMenuOpen(true)}>
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">AD</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-muted hover:bg-accent transition-colors"
+              title={isDark ? "Modo claro" : "Modo escuro"}
+            >
+              <Sun className={cn("w-4 h-4 transition-colors", !isDark ? "text-marketplace-yellow" : "text-muted-foreground")} />
+              <div className={cn("w-8 h-4 rounded-full transition-colors relative", isDark ? "bg-primary" : "bg-muted-foreground/30")}>
+                <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-primary-foreground transition-transform", isDark ? "translate-x-4" : "translate-x-0.5")} />
+              </div>
+              <Moon className={cn("w-4 h-4 transition-colors", isDark ? "text-primary" : "text-muted-foreground")} />
+            </button>
+            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground text-xs font-bold">AD</span>
             </div>
           </div>
         </header>
 
-        {/* Page content */}
         <main className="p-4 md:p-6 max-w-7xl mx-auto">
           <Outlet />
         </main>
