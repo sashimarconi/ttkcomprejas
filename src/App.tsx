@@ -19,6 +19,7 @@ import AdminShipping from "./pages/admin/AdminShipping";
 import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
 import CheckoutPage from "./pages/CheckoutPage";
 import AdminCheckoutSettings from "./pages/admin/AdminCheckoutSettings";
+import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
 import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
 import NotFound from "./pages/NotFound";
