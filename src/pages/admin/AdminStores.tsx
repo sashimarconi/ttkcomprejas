@@ -219,6 +219,39 @@ const AdminStores = () => {
 
   return (
     <div className="space-y-6">
+      {/* Product page logo */}
+      <div className="bg-card rounded-lg border border-border p-4 space-y-3">
+        <p className="text-sm font-semibold text-foreground">Logo na Página do Produto (opcional)</p>
+        <p className="text-xs text-muted-foreground">Aparece no topo da página de cada produto. Deixe vazio para não exibir.</p>
+        {productLogoUrl && (
+          <div className="flex items-center gap-3">
+            <img src={productLogoUrl} alt="Logo" className="h-8 object-contain" />
+            <button onClick={() => { setProductLogoUrl(""); saveProductLogoMutation.mutate(""); }} className="text-xs text-destructive hover:underline">Remover</button>
+          </div>
+        )}
+        <div className="flex gap-1">
+          <Input
+            value={productLogoUrl}
+            onChange={(e) => setProductLogoUrl(e.target.value)}
+            placeholder="URL da logo ou faça upload"
+            className="flex-1"
+          />
+          <input
+            ref={productLogoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleProductLogoUpload(f); }}
+          />
+          <Button variant="outline" size="sm" disabled={uploadingProductLogo} onClick={() => productLogoInputRef.current?.click()}>
+            <Upload className="w-4 h-4" />
+          </Button>
+        </div>
+        <Button size="sm" onClick={() => saveProductLogoMutation.mutate(productLogoUrl)} disabled={saveProductLogoMutation.isPending}>
+          {saveProductLogoMutation.isPending ? "Salvando..." : "Salvar Logo"}
+        </Button>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Lojas</h1>
