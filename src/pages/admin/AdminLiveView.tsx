@@ -226,6 +226,7 @@ const AdminLiveView = () => {
         </div>
       </div>
     </div>
+  );
 };
 
 export default AdminLiveView;
