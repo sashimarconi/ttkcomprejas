@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import LiveGlobe from "@/components/admin/live-view/LiveGlobe";
 import AnimatedFunnel from "@/components/admin/live-view/AnimatedFunnel";
 import ClientBehavior from "@/components/admin/live-view/ClientBehavior";
+import SessionsByLocation from "@/components/admin/live-view/SessionsByLocation";
 
 interface SessionData {
   session_id: string;
