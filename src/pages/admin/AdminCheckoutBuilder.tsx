@@ -128,6 +128,47 @@ const AdminCheckoutBuilder = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch a real product for preview
+  const { data: previewProduct } = useQuery({
+    queryKey: ["builder-preview-product"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, title, sale_price, original_price, discount_percent")
+        .eq("active", true)
+        .limit(1)
+        .single();
+      return data;
+    },
+  });
+
+  // Fetch shipping options for preview
+  const { data: previewShipping } = useQuery({
+    queryKey: ["builder-preview-shipping"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shipping_options")
+        .select("name, price, free")
+        .eq("active", true)
+        .order("sort_order")
+        .limit(3);
+      return data || [];
+    },
+  });
+
+  // Fetch order bumps for preview
+  const { data: previewBumps } = useQuery({
+    queryKey: ["builder-preview-bumps"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("order_bumps")
+        .select("title, price, original_price")
+        .eq("active", true)
+        .limit(2);
+      return data || [];
+    },
+  });
+
   const { data, isLoading } = useQuery({
     queryKey: ["checkout-builder-config"],
     queryFn: async () => {
