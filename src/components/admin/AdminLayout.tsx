@@ -2,11 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Package, Star, ShieldCheck, LogOut, Menu, X, CreditCard, Truck, Tag,
+  Package, Star, ShieldCheck, LogOut, Menu, CreditCard, Truck, Tag,
   BarChart3, LayoutDashboard, ClipboardList, Store, PenTool, Radio,
   ChevronLeft, ExternalLink
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navSections = [

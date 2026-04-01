@@ -189,7 +189,7 @@ const AdminLiveView = () => {
         dotsRef.current.pop();
       }
 
-      dotsRef.current.forEach((dot, i) => {
+      dotsRef.current.forEach((dot) => {
         dot.pulse += 0.03 * dot.speed;
         const scale = 1 + 0.3 * Math.sin(dot.pulse);
         const dotSize = 4 * scale;

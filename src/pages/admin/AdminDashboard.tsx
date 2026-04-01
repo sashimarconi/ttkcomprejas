@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Eye, ShoppingCart, QrCode, TrendingUp, DollarSign } from "lucide-react";
+import { Users, ShoppingCart, TrendingUp, DollarSign } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from "recharts";
 
 interface Stats {

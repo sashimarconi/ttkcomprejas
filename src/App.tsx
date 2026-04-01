@@ -20,6 +20,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
 import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
+import AdminLiveView from "./pages/admin/AdminLiveView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
