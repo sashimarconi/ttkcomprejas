@@ -1,250 +1,287 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, ShoppingCart, TrendingUp, DollarSign } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from "recharts";
+import { Users, ShoppingCart, TrendingUp, DollarSign, CheckCircle2, Package2, CalendarDays, Filter } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format, subDays, startOfDay, endOfDay, eachHourOfInterval, startOfHour, isWithinInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 
 interface Stats {
   onlineNow: number;
-  todayVisits: number;
-  todayCheckouts: number;
-  todayPix: number;
-  todayOrders: number;
-  todayRevenue: number;
-}
-
-interface HourlyData {
-  hour: string;
   visits: number;
   checkouts: number;
-  pix: number;
+  pixGenerated: number;
+  totalOrders: number;
+  paidOrders: number;
+  totalRevenue: number;
+  paidRevenue: number;
+  conversionRate: number;
 }
 
-const COLORS = ["#a855f7", "#7c3aed", "#22c55e", "#f59e0b"];
+const quickPeriods = [
+  { label: "Hoje", days: 0 },
+  { label: "7 dias", days: 7 },
+  { label: "15 dias", days: 15 },
+  { label: "30 dias", days: 30 },
+];
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<Stats>({ onlineNow: 0, todayVisits: 0, todayCheckouts: 0, todayPix: 0, todayOrders: 0, todayRevenue: 0 });
-  const [hourlyData, setHourlyData] = useState<HourlyData[]>([]);
-  const [weeklyData, setWeeklyData] = useState<{ day: string; visits: number; orders: number }[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: new Date(),
+  });
+  const [stats, setStats] = useState<Stats>({
+    onlineNow: 0, visits: 0, checkouts: 0, pixGenerated: 0,
+    totalOrders: 0, paidOrders: 0, totalRevenue: 0, paidRevenue: 0, conversionRate: 0,
+  });
+  const [revenueData, setRevenueData] = useState<{ hour: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"hourly" | "weekly" | "funnel">("hourly");
+  const [filterOpen, setFilterOpen] = useState(false);
 
-  const fetchStats = async () => {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
+  const rangeStart = dateRange?.from ? startOfDay(dateRange.from) : startOfDay(new Date());
+  const rangeEnd = dateRange?.to ? endOfDay(dateRange.to) : endOfDay(new Date());
 
-    const [onlineRes, visitsRes, checkoutsRes, pixRes, ordersRes] = await Promise.all([
+  const fetchAll = async () => {
+    setLoading(true);
+    const startISO = rangeStart.toISOString();
+    const endISO = rangeEnd.toISOString();
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const [onlineRes, eventsRes, ordersRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo),
-      supabase.from("page_events").select("id", { count: "exact", head: true }).eq("event_type", "page_view").gte("created_at", todayStart),
-      supabase.from("page_events").select("id", { count: "exact", head: true }).eq("event_type", "checkout_view").gte("created_at", todayStart),
-      supabase.from("page_events").select("id", { count: "exact", head: true }).eq("event_type", "pix_generated").gte("created_at", todayStart),
-      supabase.from("orders").select("id, total").gte("created_at", todayStart),
+      supabase.from("page_events").select("event_type, created_at").gte("created_at", startISO).lte("created_at", endISO),
+      supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", startISO).lte("created_at", endISO),
     ]);
 
+    const events = eventsRes.data || [];
     const orders = ordersRes.data || [];
-    const revenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+    const paid = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
+    const paidRevenue = paid.reduce((s, o) => s + Number(o.total), 0);
+    const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
+    const checkouts = events.filter(e => e.event_type === "checkout_view").length;
+    const visits = events.filter(e => e.event_type === "page_view").length;
+    const pixGen = events.filter(e => e.event_type === "pix_generated").length;
 
     setStats({
       onlineNow: onlineRes.count || 0,
-      todayVisits: visitsRes.count || 0,
-      todayCheckouts: checkoutsRes.count || 0,
-      todayPix: pixRes.count || 0,
-      todayOrders: orders.length,
-      todayRevenue: revenue,
+      visits,
+      checkouts,
+      pixGenerated: pixGen,
+      totalOrders: orders.length,
+      paidOrders: paid.length,
+      totalRevenue,
+      paidRevenue,
+      conversionRate: checkouts > 0 ? (paid.length / checkouts) * 100 : 0,
     });
-  };
 
-  const fetchHourlyData = async () => {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const { data: events } = await supabase.from("page_events").select("event_type, created_at").gte("created_at", todayStart);
-
-    const hours: HourlyData[] = Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i.toString().padStart(2, "0")}h`,
-      visits: 0, checkouts: 0, pix: 0,
+    // Build hourly revenue chart for today range
+    const isToday = dateRange?.from?.toDateString() === new Date().toDateString() && (!dateRange.to || dateRange.to.toDateString() === new Date().toDateString());
+    const hours = Array.from({ length: 24 }, (_, i) => ({
+      hour: `${String(i).padStart(2, "0")}h`,
+      value: 0,
     }));
 
-    (events || []).forEach((e) => {
-      const h = new Date(e.created_at).getHours();
-      if (e.event_type === "page_view") hours[h].visits++;
-      if (e.event_type === "checkout_view") hours[h].checkouts++;
-      if (e.event_type === "pix_generated") hours[h].pix++;
-    });
-
-    setHourlyData(hours);
-  };
-
-  const fetchWeeklyData = async () => {
-    const days: { day: string; visits: number; orders: number }[] = [];
-    const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
-      const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
-
-      const [vRes, oRes] = await Promise.all([
-        supabase.from("page_events").select("id", { count: "exact", head: true }).eq("event_type", "page_view").gte("created_at", start).lt("created_at", end),
-        supabase.from("orders").select("id", { count: "exact", head: true }).gte("created_at", start).lt("created_at", end),
-      ]);
-
-      days.push({ day: dayNames[d.getDay()], visits: vRes.count || 0, orders: oRes.count || 0 });
+    if (isToday) {
+      paid.forEach(o => {
+        const h = new Date(o.created_at).getHours();
+        hours[h].value += Number(o.total);
+      });
+    } else {
+      // Group by day instead
+      const dayMap = new Map<string, number>();
+      paid.forEach(o => {
+        const key = new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        dayMap.set(key, (dayMap.get(key) || 0) + Number(o.total));
+      });
+      const dayEntries = Array.from(dayMap.entries()).sort();
+      setRevenueData(dayEntries.map(([day, value]) => ({ hour: day, value })));
+      setLoading(false);
+      return;
     }
 
-    setWeeklyData(days);
+    setRevenueData(hours);
+    setLoading(false);
   };
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      await Promise.all([fetchStats(), fetchHourlyData(), fetchWeeklyData()]);
-      setLoading(false);
-    };
-    load();
-    const interval = setInterval(fetchStats, 15000);
+    fetchAll();
+    const interval = setInterval(async () => {
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { count } = await supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo);
+      setStats(prev => ({ ...prev, onlineNow: count || 0 }));
+    }, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [dateRange]);
+
+  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+
+  const periodLabel = useMemo(() => {
+    if (!dateRange?.from) return "Selecionar período";
+    const from = format(dateRange.from, "dd/MM/yyyy");
+    const to = dateRange.to ? format(dateRange.to, "dd/MM/yyyy") : from;
+    return from === to ? from : `${from} — ${to}`;
+  }, [dateRange]);
 
   const statCards = [
-    { label: "Visitantes agora", value: stats.onlineNow, icon: Users, live: true },
-    { label: "Checkouts iniciados", value: stats.todayCheckouts, icon: ShoppingCart },
-    { label: "Vendas geradas (hoje)", value: `R$ ${stats.todayRevenue.toFixed(2).replace(".", ",")}`, icon: DollarSign },
-    { label: "Conversão do Checkout", value: `${stats.todayCheckouts > 0 ? ((stats.todayOrders / stats.todayCheckouts) * 100).toFixed(1) : "0.0"}%`, icon: TrendingUp },
-  ];
-
-  const funnelData = [
-    { name: "Visitas", value: stats.todayVisits },
-    { name: "Checkout", value: stats.todayCheckouts },
-    { name: "PIX gerado", value: stats.todayPix },
-    { name: "Pedidos", value: stats.todayOrders },
+    { label: "Visitantes agora", value: String(stats.onlineNow), icon: Users, live: true, tone: "text-marketplace-green" },
+    { label: "Visitas", value: String(stats.visits), icon: TrendingUp, tone: "text-marketplace-blue" },
+    { label: "Checkouts", value: String(stats.checkouts), icon: ShoppingCart, tone: "text-marketplace-yellow" },
+    { label: "PIX gerados", value: String(stats.pixGenerated), icon: DollarSign, tone: "text-marketplace-orange" },
+    { label: "Pedidos totais", value: String(stats.totalOrders), icon: Package2, tone: "text-foreground" },
+    { label: "Vendas aprovadas", value: String(stats.paidOrders), icon: CheckCircle2, tone: "text-marketplace-green" },
+    { label: "Receita total", value: formatCurrency(stats.totalRevenue), icon: DollarSign, tone: "text-foreground" },
+    { label: "Receita aprovada", value: formatCurrency(stats.paidRevenue), icon: DollarSign, tone: "text-marketplace-green" },
+    { label: "Conversão", value: `${stats.conversionRate.toFixed(1)}%`, icon: TrendingUp, tone: "text-primary" },
   ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
 
-  const tooltipStyle = {
-    background: "#1a1333",
-    border: "1px solid rgba(255,255,255,0.1)",
-    borderRadius: 8,
-    color: "#fff",
-  };
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm text-white/40">Visão geral em tempo real da sua loja</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Visão geral da sua loja</p>
+        </div>
+
+        <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <CalendarDays className="h-4 w-4" />
+              {periodLabel}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <div className="p-3 border-b border-border">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Período rápido</p>
+              <div className="flex flex-wrap gap-2">
+                {quickPeriods.map((p) => (
+                  <button
+                    key={p.label}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      dateRange?.from?.toDateString() === (p.days === 0 ? new Date() : subDays(new Date(), p.days)).toDateString()
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-muted text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => {
+                      setDateRange({
+                        from: p.days === 0 ? new Date() : subDays(new Date(), p.days),
+                        to: new Date(),
+                      });
+                      setFilterOpen(false);
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Calendar
+              mode="range"
+              selected={dateRange}
+              onSelect={(range) => {
+                setDateRange(range);
+                if (range?.from && range?.to) setFilterOpen(false);
+              }}
+              locale={ptBR}
+              numberOfMonths={1}
+              className="p-3"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-[#1a1333] border border-white/[0.06] rounded-xl p-5 relative overflow-hidden"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 text-white/40">
-                <card.icon className="w-4 h-4" />
-                <span className="text-xs font-medium">{card.label}</span>
-              </div>
-              {card.live && (
-                <span className="flex items-center gap-1 text-[10px] text-green-400 font-medium bg-green-500/10 px-2 py-0.5 rounded-full">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+          <Card key={card.label} className="border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-medium text-muted-foreground">{card.label}</span>
+                {card.live && (
+                  <span className="flex items-center gap-1 text-[9px] text-marketplace-green font-semibold bg-marketplace-green/10 px-1.5 py-0.5 rounded-full">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-marketplace-green opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-marketplace-green" />
+                    </span>
+                    LIVE
                   </span>
-                  LIVE
-                </span>
-              )}
-            </div>
-            <p className="text-3xl font-bold text-white">{card.value}</p>
-          </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <card.icon className={cn("w-4 h-4 shrink-0", card.tone)} />
+                <p className="text-xl font-bold text-foreground truncate">{card.value}</p>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Charts with custom tabs */}
-      <div className="bg-[#1a1333] border border-white/[0.06] rounded-xl overflow-hidden">
-        <div className="flex border-b border-white/[0.06]">
-          {[
-            { key: "hourly", label: "Hoje por hora" },
-            { key: "weekly", label: "Últimos 7 dias" },
-            { key: "funnel", label: "Funil" },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              className={`px-5 py-3 text-sm font-medium transition-colors relative ${
-                activeTab === tab.key
-                  ? "text-purple-400"
-                  : "text-white/40 hover:text-white/60"
-              }`}
-            >
-              {tab.label}
-              {activeTab === tab.key && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
-              )}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-5">
-          {activeTab === "hourly" && (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hourlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="hour" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="visits" fill="#818cf8" name="Visitas" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="checkouts" fill="#f59e0b" name="Checkouts" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pix" fill="#a855f7" name="PIX" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+      <Card className="border-border">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-marketplace-red" />
+              <span className="text-sm font-semibold text-foreground">Valor em Vendas</span>
             </div>
-          )}
-
-          {activeTab === "weekly" && (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="day" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Line type="monotone" dataKey="visits" stroke="#818cf8" strokeWidth={2} name="Visitas" dot={{ fill: "#818cf8" }} />
-                  <Line type="monotone" dataKey="orders" stroke="#22c55e" strokeWidth={2} name="Pedidos" dot={{ fill: "#22c55e" }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {activeTab === "funnel" && (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={funnelData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis type="number" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} width={80} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                    {funnelData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
+            <span className="text-xs text-muted-foreground">{periodLabel}</span>
+          </div>
+          <div className="h-[260px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueData}>
+                <defs>
+                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(348, 83%, 47%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(348, 83%, 47%)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="hour"
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v) => `R$ ${v}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 12,
+                    color: "hsl(var(--foreground))",
+                  }}
+                  formatter={(value: number) => [formatCurrency(value), "Receita"]}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="hsl(348, 83%, 47%)"
+                  strokeWidth={2}
+                  fill="url(#revenueGrad)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: "hsl(348, 83%, 47%)", stroke: "hsl(var(--card))", strokeWidth: 2 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -55,6 +55,70 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Admin tokens */
+    --admin-bg: 0 0% 96%;
+    --admin-sidebar: 0 0% 100%;
+    --admin-sidebar-border: 214 32% 91%;
+    --admin-topbar: 0 0% 100%;
+    --admin-card: 0 0% 100%;
+    --admin-card-hover: 210 20% 98%;
+    --admin-text: 0 0% 10%;
+    --admin-text-muted: 215 16% 47%;
+    --admin-accent: 263 70% 50%;
+    --admin-accent-light: 263 70% 95%;
+    --admin-chart-stroke: 348 83% 47%;
+    --admin-chart-fill: 348 83% 90%;
+  }
+
+  .dark {
+    --background: 260 40% 7%;
+    --foreground: 0 0% 95%;
+
+    --card: 260 35% 12%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 260 35% 12%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 263 70% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 30% 18%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 260 25% 16%;
+    --muted-foreground: 260 10% 55%;
+
+    --accent: 260 30% 18%;
+    --accent-foreground: 0 0% 95%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 260 20% 18%;
+    --input: 260 20% 18%;
+    --ring: 263 70% 58%;
+
+    /* Marketplace dark overrides */
+    --marketplace-red-light: 348 60% 18%;
+    --marketplace-green-light: 142 50% 15%;
+    --marketplace-blue-light: 217 60% 18%;
+    --marketplace-orange-light: 30 60% 18%;
+    --marketplace-gray-light: 220 14% 16%;
+
+    --admin-bg: 260 40% 7%;
+    --admin-sidebar: 260 35% 10%;
+    --admin-sidebar-border: 260 20% 15%;
+    --admin-topbar: 260 35% 8%;
+    --admin-card: 260 35% 12%;
+    --admin-card-hover: 260 30% 15%;
+    --admin-text: 0 0% 95%;
+    --admin-text-muted: 260 10% 55%;
+    --admin-accent: 263 70% 58%;
+    --admin-accent-light: 263 70% 20%;
+    --admin-chart-stroke: 348 83% 55%;
+    --admin-chart-fill: 348 60% 18%;
   }
 }
 
