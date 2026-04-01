@@ -16,9 +16,8 @@ import AdminBadges from "./pages/admin/AdminBadges";
 // AdminStoreSettings and AdminCheckoutSettings merged into AdminCheckoutBuilder
 import AdminShipping from "./pages/admin/AdminShipping";
 import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
+import AdminGateways from "./pages/admin/AdminGateways";
 import CheckoutPage from "./pages/CheckoutPage";
-import AdminCheckoutSettings from "./pages/admin/AdminCheckoutSettings";
-import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
 import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
 import NotFound from "./pages/NotFound";
