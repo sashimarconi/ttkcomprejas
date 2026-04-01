@@ -36,7 +36,7 @@ const AdminDashboard = () => {
     to: new Date(),
   });
   const [stats, setStats] = useState<Stats>({
-    onlineNow: 0, visits: 0, checkouts: 0, pixGenerated: 0,
+    onlineNow: 0, visits: 0, checkouts: 0, pendingOrders: 0,
     totalOrders: 0, paidOrders: 0, totalRevenue: 0, paidRevenue: 0, conversionRate: 0,
   });
   const [revenueData, setRevenueData] = useState<{ hour: string; value: number }[]>([]);
