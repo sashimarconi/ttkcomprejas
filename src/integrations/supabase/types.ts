@@ -585,27 +585,33 @@ export type Database = {
       store_settings: {
         Row: {
           avatar_url: string | null
+          checkout_logo_url: string | null
           created_at: string
           id: string
           name: string
+          product_page_logo_url: string | null
           rating: number | null
           total_sales: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
+          checkout_logo_url?: string | null
           created_at?: string
           id?: string
           name?: string
+          product_page_logo_url?: string | null
           rating?: number | null
           total_sales?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
+          checkout_logo_url?: string | null
           created_at?: string
           id?: string
           name?: string
+          product_page_logo_url?: string | null
           rating?: number | null
           total_sales?: string | null
           updated_at?: string
