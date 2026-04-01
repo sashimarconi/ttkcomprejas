@@ -671,18 +671,18 @@ const AdminCheckoutBuilder = () => {
           </button>
         </div>
 
-        {/* Preview content */}
+        {/* Preview content - always light theme */}
         <div className="flex-1 overflow-y-auto flex justify-center p-6">
           <div
-            className={`bg-background rounded-2xl shadow-2xl border border-border overflow-hidden transition-all ${
+            className={`rounded-2xl shadow-2xl border overflow-hidden transition-all ${
               previewMode === "mobile" ? "w-[375px]" : "w-full max-w-2xl"
             }`}
-            style={{ minHeight: 600 }}
+            style={{ minHeight: 600, backgroundColor: "#ffffff", color: "#1a1a1a", borderColor: "#e5e7eb" }}
           >
             {/* Preview header */}
-            <header className="sticky top-0 z-10 bg-card border-b border-border">
+            <header className="sticky top-0 z-10" style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
               <div className="flex items-center h-11 px-4">
-                <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+                <ArrowLeft className="w-4 h-4" style={{ color: "#9ca3af" }} />
                 <div className="flex-1 text-center">
                   {config.appearance.logo_url ? (
                     <img
@@ -693,7 +693,7 @@ const AdminCheckoutBuilder = () => {
                     />
                   ) : (
                     <>
-                      <p className="text-xs font-semibold text-foreground">{config.appearance.header_text}</p>
+                      <p className="text-xs font-semibold" style={{ color: "#1a1a1a" }}>{config.appearance.header_text}</p>
                       {config.appearance.show_security_badge && (
                         <p className="text-[9px] text-green-600 flex items-center justify-center gap-1">
                           <ShieldCheck className="w-2.5 h-2.5" /> {config.appearance.security_text}
