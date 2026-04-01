@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Clock3, CopyCheck, Eye, Filter, Package2, RefreshCw, Search, Wallet, X } from "lucide-react";
 import { OrderStatusBadge } from "./OrderStatusBadge";
-import { formatCurrency, formatDateTime, getDisplayVariantLabel, getPaymentMethodLabel, getShortOrderId, orderDateOptions, orderStatusOptions } from "./order-utils";
+import { formatCurrency, formatDateTime, getDisplayVariantLabel, getShortOrderId, orderDateOptions, orderStatusOptions } from "./order-utils";
 import type { AdminOrderRecord, DateFilter, OrderStats, StatusFilter } from "./types";
 
 interface OrdersListViewProps {

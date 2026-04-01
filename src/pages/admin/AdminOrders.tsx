@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { OrderDetailsView } from "@/components/admin/orders/OrderDetailsView";
 import { OrdersListView } from "@/components/admin/orders/OrdersListView";
 import { getEffectiveStatus, isUuid, matchesDateFilter } from "@/components/admin/orders/order-utils";
-import { supabase as supabaseClient } from "@/integrations/supabase/client";
+
 import type { AdminOrderRecord, DateFilter, OrderStats, StatusFilter } from "@/components/admin/orders/types";
 import { supabase } from "@/integrations/supabase/client";
 
