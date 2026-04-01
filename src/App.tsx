@@ -20,6 +20,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
 import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
+import AdminLiveView from "./pages/admin/AdminLiveView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="live-view" element={<AdminLiveView />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="reviews" element={<AdminReviews />} />
