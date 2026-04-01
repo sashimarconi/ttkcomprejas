@@ -41,6 +41,11 @@ const ProductPage = () => {
     enabled: !!productStore?.id,
   });
 
+  const { data: storeSettings } = useQuery({
+    queryKey: ["store-settings"],
+    queryFn: () => fetchStoreSettings(),
+  });
+
   const reviewsRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const [buySheetOpen, setBuySheetOpen] = useState(false);
