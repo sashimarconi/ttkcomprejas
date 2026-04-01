@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import LiveGlobe from "@/components/admin/live-view/LiveGlobe";
 import AnimatedFunnel from "@/components/admin/live-view/AnimatedFunnel";
 import ClientBehavior from "@/components/admin/live-view/ClientBehavior";
+import SessionsByLocation from "@/components/admin/live-view/SessionsByLocation";
 
 interface SessionData {
   session_id: string;
@@ -190,33 +191,39 @@ const AdminLiveView = () => {
           </Card>
         </div>
 
-        {/* Right: Interactive Globe */}
-        <Card className="border-border relative overflow-hidden min-h-[400px]">
-          <CardContent className="p-0 h-full relative">
-            <div className="absolute top-4 right-4 z-10 rounded-xl p-3 border border-border bg-card/90 backdrop-blur">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="w-2 h-2 rounded-full bg-marketplace-green" />
-                <span className="text-xs text-muted-foreground">Visitantes Ativos</span>
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Interactive Globe */}
+          <Card className="border-border relative overflow-hidden min-h-[400px]">
+            <CardContent className="p-0 h-full relative">
+              <div className="absolute top-4 right-4 z-10 rounded-xl p-3 border border-border bg-card/90 backdrop-blur">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-2 h-2 rounded-full bg-marketplace-green" />
+                  <span className="text-xs text-muted-foreground">Visitantes Ativos</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-xs text-muted-foreground">Servidor</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-primary" />
-                <span className="text-xs text-muted-foreground">Sua Loja</span>
+
+              <div className="absolute bottom-4 left-4 z-10">
+                <p className="text-4xl font-bold text-foreground">{stats.visitors}</p>
+                <p className="text-sm text-muted-foreground">visitantes ativos</p>
               </div>
-            </div>
 
-            <div className="absolute bottom-4 left-4 z-10">
-              <p className="text-4xl font-bold text-foreground">{stats.visitors}</p>
-              <p className="text-sm text-muted-foreground">visitantes ativos</p>
-            </div>
+              <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
+                <LiveGlobe
+                  visitors={sessions.map(s => ({ session_id: s.session_id }))}
+                  className="w-full h-full min-h-[400px]"
+                />
+              </Suspense>
+            </CardContent>
+          </Card>
 
-            <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
-              <LiveGlobe
-                visitors={sessions.map(s => ({ session_id: s.session_id }))}
-                className="w-full h-full min-h-[400px]"
-              />
-            </Suspense>
-          </CardContent>
-        </Card>
+          {/* Sessions by Location */}
+          <SessionsByLocation sessions={sessions.map(s => ({ session_id: s.session_id }))} />
+        </div>
       </div>
     </div>
   );
