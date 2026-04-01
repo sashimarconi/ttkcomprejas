@@ -278,6 +278,13 @@ const CheckoutPage = () => {
     },
   });
 
+  const { data: storeSettings } = useQuery({
+    queryKey: ["store-settings"],
+    queryFn: () => fetchStoreSettings(),
+  });
+
+  const checkoutLogoUrl = (storeSettings as any)?.checkout_logo_url || "";
+
   useEffect(() => {
     if (shippingOptions?.length && !selectedShipping) {
       setSelectedShipping(shippingOptions[0].id);
