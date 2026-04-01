@@ -36,6 +36,5 @@ export interface OrderStats {
   total: number;
   paid: number;
   pending: number;
-  abandoned: number;
   copied: number;
 }

@@ -149,7 +149,6 @@ const AdminOrders = () => {
       total: orders.length,
       paid: orders.filter((order) => getEffectiveStatus(order) === "paid").length,
       pending: orders.filter((order) => getEffectiveStatus(order) === "pending").length,
-      abandoned: orders.filter((order) => getEffectiveStatus(order) === "abandoned").length,
       copied: orders.filter((order) => Boolean(order.pix_copied)).length,
     }),
     [orders],

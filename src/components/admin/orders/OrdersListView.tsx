@@ -223,13 +223,11 @@ export const OrdersListView = ({
                         <TableCell className="whitespace-nowrap text-sm text-muted-foreground">{formatDateTime(order.created_at)}</TableCell>
                         <TableCell className="whitespace-nowrap font-semibold text-foreground">{formatCurrency(order.total)}</TableCell>
                         <TableCell><OrderStatusBadge order={order} /></TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {order.pix_copied ? (
-                            <Badge variant="outline" className="rounded-full border-marketplace-green/20 bg-marketplace-green-light text-marketplace-green">
-                              <CheckCircle2 className="mr-1 h-3.5 w-3.5" />Sim
-                            </Badge>
+                            <CheckCircle2 className="h-5 w-5 text-marketplace-green inline-block" />
                           ) : (
-                            <Badge variant="outline" className="rounded-full border-border bg-muted text-muted-foreground">Não</Badge>
+                            <X className="h-5 w-5 text-muted-foreground/40 inline-block" />
                           )}
                         </TableCell>
                         <TableCell className="text-right">

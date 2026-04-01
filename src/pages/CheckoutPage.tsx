@@ -455,10 +455,15 @@ const CheckoutPage = () => {
     }
 
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/mark-pix-copied`, {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const response = await fetch(`${supabaseUrl}/functions/v1/mark-pix-copied`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": anonKey,
+          "Authorization": `Bearer ${anonKey}`,
+        },
         body: JSON.stringify({ orderId }),
       });
       const result = await response.json().catch(() => null);
