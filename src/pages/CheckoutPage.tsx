@@ -5,7 +5,7 @@ import { usePageTracking, trackEvent } from "@/hooks/usePageTracking";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProductBySlug, fetchStoreSettings } from "@/lib/supabase-queries";
+import { fetchProductBySlug } from "@/lib/supabase-queries";
 import { formatCurrency } from "@/data/mockData";
 import { ArrowLeft, Minus, Plus, Check, ShieldCheck, Clock, X } from "lucide-react";
 import { toast } from "sonner";
@@ -278,12 +278,22 @@ const CheckoutPage = () => {
     },
   });
 
-  const { data: storeSettings } = useQuery({
-    queryKey: ["store-settings"],
-    queryFn: () => fetchStoreSettings(),
+  const { data: builderConfig } = useQuery({
+    queryKey: ["checkout-builder-config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("checkout_builder_config")
+        .select("*")
+        .limit(1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
   });
 
-  const checkoutLogoUrl = (storeSettings as any)?.checkout_logo_url || "";
+  const builderAppearance = (builderConfig?.config as any)?.appearance || {};
+  const checkoutLogoUrl = builderAppearance.logo_url || "";
+  const checkoutLogoHeight = builderAppearance.logo_height || 28;
 
   useEffect(() => {
     if (shippingOptions?.length && !selectedShipping) {
@@ -449,7 +459,7 @@ const CheckoutPage = () => {
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
             {checkoutLogoUrl ? (
-              <img src={checkoutLogoUrl} alt="Logo" className="h-7 object-contain max-w-[140px]" />
+              <img src={checkoutLogoUrl} alt="Logo" style={{ height: checkoutLogoHeight }} className="object-contain max-w-[180px]" />
             ) : (
               <p className="flex-1 text-center text-sm font-semibold text-foreground">Pagamento</p>
             )}
@@ -614,7 +624,7 @@ const CheckoutPage = () => {
           </button>
           <div className="flex-1 text-center">
             {checkoutLogoUrl ? (
-              <img src={checkoutLogoUrl} alt="Logo" className="h-7 object-contain max-w-[140px] mx-auto" />
+              <img src={checkoutLogoUrl} alt="Logo" style={{ height: checkoutLogoHeight }} className="object-contain max-w-[180px] mx-auto" />
             ) : (
               <>
                 <p className="text-sm font-semibold text-foreground">{checkoutSettings?.checkout_header_text || "Resumo do pedido"}</p>
