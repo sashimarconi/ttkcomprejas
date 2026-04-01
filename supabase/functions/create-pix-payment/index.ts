@@ -253,7 +253,7 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
 }
 
 async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: string) {
-  // Paradise uses X-API-Key header, amount in centavos, source=api_externa
+  // Paradise uses X-API-Key header, amount in centavos
   const reference = `order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const res = await fetch("https://multi.paradisepags.com/api/v1/transaction.php", {
@@ -263,10 +263,10 @@ async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: 
       "X-API-Key": gateway.secret_key,
     },
     body: JSON.stringify({
-      amount: body.amount,
+      amount: body.amount, // centavos
       description: body.productTitle,
       reference,
-      source: "api_externa",
+      source: "api_externa", // skip productHash validation
       postback_url: webhookUrl,
       customer: {
         name: body.customerName,
@@ -277,12 +277,13 @@ async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: 
     }),
   });
   const data = await res.json();
+  console.log("Paradise response:", JSON.stringify(data));
   if (!res.ok && data?.status !== "success") throw { status: res.status, data };
 
-  // Response: { status, transaction_id, id, qr_code, qr_code_base64, amount, expires_at }
+  // Response: { status:"success", transaction_id:238, id:"REF", qr_code:"EMV...", qr_code_base64:"data:image/png;base64,...", amount, expires_at }
   return {
     transactionId: pickString(data?.transaction_id, data?.id, reference),
-    qrCode: null, // Paradise returns qr_code as EMV string, not image URL
+    qrCode: null, // qr_code is EMV string not image URL
     copyPaste: pickString(data?.qr_code, data?.pix_code),
     qrCodeBase64: pickString(data?.qr_code_base64),
     expiresAt: pickString(data?.expires_at),
