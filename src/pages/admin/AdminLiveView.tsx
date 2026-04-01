@@ -191,7 +191,7 @@ const AdminLiveView = () => {
         </div>
 
         {/* Right: Interactive Globe */}
-        <Card className="border-border relative overflow-hidden min-h-[600px]">
+        <Card className="border-border relative overflow-hidden min-h-[400px]">
           <CardContent className="p-0 h-full relative">
             <div className="absolute top-4 right-4 z-10 rounded-xl p-3 border border-border bg-card/90 backdrop-blur">
               <div className="flex items-center gap-2 mb-1.5">
