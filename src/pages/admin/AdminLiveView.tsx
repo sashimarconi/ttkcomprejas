@@ -7,6 +7,7 @@ import LiveGlobe from "@/components/admin/live-view/LiveGlobe";
 import AnimatedFunnel from "@/components/admin/live-view/AnimatedFunnel";
 import ClientBehavior from "@/components/admin/live-view/ClientBehavior";
 import SessionsByLocation from "@/components/admin/live-view/SessionsByLocation";
+import PagesVisited from "@/components/admin/live-view/PagesVisited";
 
 interface SessionData {
   session_id: string;
@@ -29,6 +30,7 @@ const AdminLiveView = () => {
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [todaySessions, setTodaySessions] = useState<{ session_id: string }[]>([]);
+  const [todayEvents, setTodayEvents] = useState<{ event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
   const [funnelData, setFunnelData] = useState<{ label: string; value: number; pct: number }[]>([]);
   const [behavior, setBehavior] = useState({ activeCarts: 0, inCheckout: 0, purchased: 0 });
@@ -41,7 +43,7 @@ const AdminLiveView = () => {
     const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at").gte("last_seen_at", fiveMinAgo),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
-      supabase.from("page_events").select("event_type, created_at").gte("created_at", todayStart),
+      supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", todayStart),
       supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", todayStart),
     ]);
 
@@ -53,22 +55,21 @@ const AdminLiveView = () => {
     const sessionsArr = Array.from(uniqueSessions.values());
     setSessions(sessionsArr);
 
-    // Today's unique sessions for location tracking
     const todayAll = todaySessionsRes.data || [];
     const uniqueToday = new Map<string, { session_id: string }>();
     todayAll.forEach(s => { if (!uniqueToday.has(s.session_id)) uniqueToday.set(s.session_id, s); });
     setTodaySessions(Array.from(uniqueToday.values()));
 
+    const events = (eventsRes.data || []) as { event_type: string; page_url: string | null; created_at: string }[];
+    setTodayEvents(events);
+
     const orders = ordersRes.data || [];
     const paidOrders = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
     const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
-    const events = eventsRes.data || [];
     const checkoutViews = events.filter(e => e.event_type === "checkout_view").length;
     const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
 
-    // Client behavior
-    const cartEvents = events.filter(e => e.event_type === "page_view").length;
     const checkoutActive = sessionsArr.filter(s => s.page_url?.includes("/checkout")).length;
     setBehavior({
       activeCarts: sessionsArr.length,
@@ -85,7 +86,6 @@ const AdminLiveView = () => {
       avgTicket: paidOrders.length > 0 ? revenue / paidOrders.length : 0,
     });
 
-    // Hourly revenue
     const hours = Array.from({ length: 24 }, (_, i) => ({
       hour: `${String(i).padStart(2, "0")}h`,
       value: 0,
@@ -96,7 +96,6 @@ const AdminLiveView = () => {
     });
     setHourlyData(hours);
 
-    // Funnel
     const pageViews = events.filter(e => e.event_type === "page_view").length;
     const pixGenerated = events.filter(e => e.event_type === "pix_generated").length;
     const total = pageViews || 1;
@@ -157,14 +156,12 @@ const AdminLiveView = () => {
             ))}
           </div>
 
-          {/* Client Behavior */}
           <ClientBehavior
             activeCarts={behavior.activeCarts}
             inCheckout={behavior.inCheckout}
             purchased={behavior.purchased}
           />
 
-          {/* Sales History Chart */}
           <Card className="border-border">
             <CardContent className="p-4">
               <span className="text-sm font-medium text-foreground">Histórico de Vendas (hoje)</span>
@@ -191,7 +188,6 @@ const AdminLiveView = () => {
             </CardContent>
           </Card>
 
-          {/* Funnel */}
           <Card className="border-border">
             <CardContent className="p-5">
               <AnimatedFunnel data={funnelData} />
@@ -202,7 +198,7 @@ const AdminLiveView = () => {
         {/* Right column */}
         <div className="space-y-4">
           {/* Interactive Globe */}
-          <Card className="border-border relative overflow-hidden min-h-[550px]">
+          <Card className="border-border relative overflow-hidden" style={{ height: 420 }}>
             <CardContent className="p-0 h-full relative">
               <div className="absolute top-4 right-4 z-10 rounded-xl p-3 border border-border bg-card/90 backdrop-blur">
                 <div className="flex items-center gap-2 mb-1.5">
@@ -223,11 +219,17 @@ const AdminLiveView = () => {
               <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
                 <LiveGlobe
                   visitors={sessions.map(s => ({ session_id: s.session_id }))}
-                  className="w-full h-full min-h-[550px]"
+                  className="w-full h-full"
                 />
               </Suspense>
             </CardContent>
           </Card>
+
+          {/* Pages Visited */}
+          <PagesVisited
+            todayEvents={todayEvents}
+            liveSessions={sessions.map(s => ({ page_url: s.page_url }))}
+          />
 
           {/* Sessions by Location */}
           <SessionsByLocation sessions={todaySessions} />
