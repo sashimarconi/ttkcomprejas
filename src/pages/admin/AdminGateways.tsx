@@ -4,21 +4,49 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle, Search, X, ArrowRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface GatewayConfig {
   name: string;
   label: string;
   description: string;
-  icon: string;
+  logoUrl: string;
 }
 
 const GATEWAYS: GatewayConfig[] = [
-  { name: "blackcatpay", label: "BlackCatPay", description: "Gateway de pagamentos PIX", icon: "🐱" },
-  { name: "ghostspay", label: "GhostsPay", description: "Gateway de pagamentos PIX", icon: "👻" },
-  { name: "duck", label: "Duck", description: "Gateway de pagamentos PIX", icon: "🦆" },
+  {
+    name: "blackcatpay",
+    label: "BlackCatPay",
+    description: "Gateway de pagamentos PIX rápido e seguro",
+    logoUrl: "https://app.cloudfycheckout.com/_next/image?url=%2Fgateways%2FblackCat.png&w=3840&q=75",
+  },
+  {
+    name: "ghostspay",
+    label: "GhostsPay",
+    description: "Gateway de pagamentos PIX com alta conversão",
+    logoUrl: "https://app.cloudfycheckout.com/gateways/ghostPay.svg",
+  },
+  {
+    name: "duck",
+    label: "Duck",
+    description: "Gateway de pagamentos PIX simples e eficiente",
+    logoUrl: "https://app.usecorvex.com.br/_next/image?url=https%3A%2F%2Fres.cloudinary.com%2Fduni5gxk4%2Fimage%2Fupload%2Fv1773135358%2Facquirers%2Flogos%2Fvgsat7jyqfqtbnby8zwg.jpg&w=3840&q=75",
+  },
+  {
+    name: "hisounique",
+    label: "Hiso Unique",
+    description: "Plataforma moderna e segura para pagamentos digitais",
+    logoUrl: "https://hisoftware-assets.s3.us-east-2.amazonaws.com/uploads/1768398933749-HIGH-SOFTWARE-LOGO-3-01.png",
+  },
+  {
+    name: "paradise",
+    label: "Paradise",
+    description: "Gateway PIX com checkout otimizado para conversão",
+    logoUrl: "https://multi.paradisepags.com/assets/images/a.png",
+  },
 ];
 
 interface GatewayState {
@@ -33,13 +61,13 @@ const AdminGateways = () => {
   const queryClient = useQueryClient();
   const [states, setStates] = useState<Record<string, GatewayState>>({});
   const [loaded, setLoaded] = useState(false);
+  const [search, setSearch] = useState("");
+  const [configOpen, setConfigOpen] = useState<string | null>(null);
 
   const { data: gateways } = useQuery({
     queryKey: ["gateway-settings"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("gateway_settings")
-        .select("*");
+      const { data, error } = await supabase.from("gateway_settings").select("*");
       if (error) throw error;
       return data;
     },
@@ -67,36 +95,20 @@ const AdminGateways = () => {
     setStates((prev) => ({ ...prev, [name]: { ...prev[name], ...partial } }));
   };
 
-  const handleToggleActive = async (gatewayName: string, newActive: boolean) => {
-    // If activating, deactivate all others first
-    if (newActive) {
-      const newStates = { ...states };
-      for (const key of Object.keys(newStates)) {
-        if (key !== gatewayName) {
-          newStates[key] = { ...newStates[key], active: false };
-        }
-      }
-      newStates[gatewayName] = { ...newStates[gatewayName], active: true };
-      setStates(newStates);
-
-      // Deactivate all others in DB
-      for (const gw of gateways || []) {
-        if (gw.gateway_name !== gatewayName && gw.active) {
-          await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
-        }
-      }
-    } else {
-      updateState(gatewayName, { active: false });
-    }
+  const isConfigured = (name: string) => {
+    const s = states[name];
+    return s && s.id && (s.publicKey || s.secretKey);
   };
 
   const saveMutation = useMutation({
-    mutationFn: async (gatewayName: string) => {
+    mutationFn: async ({ gatewayName, activate }: { gatewayName: string; activate?: boolean }) => {
       const state = states[gatewayName];
       if (!state) return;
 
-      // If setting active, deactivate others in DB
-      if (state.active) {
+      const shouldActivate = activate ?? state.active;
+
+      // If activating, deactivate all others
+      if (shouldActivate) {
         for (const gw of gateways || []) {
           if (gw.gateway_name !== gatewayName && gw.active) {
             await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
@@ -107,7 +119,11 @@ const AdminGateways = () => {
       if (state.id) {
         const { error } = await supabase
           .from("gateway_settings")
-          .update({ public_key: state.publicKey, secret_key: state.secretKey, active: state.active })
+          .update({
+            public_key: state.publicKey,
+            secret_key: state.secretKey,
+            active: shouldActivate,
+          })
           .eq("id", state.id);
         if (error) throw error;
       } else {
@@ -115,7 +131,7 @@ const AdminGateways = () => {
           gateway_name: gatewayName,
           public_key: state.publicKey,
           secret_key: state.secretKey,
-          active: state.active,
+          active: shouldActivate,
         });
         if (error) throw error;
       }
@@ -123,93 +139,192 @@ const AdminGateways = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
       setLoaded(false);
+      setConfigOpen(null);
       toast.success("Gateway salvo com sucesso!");
     },
     onError: () => toast.error("Erro ao salvar gateway"),
   });
 
+  const filteredGateways = GATEWAYS.filter(
+    (gw) =>
+      gw.label.toLowerCase().includes(search.toLowerCase()) ||
+      gw.description.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const activeGateway = GATEWAYS.find((gw) => states[gw.name]?.active);
+
   if (!loaded) return null;
+
+  const currentConfig = configOpen ? GATEWAYS.find((g) => g.name === configOpen) : null;
+  const currentState = configOpen ? states[configOpen] : null;
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-bold text-foreground">Gateways de Pagamento</h2>
-      <p className="text-sm text-muted-foreground">Apenas um gateway pode estar ativo por vez. Configure as chaves e ative o desejado.</p>
+      <div>
+        <h2 className="text-lg font-bold text-foreground">Gateways de Pagamento</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Configure e ative gateways de pagamento. Apenas um pode estar ativo por vez.
+        </p>
+      </div>
 
-      <div className="grid gap-4 max-w-2xl">
-        {GATEWAYS.map((gw) => {
+      {activeGateway && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
+          <CheckCircle className="w-5 h-5 text-primary shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">Gateway ativo: {activeGateway.label}</p>
+            <p className="text-xs text-muted-foreground">Processando pagamentos PIX</p>
+          </div>
+        </div>
+      )}
+
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar Gateways"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredGateways.map((gw) => {
           const state = states[gw.name];
           if (!state) return null;
-          const isActive = state.active;
+          const configured = isConfigured(gw.name);
+          const active = state.active;
 
           return (
             <div
               key={gw.name}
-              className={`bg-card rounded-xl border p-6 space-y-5 transition-all ${isActive ? "border-primary ring-1 ring-primary/30" : "border-border"}`}
+              className={cn(
+                "bg-card rounded-xl border p-5 flex flex-col gap-4 transition-all hover:shadow-md",
+                active ? "border-primary ring-1 ring-primary/30" : "border-border"
+              )}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-foreground/10 flex items-center justify-center text-lg">
-                  {gw.icon}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-foreground">{gw.label}</p>
-                    {isActive && <CheckCircle className="w-4 h-4 text-primary" />}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{gw.description}</p>
-                </div>
-                <div className="ml-auto flex items-center gap-2">
-                  <Label htmlFor={`active-${gw.name}`} className="text-xs text-muted-foreground">Ativo</Label>
-                  <Switch
-                    id={`active-${gw.name}`}
-                    checked={isActive}
-                    onCheckedChange={(v) => handleToggleActive(gw.name, v)}
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    src={gw.logoUrl}
+                    alt={gw.label}
+                    className="w-10 h-10 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
                   />
                 </div>
+                {active && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary/15 text-primary px-2 py-0.5 rounded-full">
+                    Ativo
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs">Public Key (PK)</Label>
-                <Input
-                  placeholder="pk_..."
-                  value={state.publicKey}
-                  onChange={(e) => updateState(gw.name, { publicKey: e.target.value })}
-                />
+              <div>
+                <p className="text-sm font-bold text-foreground">{gw.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{gw.description}</p>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs">Secret Key (SK)</Label>
-                <div className="relative">
-                  <Input
-                    type={state.showSecret ? "text" : "password"}
-                    placeholder="sk_..."
-                    value={state.secretKey}
-                    onChange={(e) => updateState(gw.name, { secretKey: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                    onClick={() => updateState(gw.name, { showSecret: !state.showSecret })}
-                  >
-                    {state.showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  A Secret Key é usada no servidor para criar cobranças. Nunca compartilhe.
-                </p>
+              <div className="mt-auto">
+                <Button
+                  variant={configured ? "outline" : "ghost"}
+                  className={cn(
+                    "w-full justify-between",
+                    configured && "border-primary/30 text-primary hover:bg-primary/5"
+                  )}
+                  onClick={() => setConfigOpen(gw.name)}
+                >
+                  {configured ? "Configurado" : "Configurar Gateway"}
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
               </div>
-
-              <Button
-                onClick={() => saveMutation.mutate(gw.name)}
-                disabled={saveMutation.isPending}
-                className="w-full"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saveMutation.isPending ? "Salvando..." : "Salvar configurações"}
-              </Button>
             </div>
           );
         })}
       </div>
+
+      {/* Config Modal */}
+      <Dialog open={!!configOpen} onOpenChange={(open) => !open && setConfigOpen(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {currentConfig && currentState && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                    <img src={currentConfig.logoUrl} alt={currentConfig.label} className="w-8 h-8 object-contain" />
+                  </div>
+                  <div>
+                    <DialogTitle>{currentConfig.label}</DialogTitle>
+                    <p className="text-xs text-muted-foreground">{currentConfig.description}</p>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label className="text-xs">Chave pública</Label>
+                  <Input
+                    placeholder="Insira sua chave pública"
+                    value={currentState.publicKey}
+                    onChange={(e) => updateState(configOpen!, { publicKey: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">Chave secreta</Label>
+                  <div className="relative">
+                    <Input
+                      type={currentState.showSecret ? "text" : "password"}
+                      placeholder="Insira sua chave secreta"
+                      value={currentState.secretKey}
+                      onChange={(e) => updateState(configOpen!, { secretKey: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      onClick={() => updateState(configOpen!, { showSecret: !currentState.showSecret })}
+                    >
+                      {currentState.showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div>
+                    <p className="text-sm font-medium">Processar Pix</p>
+                    <p className="text-xs text-muted-foreground">Pagamentos via PIX</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-4 rounded-full bg-primary relative">
+                      <span className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-primary-foreground" />
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={() => saveMutation.mutate({ gatewayName: configOpen!, activate: false })}
+                    variant="outline"
+                    disabled={saveMutation.isPending}
+                    className="flex-1"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar
+                  </Button>
+                  <Button
+                    onClick={() => saveMutation.mutate({ gatewayName: configOpen!, activate: true })}
+                    disabled={saveMutation.isPending}
+                    className="flex-1"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Salvar e Ativar
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

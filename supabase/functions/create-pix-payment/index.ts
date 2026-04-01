@@ -50,21 +50,17 @@ function pickString(...values: unknown[]) {
     if (typeof value === "string" && value.trim()) {
       return value.trim();
     }
-
     if (typeof value === "number" && Number.isFinite(value)) {
       return String(value);
     }
   }
-
   return null;
 }
 
 function toAbsoluteUrl(baseUrl: string, value?: string | null) {
   if (!value?.trim()) return null;
-
   const normalized = value.trim();
   if (/^https?:\/\//i.test(normalized)) return normalized;
-
   const base = baseUrl.replace(/\/+$/, "");
   const path = normalized.startsWith("/") ? normalized : `/${normalized.replace(/^\/+/, "")}`;
   return `${base}${path}`;
@@ -140,33 +136,17 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
 
   return {
     transactionId: pickString(
-      data.transaction_id,
-      data.data?.transaction_id,
-      data.data?.transactionId,
-      data.id,
-      data.data?.id,
-      data.payment_id,
+      data.transaction_id, data.data?.transaction_id, data.data?.transactionId,
+      data.id, data.data?.id, data.payment_id,
     ),
     qrCode: pickString(
       toAbsoluteUrl("https://ghostspaysv1.com", pix.qr_code_url),
       toAbsoluteUrl("https://ghostspaysv1.com", pix.qr_code_image),
-      pix.qrCode,
-      pix.code,
+      pix.qrCode, pix.code,
     ),
-    copyPaste: pickString(
-      pix.code,
-      pix.copyPaste,
-      pix.qrCode,
-      data.pix_code,
-    ),
-    qrCodeBase64: pickString(
-      pix.qrCodeBase64,
-      pix.qr_code_base64,
-    ),
-    expiresAt: pickString(
-      pix.expiration_date,
-      pix.expiresAt,
-    ),
+    copyPaste: pickString(pix.code, pix.copyPaste, pix.qrCode, data.pix_code),
+    qrCodeBase64: pickString(pix.qrCodeBase64, pix.qr_code_base64),
+    expiresAt: pickString(pix.expiration_date, pix.expiresAt),
   };
 }
 
@@ -203,6 +183,104 @@ async function callDuck(gateway: any, body: any, items: any[], webhookUrl: strin
     copyPaste: data.data?.pix?.copyPaste || data.data?.pix?.qrCode || data.data?.paymentData?.copyPaste,
     qrCodeBase64: data.data?.pix?.qrCodeBase64 || data.data?.paymentData?.qrCodeBase64,
     expiresAt: data.data?.pix?.expiresAt || data.data?.paymentData?.expiresAt,
+  };
+}
+
+async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl: string) {
+  // Hiso Unique uses Basic Auth: Base64(PUBLIC_KEY:SECRET_KEY)
+  const authToken = btoa(`${gateway.public_key}:${gateway.secret_key}`);
+  
+  const res = await fetch("https://api.hiso.com.br/v1/payment-transaction/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Basic ${authToken}`,
+    },
+    body: JSON.stringify({
+      amount: body.amount,
+      currency: "BRL",
+      paymentMethod: "pix",
+      description: body.productTitle,
+      customer: {
+        name: body.customerName,
+        email: body.customerEmail,
+        phone: body.customerPhone.replace(/\D/g, ""),
+        document: body.customerDocument.replace(/\D/g, ""),
+      },
+      items: items.map((item) => ({
+        title: item.title,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
+      callbackUrl: webhookUrl,
+      webhookUrl: webhookUrl,
+      webhook_url: webhookUrl,
+      notificationUrl: webhookUrl,
+      postback_url: webhookUrl,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw { status: res.status, data };
+
+  // Extract from common response patterns
+  const txn = data.data ?? data.transaction ?? data;
+  const pix = txn?.pix ?? txn?.paymentData ?? txn;
+
+  return {
+    transactionId: pickString(
+      txn?.transactionId, txn?.transaction_id, txn?.id,
+      data?.transactionId, data?.transaction_id, data?.id,
+    ),
+    qrCode: pickString(
+      pix?.qrCode, pix?.qr_code, pix?.qrCodeUrl, pix?.qr_code_url,
+    ),
+    copyPaste: pickString(
+      pix?.copyPaste, pix?.copy_paste, pix?.qrCode, pix?.qr_code,
+      pix?.pixCode, pix?.pix_code, pix?.code,
+    ),
+    qrCodeBase64: pickString(
+      pix?.qrCodeBase64, pix?.qr_code_base64,
+    ),
+    expiresAt: pickString(
+      pix?.expiresAt, pix?.expires_at, pix?.expiration_date,
+    ),
+  };
+}
+
+async function callParadise(gateway: any, body: any, _items: any[], webhookUrl: string) {
+  // Paradise uses X-API-Key header, amount in centavos, source=api_externa
+  const reference = `order-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const res = await fetch("https://multi.paradisepags.com/api/v1/transaction.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": gateway.secret_key,
+    },
+    body: JSON.stringify({
+      amount: body.amount,
+      description: body.productTitle,
+      reference,
+      source: "api_externa",
+      postback_url: webhookUrl,
+      customer: {
+        name: body.customerName,
+        email: body.customerEmail,
+        document: body.customerDocument.replace(/\D/g, ""),
+        phone: body.customerPhone.replace(/\D/g, ""),
+      },
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok && data?.status !== "success") throw { status: res.status, data };
+
+  // Response: { status, transaction_id, id, qr_code, qr_code_base64, amount, expires_at }
+  return {
+    transactionId: pickString(data?.transaction_id, data?.id, reference),
+    qrCode: null, // Paradise returns qr_code as EMV string, not image URL
+    copyPaste: pickString(data?.qr_code, data?.pix_code),
+    qrCodeBase64: pickString(data?.qr_code_base64),
+    expiresAt: pickString(data?.expires_at),
   };
 }
 
@@ -282,6 +360,12 @@ Deno.serve(async (req) => {
         case "duck":
           paymentResult = await callDuck(gateway, body, items, webhookUrl);
           break;
+        case "hisounique":
+          paymentResult = await callHisoUnique(gateway, body, items, webhookUrl);
+          break;
+        case "paradise":
+          paymentResult = await callParadise(gateway, body, items, webhookUrl);
+          break;
         default:
           return new Response(
             JSON.stringify({ error: `Gateway desconhecido: ${gateway.gateway_name}` }),
@@ -296,16 +380,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Sanitize expiresAt - fallback to 30 min from now if invalid
+    // Sanitize expiresAt
     let safeExpiresAt: string | null = null;
     if (paymentResult.expiresAt) {
-      const parsed = new Date(paymentResult.expiresAt);
+      const parsedDate = new Date(paymentResult.expiresAt);
       const maxExpiry = Date.now() + 30 * 60 * 1000;
-      if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) {
-        // Cap expiration at 30 minutes from now (some gateways return 30-day expiry)
-        safeExpiresAt = parsed.getTime() > maxExpiry
+      if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 2000) {
+        safeExpiresAt = parsedDate.getTime() > maxExpiry
           ? new Date(maxExpiry).toISOString()
-          : parsed.toISOString();
+          : parsedDate.toISOString();
       }
     }
     if (!safeExpiresAt) {

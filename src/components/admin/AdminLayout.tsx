@@ -7,6 +7,7 @@ import {
   ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import SaleNotification from "@/components/admin/SaleNotification";
 
 const navSections = [
   {
@@ -231,6 +232,7 @@ const AdminLayout = () => {
         </header>
 
         <main className="p-4 md:p-6 max-w-7xl mx-auto">
+          <SaleNotification />
           <Outlet />
         </main>
       </div>
