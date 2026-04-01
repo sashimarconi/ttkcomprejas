@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, CircleAlert, Clock3, CopyCheck, Eye, Filter, Package2, RefreshCw, Search, Wallet } from "lucide-react";
+import { CheckCircle2, Clock3, CopyCheck, Eye, Filter, Package2, RefreshCw, Search, Wallet, X } from "lucide-react";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { formatCurrency, formatDateTime, getDisplayVariantLabel, getPaymentMethodLabel, getShortOrderId, orderDateOptions, orderStatusOptions } from "./order-utils";
 import type { AdminOrderRecord, DateFilter, OrderStats, StatusFilter } from "./types";
