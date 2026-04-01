@@ -14,6 +14,7 @@ const navSections = [
     items: [
       { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
       { label: "Live View", path: "/admin/live-view", icon: Radio },
+      { label: "Análises", path: "/admin/analytics", icon: BarChart3 },
     ],
   },
   {
