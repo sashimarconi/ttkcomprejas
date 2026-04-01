@@ -13,12 +13,12 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminBadges from "./pages/admin/AdminBadges";
-// AdminStoreSettings and AdminCheckoutSettings merged into AdminCheckoutBuilder
+import AdminGateways from "./pages/admin/AdminGateways";
 import AdminShipping from "./pages/admin/AdminShipping";
 import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
-import AdminGateways from "./pages/admin/AdminGateways";
 import CheckoutPage from "./pages/CheckoutPage";
 import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
+import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
 import NotFound from "./pages/NotFound";
 
@@ -42,11 +42,9 @@ const App = () => (
             <Route path="products" element={<AdminProducts />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="badges" element={<AdminBadges />} />
-            <Route path="settings" element={<AdminStoreSettings />} />
             <Route path="gateways" element={<AdminGateways />} />
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="order-bumps" element={<AdminOrderBumps />} />
-            <Route path="checkout" element={<AdminCheckoutSettings />} />
             <Route path="checkout-builder" element={<AdminCheckoutBuilder />} />
             <Route path="pixels" element={<AdminPixels />} />
             <Route path="stores" element={<AdminStores />} />
