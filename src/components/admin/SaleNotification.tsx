@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DollarSign } from "lucide-react";
 
-const CASH_SOUND_URL = "data:audio/wav;base64,UklGRl9IAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTtIAAA=";
+// Sound generated via Web Audio API
 
 function playMoneySound() {
   const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
