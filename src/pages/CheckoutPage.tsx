@@ -459,7 +459,7 @@ const CheckoutPage = () => {
               <ArrowLeft className="w-5 h-5 text-foreground" />
             </button>
             {checkoutLogoUrl ? (
-              <img src={checkoutLogoUrl} alt="Logo" className="h-7 object-contain max-w-[140px]" />
+              <img src={checkoutLogoUrl} alt="Logo" style={{ height: checkoutLogoHeight }} className="object-contain max-w-[180px]" />
             ) : (
               <p className="flex-1 text-center text-sm font-semibold text-foreground">Pagamento</p>
             )}
