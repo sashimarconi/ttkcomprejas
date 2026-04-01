@@ -19,6 +19,8 @@ type TrackTikTokPurchaseOptions = {
   contentId?: string;
   contentName?: string;
   quantity?: number;
+  email?: string;
+  phone?: string;
 };
 
 const activeTikTokPixelIds = new Set<string>();
