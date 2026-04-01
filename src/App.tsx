@@ -13,8 +13,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminBadges from "./pages/admin/AdminBadges";
-import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
-import AdminGateways from "./pages/admin/AdminGateways";
+// AdminStoreSettings and AdminCheckoutSettings merged into AdminCheckoutBuilder
 import AdminShipping from "./pages/admin/AdminShipping";
 import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
 import CheckoutPage from "./pages/CheckoutPage";
