@@ -156,6 +156,7 @@ const CheckoutPage = () => {
     return () => window.removeEventListener("beforeunload", saveAbandonedCart);
   }, [pixData, customerName, customerEmail, customerPhone, customerDocument, product, selectedVariant, totalWithBumpsAndShipping]);
 
+  useEffect(() => {
     setPixCopiedRegistered(false);
   }, [pixData?.orderId]);
 
