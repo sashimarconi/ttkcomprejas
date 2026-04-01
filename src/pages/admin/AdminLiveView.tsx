@@ -28,6 +28,7 @@ const AdminLiveView = () => {
     visitors: 0, revenue: 0, orders: 0, paidOrders: 0, conversionRate: 0, avgTicket: 0,
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [todaySessions, setTodaySessions] = useState<{ session_id: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
   const [funnelData, setFunnelData] = useState<{ label: string; value: number; pct: number }[]>([]);
   const [behavior, setBehavior] = useState({ activeCarts: 0, inCheckout: 0, purchased: 0 });
