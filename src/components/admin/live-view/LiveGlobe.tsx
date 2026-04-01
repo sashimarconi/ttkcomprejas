@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Globe, { GlobeMethods } from "react-globe.gl";
+import * as topojson from "topojson-client";
+import type { Topology } from "topojson-specification";
 
 interface VisitorPoint {
   lat: number;
@@ -13,7 +15,6 @@ interface LiveGlobeProps {
   className?: string;
 }
 
-// Convert session_id to a pseudo-random lat/lng in Brazil area
 function sessionToCoords(sessionId: string): { lat: number; lng: number } {
   let hash = 0;
   for (let i = 0; i < sessionId.length; i++) {
@@ -28,46 +29,20 @@ function sessionToCoords(sessionId: string): { lat: number; lng: number } {
 export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [geoData, setGeoData] = useState<any>(null);
+  const [polygons, setPolygons] = useState<any[]>([]);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
 
-  // Fetch lightweight GeoJSON
+  // Fetch lightweight TopoJSON and convert to GeoJSON
   useEffect(() => {
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json")
       .then(r => r.json())
-      .then(topoData => {
-        // Convert TopoJSON to GeoJSON
-        const topojson = require("topojson-client");
+      .then((topoData: Topology) => {
         const land = topojson.feature(topoData, topoData.objects.land);
-        setGeoData(land);
+        const features = (land as any).features || [land];
+        setPolygons(features);
       })
-      .catch(() => {
-        // Fallback: try GeoJSON directly
-        fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json")
-          .then(r => r.json())
-          .then(setGeoData)
-          .catch(console.error);
-      });
+      .catch(console.error);
   }, []);
-
-  // Set initial camera position (centered on South America)
-  useEffect(() => {
-    if (globeRef.current) {
-      globeRef.current.pointOfView({ lat: -15, lng: -50, altitude: 2.5 }, 0);
-      
-      // Configure controls
-      const controls = globeRef.current.controls();
-      if (controls) {
-        controls.autoRotate = false;
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.1;
-        controls.minDistance = 200;
-        controls.maxDistance = 600;
-        controls.rotateSpeed = 0.5;
-        controls.zoomSpeed = 0.8;
-      }
-    }
-  }, [geoData]);
 
   // Responsive sizing
   useEffect(() => {
@@ -91,55 +66,56 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const handleGlobeReady = useCallback(() => {
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: -15, lng: -50, altitude: 2.5 }, 1000);
-      
+
       const controls = globeRef.current.controls();
       if (controls) {
-        controls.autoRotate = false;
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.1;
-        controls.minDistance = 200;
-        controls.maxDistance = 600;
+        (controls as any).autoRotate = false;
+        (controls as any).enableDamping = true;
+        (controls as any).dampingFactor = 0.1;
+        (controls as any).minDistance = 200;
+        (controls as any).maxDistance = 600;
+        (controls as any).rotateSpeed = 0.5;
+        (controls as any).zoomSpeed = 0.8;
       }
     }
   }, []);
 
   return (
     <div ref={containerRef} className={className} style={{ width: "100%", height: "100%", minHeight: 300 }}>
-      <Globe
-        ref={globeRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        onGlobeReady={handleGlobeReady}
-        globeImageUrl=""
-        backgroundColor="rgba(0,0,0,0)"
-        showAtmosphere={true}
-        atmosphereColor="#6c3ce0"
-        atmosphereAltitude={0.15}
-        
-        // Polygons for continents
-        polygonsData={geoData?.features || (geoData?.type === "FeatureCollection" ? geoData.features : geoData ? [geoData] : [])}
-        polygonCapColor={() => "rgba(100, 60, 200, 0.15)"}
-        polygonSideColor={() => "rgba(100, 60, 200, 0.05)"}
-        polygonStrokeColor={() => "rgba(140, 100, 230, 0.4)"}
-        polygonAltitude={0.006}
-        
-        // Hex layer for continent dots
-        hexPolygonsData={geoData?.features || (geoData?.type === "FeatureCollection" ? geoData.features : geoData ? [geoData] : [])}
-        hexPolygonResolution={3}
-        hexPolygonMargin={0.4}
-        hexPolygonUseDots={true}
-        hexPolygonColor={() => "rgba(139, 108, 224, 0.6)"}
-        hexPolygonAltitude={0.007}
-        
-        // Visitor points
-        pointsData={points}
-        pointLat="lat"
-        pointLng="lng"
-        pointColor={() => "#4ADE80"}
-        pointAltitude={0.02}
-        pointRadius="size"
-        pointsMerge={false}
-      />
+      {polygons.length > 0 && (
+        <Globe
+          ref={globeRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          onGlobeReady={handleGlobeReady}
+          globeImageUrl=""
+          backgroundColor="rgba(0,0,0,0)"
+          showAtmosphere={true}
+          atmosphereColor="#6c3ce0"
+          atmosphereAltitude={0.15}
+
+          polygonsData={polygons}
+          polygonCapColor={() => "rgba(100, 60, 200, 0.15)"}
+          polygonSideColor={() => "rgba(100, 60, 200, 0.05)"}
+          polygonStrokeColor={() => "rgba(140, 100, 230, 0.4)"}
+          polygonAltitude={0.006}
+
+          hexPolygonsData={polygons}
+          hexPolygonResolution={3}
+          hexPolygonMargin={0.4}
+          hexPolygonUseDots={true}
+          hexPolygonColor={() => "rgba(139, 108, 224, 0.6)"}
+          hexPolygonAltitude={0.007}
+
+          pointsData={points}
+          pointLat="lat"
+          pointLng="lng"
+          pointColor={() => "#4ADE80"}
+          pointAltitude={0.02}
+          pointRadius="size"
+          pointsMerge={false}
+        />
+      )}
     </div>
   );
 }
