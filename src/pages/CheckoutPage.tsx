@@ -649,18 +649,45 @@ const CheckoutPage = () => {
                 className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
                 placeholder="000.000.000-00"
                 value={customerDocument}
-                onChange={(e) => setCustomerDocument(e.target.value)}
+                onChange={(e) => setCustomerDocument(formatCpf(e.target.value))}
+                maxLength={14}
+                inputMode="numeric"
               />
             </div>
-            <div>
+            <div className="relative">
               <label className="text-xs font-medium text-muted-foreground mb-1 block">E-mail</label>
               <input
                 className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
                 placeholder="seu@email.com"
                 type="email"
                 value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
+                onChange={(e) => {
+                  setCustomerEmail(e.target.value);
+                  setShowEmailSuggestions(!e.target.value.includes("@") && e.target.value.length > 2);
+                }}
+                onFocus={() => {
+                  if (!customerEmail.includes("@") && customerEmail.length > 2) setShowEmailSuggestions(true);
+                }}
+                onBlur={() => setTimeout(() => setShowEmailSuggestions(false), 200)}
               />
+              {showEmailSuggestions && customerEmail.length > 2 && !customerEmail.includes("@") && (
+                <div className="absolute left-0 right-0 top-full z-10 bg-card border border-border rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  {EMAIL_DOMAINS.map((domain) => (
+                    <button
+                      key={domain}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted/50 transition-colors"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setCustomerEmail(customerEmail + domain);
+                        setShowEmailSuggestions(false);
+                      }}
+                    >
+                      {customerEmail}{domain}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome completo</label>
@@ -677,7 +704,9 @@ const CheckoutPage = () => {
                 className="w-full border-b border-border pb-2 text-sm bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
                 placeholder="(99) 99999-9999"
                 value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                maxLength={15}
+                inputMode="numeric"
               />
             </div>
             <div>
@@ -689,6 +718,7 @@ const CheckoutPage = () => {
                   maxLength={9}
                   value={customerCep}
                   onChange={(e) => handleCepChange(e.target.value)}
+                  inputMode="numeric"
                 />
                 {cepLoading && (
                   <span className="absolute right-0 top-0 text-xs text-muted-foreground animate-pulse">Buscando...</span>
