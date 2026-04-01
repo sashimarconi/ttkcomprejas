@@ -49,6 +49,7 @@ const App = () => (
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="order-bumps" element={<AdminOrderBumps />} />
             <Route path="checkout" element={<AdminCheckoutSettings />} />
+            <Route path="checkout-builder" element={<AdminCheckoutBuilder />} />
             <Route path="pixels" element={<AdminPixels />} />
             <Route path="stores" element={<AdminStores />} />
           </Route>
