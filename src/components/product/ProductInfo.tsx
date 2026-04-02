@@ -32,7 +32,7 @@ const formatCount = (n: number): string => {
   return n.toLocaleString("pt-BR");
 };
 
-const ProductInfo = ({ title, promoTag, rating, reviewCount, soldCount, variants, variantGroups = [] }: ProductInfoProps) => {
+const ProductInfo = ({ title, promoTag, rating, reviewCount, soldCount, variants, variantGroups = [], showSoldCount = true, showUnitsAvailable = true, unitsAvailableText = "13 unidades disponíveis" }: ProductInfoProps) => {
   const [selections, setSelections] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     variantGroups.forEach((g) => {
