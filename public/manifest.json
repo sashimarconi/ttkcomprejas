@@ -1,0 +1,21 @@
+{
+  "name": "TTK Admin",
+  "short_name": "TTK Admin",
+  "description": "Painel administrativo TTK Compras",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#0a0a0b",
+  "theme_color": "#6d28d9",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
