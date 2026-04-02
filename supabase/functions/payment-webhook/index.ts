@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               title: `💰 Venda confirmada!`,
-              body: `${order.customer_name} - ${totalFormatted}`,
+              body: `Sua comissão: ${totalFormatted}`,
               url: "/admin/orders",
               event_type: "order_paid",
             }),

@@ -482,7 +482,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             title: "🔔 PIX gerado!",
-            body: `${body.customerName} - ${totalFormatted}`,
+            body: `Sua comissão: ${totalFormatted}`,
             url: "/admin/orders",
             event_type: "order_pending",
           }),

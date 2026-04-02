@@ -1,7 +1,7 @@
 {
-  "name": "TTK Admin",
-  "short_name": "TTK Admin",
-  "description": "Painel administrativo TTK Compras",
+  "name": "VoidTok",
+  "short_name": "VoidTok",
+  "description": "Painel administrativo VoidTok",
   "start_url": "/admin",
   "display": "standalone",
   "background_color": "#0a0a0b",
