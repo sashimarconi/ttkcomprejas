@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         .from("orders")
         .update({ payment_status: "paid" })
         .eq("transaction_id", transactionId)
-        .select("id")
+        .select("*")
         .maybeSingle();
 
       if ((!order || error) && isUuid(transactionId)) {
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
           .from("orders")
           .update({ payment_status: "paid" })
           .eq("id", transactionId)
-          .select("id")
+          .select("*")
           .maybeSingle();
 
         order = fallback.data;
@@ -167,6 +167,35 @@ Deno.serve(async (req) => {
         console.error("Error updating order:", error);
       } else if (order) {
         console.log(`Order ${order.id} marked as paid`);
+
+        // Dispatch order_paid webhook
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/dispatch-webhooks`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({
+              event: "order_paid",
+              payload: {
+                order_id: order.id,
+                transaction_id: transactionId,
+                customer_name: order.customer_name,
+                customer_email: order.customer_email,
+                customer_phone: order.customer_phone,
+                customer_document: order.customer_document,
+                total: order.total,
+                product_id: order.product_id,
+                product_variant: order.product_variant,
+                payment_method: order.payment_method,
+                selected_bumps: order.selected_bumps,
+              },
+            }),
+          });
+        } catch (whErr) {
+          console.error("Webhook dispatch error:", whErr);
+        }
       } else {
         console.warn(`No order matched transaction ${transactionId}`);
       }
