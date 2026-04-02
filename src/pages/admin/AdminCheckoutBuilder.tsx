@@ -278,12 +278,6 @@ const AdminCheckoutBuilder = () => {
 
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
 
-  const btnRadiusClass =
-    config.appearance.button_radius === "full"
-      ? "rounded-full"
-      : config.appearance.button_radius === "md"
-      ? "rounded-lg"
-      : "rounded-none";
 
   return (
     <div className="flex h-[calc(100vh-64px)] -m-6 overflow-hidden">
