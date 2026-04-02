@@ -22,6 +22,9 @@ interface ProductInfoProps {
   soldCount: number;
   variants: Variant[];
   variantGroups?: VariantGroup[];
+  showSoldCount?: boolean;
+  showUnitsAvailable?: boolean;
+  unitsAvailableText?: string;
 }
 
 const formatCount = (n: number): string => {
