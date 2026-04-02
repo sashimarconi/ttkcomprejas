@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Package, Star, ShieldCheck, LogOut, Menu, CreditCard, Truck, Tag,
   BarChart3, LayoutDashboard, ClipboardList, Store, PenTool, Radio,
-  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart, Webhook
+  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart, Webhook, Bell
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SaleNotification from "@/components/admin/SaleNotification";
@@ -50,6 +50,12 @@ const navSections = [
     items: [
       { label: "Pixels", path: "/admin/pixels", icon: BarChart3 },
       { label: "Webhooks", path: "/admin/webhooks", icon: Webhook },
+    ],
+  },
+  {
+    title: "Configurações",
+    items: [
+      { label: "Notificações", path: "/admin/notifications", icon: Bell },
     ],
   },
 ];

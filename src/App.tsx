@@ -21,6 +21,7 @@ import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
 import AdminProductBuilder from "./pages/admin/AdminProductBuilder";
 import AdminPixels from "./pages/admin/AdminPixels";
 import AdminWebhooks from "./pages/admin/AdminWebhooks";
+import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminStores from "./pages/admin/AdminStores";
 import AdminLiveView from "./pages/admin/AdminLiveView";
 import AdminAbandonedCarts from "./pages/admin/AdminAbandonedCarts";
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="product-builder" element={<AdminProductBuilder />} />
             <Route path="pixels" element={<AdminPixels />} />
             <Route path="webhooks" element={<AdminWebhooks />} />
+            <Route path="notifications" element={<AdminNotifications />} />
             <Route path="stores" element={<AdminStores />} />
           </Route>
           <Route path="*" element={<NotFound />} />

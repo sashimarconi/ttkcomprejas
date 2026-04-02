@@ -210,6 +210,7 @@ Deno.serve(async (req) => {
               title: `💰 Venda confirmada!`,
               body: `${order.customer_name} - ${totalFormatted}`,
               url: "/admin/orders",
+              event_type: "order_paid",
             }),
           });
         } catch (pushErr) {
