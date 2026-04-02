@@ -135,6 +135,28 @@ const AdminPixels = () => {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, pixel_id, active }: { id: string; pixel_id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from("tracking_pixels" as any)
+        .update({ pixel_id, active })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tracking-pixels"] });
+      setEditingPixel(null);
+      setView("list");
+      toast({ title: "Pixel atualizado com sucesso!" });
+    },
+    onError: (err: Error) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const openEdit = (pixel: any) => {
+    setEditingPixel({ ...pixel });
+    setView("edit");
+  };
+
   const platformPixels = (pixels || []).filter((p: any) => p.platform === activePlatform);
   const filteredPixels = platformPixels.filter((p: any) =>
     p.pixel_id.toLowerCase().includes(searchQuery.toLowerCase())
