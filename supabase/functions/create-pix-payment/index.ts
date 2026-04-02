@@ -441,6 +441,37 @@ Deno.serve(async (req) => {
       console.error("Order save error:", orderError);
     }
 
+    // Dispatch order_created webhook
+    if (orderData?.id) {
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/dispatch-webhooks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            event: "order_created",
+            payload: {
+              order_id: orderData.id,
+              transaction_id: paymentResult.transactionId,
+              customer_name: body.customerName,
+              customer_email: body.customerEmail,
+              customer_phone: body.customerPhone,
+              customer_document: body.customerDocument,
+              total: body.amount / 100,
+              product_id: body.productId,
+              product_variant: body.productVariant || null,
+              payment_method: "pix",
+              selected_bumps: body.selectedBumps,
+            },
+          }),
+        });
+      } catch (whErr) {
+        console.error("Webhook dispatch error:", whErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
