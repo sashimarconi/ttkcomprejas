@@ -470,6 +470,26 @@ Deno.serve(async (req) => {
       } catch (whErr) {
         console.error("Webhook dispatch error:", whErr);
       }
+
+      // Send push notification for pending order
+      try {
+        const totalFormatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(body.amount / 100);
+        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            title: "🔔 PIX gerado!",
+            body: `${body.customerName} - ${totalFormatted}`,
+            url: "/admin/orders",
+            event_type: "order_pending",
+          }),
+        });
+      } catch (pushErr) {
+        console.error("Push notification error:", pushErr);
+      }
     }
 
     return new Response(
