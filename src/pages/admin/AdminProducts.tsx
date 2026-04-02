@@ -26,6 +26,7 @@ interface ProductForm {
   estimated_delivery: string;
   checkout_type: string;
   external_checkout_url: string;
+  thank_you_url: string;
   rating: number;
   review_count: number;
   sold_count: number;
