@@ -256,14 +256,14 @@ Deno.serve(async (req) => {
     };
 
     const results = await Promise.allSettled(
-      subscriptions.map((sub) => sendPush(sub, payload, vapidPublicKey, vapidPrivateKey))
+      filteredSubs.map((sub) => sendPush(sub, payload, vapidPublicKey, vapidPrivateKey))
     );
 
     // Clean up expired subscriptions (410 Gone)
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
       if (result.status === "fulfilled" && result.value.status === 410) {
-        await supabase.from("push_subscriptions").delete().eq("endpoint", subscriptions[i].endpoint);
+        await supabase.from("push_subscriptions").delete().eq("endpoint", filteredSubs[i].endpoint);
       }
     }
 
