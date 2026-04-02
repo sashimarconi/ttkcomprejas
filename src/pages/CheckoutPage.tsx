@@ -353,6 +353,17 @@ const CheckoutPage = () => {
 
       if (data.payment_status === "paid") {
         setPaymentConfirmed(true);
+
+        // Fire TikTok CompletePayment for pixels with fire_on_paid_only=true
+        trackTikTokPurchase(total, "BRL", {
+          orderId: pixData.orderId,
+          contentId: product?.id,
+          contentName: selectedVariant ? `${product?.title} - ${selectedVariant}` : product?.title,
+          quantity,
+          email: customerEmail,
+          phone: customerPhone,
+        }, true);
+
         // Redirect to thank you page if configured
         const thankYouUrl = (product as any)?.thank_you_url;
         if (thankYouUrl) {
@@ -455,7 +466,7 @@ const CheckoutPage = () => {
       // Track PIX generation
       trackEvent("pix_generated", { total, product_slug: slug });
 
-      // Fire TikTok CompletePayment on PIX generation
+      // Fire TikTok CompletePayment on PIX generation (only for pixels with fire_on_paid_only=false)
       trackTikTokPurchase(total, "BRL", {
         orderId: result.orderId,
         contentId: product.id,
@@ -463,7 +474,7 @@ const CheckoutPage = () => {
         quantity,
         email: customerEmail,
         phone: customerPhone,
-      });
+      }, false);
     } catch (err: any) {
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {

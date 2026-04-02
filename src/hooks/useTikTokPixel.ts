@@ -24,6 +24,7 @@ type TrackTikTokPurchaseOptions = {
 };
 
 const activeTikTokPixelIds = new Set<string>();
+const pixelConfigMap = new Map<string, { fire_on_paid_only: boolean }>();
 const queuedTikTokEvents: QueuedTikTokEvent[] = [];
 let tikTokLibraryLoaded = false;
 let tikTokReadyHandlerRegistered = false;
@@ -119,34 +120,56 @@ function getTikTokQueue() {
   return ttq;
 }
 
-function loadTikTokPixel(pixelId: string) {
+function loadTikTokPixel(pixelId: string, config?: { fire_on_paid_only: boolean }) {
   const ttq = getTikTokQueue();
   if (!ttq || !pixelId || activeTikTokPixelIds.has(pixelId)) return;
 
   activeTikTokPixelIds.add(pixelId);
+  if (config) pixelConfigMap.set(pixelId, config);
   registerTikTokReadyHandler(ttq);
   ttq.load(pixelId);
 }
 
-function dispatchTikTokEvent(eventName: string, payload: Record<string, unknown>) {
+function dispatchTikTokEvent(eventName: string, payload: Record<string, unknown>, filterPaidOnly?: boolean) {
   const ttq = getTikTokQueue();
-  if (!ttq || !activeTikTokPixelIds.size || !tikTokLibraryLoaded || typeof ttq.track !== "function") {
+  if (!ttq || !activeTikTokPixelIds.size || !tikTokLibraryLoaded) {
     return false;
   }
 
-  ttq.track(eventName, payload);
+  const targetPixels = Array.from(activeTikTokPixelIds).filter((pid) => {
+    if (filterPaidOnly === undefined) return true;
+    const cfg = pixelConfigMap.get(pid);
+    return cfg ? cfg.fire_on_paid_only === filterPaidOnly : !filterPaidOnly;
+  });
 
-  console.log("[TikTok Pixel] Evento enviado para os pixels ativos.", {
+  if (!targetPixels.length) return true; // no pixels to fire for this filter, but not an error
+
+  for (const pid of targetPixels) {
+    try {
+      const instance = ttq.instance?.(pid);
+      if (instance && typeof instance.track === "function") {
+        instance.track(eventName, payload);
+      } else if (typeof ttq.track === "function") {
+        ttq.track(eventName, payload);
+        break; // fallback fires to all, so only once
+      }
+    } catch (e) {
+      console.error(`[TikTok Pixel] Error firing to ${pid}:`, e);
+    }
+  }
+
+  console.log("[TikTok Pixel] Evento enviado.", {
     eventName,
     payload,
-    pixelIds: Array.from(activeTikTokPixelIds),
+    targetPixels,
+    filterPaidOnly,
   });
 
   return true;
 }
 
-function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, allowQueue = true) {
-  if (dispatchTikTokEvent(eventName, payload)) return;
+function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, allowQueue = true, filterPaidOnly?: boolean) {
+  if (dispatchTikTokEvent(eventName, payload, filterPaidOnly)) return;
 
   if (!allowQueue) return;
 
@@ -209,7 +232,7 @@ export function useTikTokPixel() {
 
   useEffect(() => {
     if (pixels && pixels.length > 0) {
-      pixels.forEach((p: any) => loadTikTokPixel(p.pixel_id));
+      pixels.forEach((p: any) => loadTikTokPixel(p.pixel_id, { fire_on_paid_only: !!p.fire_on_paid_only }));
       window.ttq?.page();
       flushQueuedTikTokEvents();
     }
@@ -222,6 +245,7 @@ export function trackTikTokPurchase(
   value: number,
   currency = "BRL",
   options: TrackTikTokPurchaseOptions = {},
+  filterPaidOnly?: boolean,
 ) {
   const normalizedValue = Number(value);
   const payload: Record<string, unknown> = {
@@ -248,6 +272,7 @@ export function trackTikTokPurchase(
   console.log("[TikTok Pixel] trackTikTokPurchase called:", {
     payload,
     pixelCount: activeTikTokPixelIds.size,
+    filterPaidOnly,
     ttqExists: typeof window !== "undefined" && !!window.ttq,
   });
 
@@ -260,10 +285,9 @@ export function trackTikTokPurchase(
       if (options.phone) identifyData.phone_number = options.phone;
       if (Object.keys(identifyData).length > 0) {
         ttq.identify(identifyData);
-        console.log("[TikTok Pixel] identify called:", identifyData);
       }
     }
-    trackTikTokEvent("CompletePayment", payload);
+    trackTikTokEvent("CompletePayment", payload, true, filterPaidOnly);
   } catch (e) {
     console.error("[TikTok Pixel] Error firing event:", e);
   }
