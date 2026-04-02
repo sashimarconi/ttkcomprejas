@@ -120,11 +120,12 @@ function getTikTokQueue() {
   return ttq;
 }
 
-function loadTikTokPixel(pixelId: string) {
+function loadTikTokPixel(pixelId: string, config?: { fire_on_paid_only: boolean }) {
   const ttq = getTikTokQueue();
   if (!ttq || !pixelId || activeTikTokPixelIds.has(pixelId)) return;
 
   activeTikTokPixelIds.add(pixelId);
+  if (config) pixelConfigMap.set(pixelId, config);
   registerTikTokReadyHandler(ttq);
   ttq.load(pixelId);
 }
