@@ -232,7 +232,7 @@ export function useTikTokPixel() {
 
   useEffect(() => {
     if (pixels && pixels.length > 0) {
-      pixels.forEach((p: any) => loadTikTokPixel(p.pixel_id));
+      pixels.forEach((p: any) => loadTikTokPixel(p.pixel_id, { fire_on_paid_only: !!p.fire_on_paid_only }));
       window.ttq?.page();
       flushQueuedTikTokEvents();
     }
