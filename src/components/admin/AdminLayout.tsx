@@ -52,6 +52,12 @@ const navSections = [
       { label: "Webhooks", path: "/admin/webhooks", icon: Webhook },
     ],
   },
+  {
+    title: "Configurações",
+    items: [
+      { label: "Notificações", path: "/admin/notifications", icon: Bell },
+    ],
+  },
 ];
 
 const AdminLayout = () => {
