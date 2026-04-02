@@ -12,7 +12,7 @@ const formatCount = (n: number): string => {
   return n.toLocaleString("pt-BR");
 };
 
-const ReviewsSection = ({ reviews, totalReviews }: ReviewsSectionProps) => {
+const ReviewsSection = ({ reviews, totalReviews, title = "Avaliações dos clientes" }: ReviewsSectionProps) => {
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : "5.0";
