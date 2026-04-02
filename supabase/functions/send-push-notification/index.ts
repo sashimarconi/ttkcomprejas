@@ -271,9 +271,9 @@ Deno.serve(async (req) => {
       (r) => r.status === "fulfilled" && r.value.ok
     ).length;
 
-    console.log(`Push notifications sent: ${sent}/${subscriptions.length}`);
+    console.log(`Push notifications sent: ${sent}/${filteredSubs.length} (${subscriptions.length} total subs)`);
 
-    return new Response(JSON.stringify({ sent, total: subscriptions.length }), {
+    return new Response(JSON.stringify({ sent, total: filteredSubs.length }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
