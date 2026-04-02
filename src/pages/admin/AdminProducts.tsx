@@ -453,6 +453,7 @@ const AdminProducts = () => {
               <p className="text-xs text-muted-foreground">Link externo para redirecionar o cliente após o pagamento ser confirmado</p>
             </div>
 
+            <div className="space-y-2">
               <Label>Vídeo (opcional)</Label>
               <div className="flex gap-2">
                 <Input
