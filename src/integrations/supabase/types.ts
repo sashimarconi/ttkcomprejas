@@ -891,24 +891,39 @@ export type Database = {
       }
       visitor_sessions: {
         Row: {
+          city: string | null
+          country: string | null
           created_at: string
           id: string
           last_seen_at: string
+          latitude: number | null
+          longitude: number | null
           page_url: string | null
+          region: string | null
           session_id: string
         }
         Insert: {
+          city?: string | null
+          country?: string | null
           created_at?: string
           id?: string
           last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
           page_url?: string | null
+          region?: string | null
           session_id: string
         }
         Update: {
+          city?: string | null
+          country?: string | null
           created_at?: string
           id?: string
           last_seen_at?: string
+          latitude?: number | null
+          longitude?: number | null
           page_url?: string | null
+          region?: string | null
           session_id?: string
         }
         Relationships: []
