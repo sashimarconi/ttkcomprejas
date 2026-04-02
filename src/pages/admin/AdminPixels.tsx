@@ -61,7 +61,7 @@ const PLATFORMS = [
   },
 ];
 
-type View = "grid" | "list" | "create";
+type View = "grid" | "list" | "create" | "edit";
 
 const AdminPixels = () => {
   const [view, setView] = useState<View>("grid");
@@ -71,6 +71,7 @@ const AdminPixels = () => {
   const [newPixelId, setNewPixelId] = useState("");
   const [newPixelActive, setNewPixelActive] = useState(true);
   const [fireOnPaidOnly, setFireOnPaidOnly] = useState(false);
+  const [editingPixel, setEditingPixel] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
