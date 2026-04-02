@@ -8,27 +8,23 @@ interface SessionLocation {
   count: number;
 }
 
-interface SessionsByLocationProps {
-  /** Live sessions (last 5 min) */
-  liveSessions: { session_id: string }[];
-  /** All unique sessions from today */
-  todaySessions: { session_id: string }[];
+interface SessionWithGeo {
+  session_id: string;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
 }
 
-const BRAZIL_STATES = [
-  "São Paulo", "Rio de Janeiro", "Minas Gerais", "Bahia", "Paraná",
-  "Rio Grande do Sul", "Ceará", "Pernambuco", "Pará", "Santa Catarina",
-  "Goiás", "Maranhão", "Amazonas", "Espírito Santo", "Paraíba",
-];
+interface SessionsByLocationProps {
+  liveSessions: SessionWithGeo[];
+  todaySessions: SessionWithGeo[];
+}
 
-function sessionToLocation(sessionId: string): string {
-  let hash = 0;
-  for (let i = 0; i < sessionId.length; i++) {
-    hash = ((hash << 5) - hash) + sessionId.charCodeAt(i);
-    hash |= 0;
-  }
-  const stateIndex = Math.abs(hash) % BRAZIL_STATES.length;
-  return `Brasil - ${BRAZIL_STATES[stateIndex]}`;
+function formatLocation(s: SessionWithGeo): string {
+  if (s.region && s.country) return `${s.country} - ${s.region}`;
+  if (s.city && s.country) return `${s.country} - ${s.city}`;
+  if (s.country) return s.country;
+  return "Desconhecido";
 }
 
 export default function SessionsByLocation({ liveSessions, todaySessions }: SessionsByLocationProps) {
@@ -39,7 +35,7 @@ export default function SessionsByLocation({ liveSessions, todaySessions }: Sess
 
   const locationMap = new Map<string, number>();
   sessions.forEach(s => {
-    const loc = sessionToLocation(s.session_id);
+    const loc = formatLocation(s);
     locationMap.set(loc, (locationMap.get(loc) || 0) + 1);
   });
 

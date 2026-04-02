@@ -18,7 +18,7 @@ interface ArcData {
 }
 
 interface LiveGlobeProps {
-  visitors: { session_id: string }[];
+  visitors: { session_id: string; latitude?: number | null; longitude?: number | null }[];
   className?: string;
 }
 
@@ -67,7 +67,10 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
 
   const points: VisitorPoint[] = useMemo(() => {
     return visitors.map(v => {
-      const { lat, lng } = sessionToCoords(v.session_id);
+      // Use real coordinates if available, fallback to hash-based
+      const hasReal = v.latitude != null && v.longitude != null && v.latitude !== 0 && v.longitude !== 0;
+      const lat = hasReal ? v.latitude! : sessionToCoords(v.session_id).lat;
+      const lng = hasReal ? v.longitude! : sessionToCoords(v.session_id).lng;
       return { lat, lng, size: 0.6, id: v.session_id };
     });
   }, [visitors]);
