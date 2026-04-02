@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SaleNotification from "@/components/admin/SaleNotification";
+import PushNotificationToggle from "@/components/admin/PushNotificationToggle";
 
 const navSections = [
   {
@@ -216,6 +217,7 @@ const AdminLayout = () => {
           </button>
           <div className="flex-1" />
           <div className="flex items-center gap-3">
+            <PushNotificationToggle />
             <button
               onClick={() => setIsDark(!isDark)}
               className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-muted hover:bg-accent transition-colors"
