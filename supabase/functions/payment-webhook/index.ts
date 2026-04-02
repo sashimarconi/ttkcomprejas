@@ -196,6 +196,25 @@ Deno.serve(async (req) => {
         } catch (whErr) {
           console.error("Webhook dispatch error:", whErr);
         }
+
+        // Send push notification
+        try {
+          const totalFormatted = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(order.total));
+          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${serviceRoleKey}`,
+            },
+            body: JSON.stringify({
+              title: `💰 Venda confirmada!`,
+              body: `${order.customer_name} - ${totalFormatted}`,
+              url: "/admin/orders",
+            }),
+          });
+        } catch (pushErr) {
+          console.error("Push notification error:", pushErr);
+        }
       } else {
         console.warn(`No order matched transaction ${transactionId}`);
       }
