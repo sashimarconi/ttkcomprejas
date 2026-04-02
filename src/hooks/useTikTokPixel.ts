@@ -130,18 +130,39 @@ function loadTikTokPixel(pixelId: string, config?: { fire_on_paid_only: boolean 
   ttq.load(pixelId);
 }
 
-function dispatchTikTokEvent(eventName: string, payload: Record<string, unknown>) {
+function dispatchTikTokEvent(eventName: string, payload: Record<string, unknown>, filterPaidOnly?: boolean) {
   const ttq = getTikTokQueue();
-  if (!ttq || !activeTikTokPixelIds.size || !tikTokLibraryLoaded || typeof ttq.track !== "function") {
+  if (!ttq || !activeTikTokPixelIds.size || !tikTokLibraryLoaded) {
     return false;
   }
 
-  ttq.track(eventName, payload);
+  const targetPixels = Array.from(activeTikTokPixelIds).filter((pid) => {
+    if (filterPaidOnly === undefined) return true;
+    const cfg = pixelConfigMap.get(pid);
+    return cfg ? cfg.fire_on_paid_only === filterPaidOnly : !filterPaidOnly;
+  });
 
-  console.log("[TikTok Pixel] Evento enviado para os pixels ativos.", {
+  if (!targetPixels.length) return true; // no pixels to fire for this filter, but not an error
+
+  for (const pid of targetPixels) {
+    try {
+      const instance = ttq.instance?.(pid);
+      if (instance && typeof instance.track === "function") {
+        instance.track(eventName, payload);
+      } else if (typeof ttq.track === "function") {
+        ttq.track(eventName, payload);
+        break; // fallback fires to all, so only once
+      }
+    } catch (e) {
+      console.error(`[TikTok Pixel] Error firing to ${pid}:`, e);
+    }
+  }
+
+  console.log("[TikTok Pixel] Evento enviado.", {
     eventName,
     payload,
-    pixelIds: Array.from(activeTikTokPixelIds),
+    targetPixels,
+    filterPaidOnly,
   });
 
   return true;
