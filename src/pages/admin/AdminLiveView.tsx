@@ -13,6 +13,11 @@ interface SessionData {
   session_id: string;
   page_url: string | null;
   last_seen_at: string;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface LiveStats {
