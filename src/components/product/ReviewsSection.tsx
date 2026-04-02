@@ -22,7 +22,7 @@ const ReviewsSection = ({ reviews, totalReviews, title = "Avaliações dos clien
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-foreground">
-          Avaliações dos clientes ({formatCount(totalReviews)})
+          {title} ({formatCount(totalReviews)})
         </p>
         <button className="flex items-center gap-0.5 text-xs text-marketplace-blue font-medium">
           Ver mais

@@ -16,7 +16,7 @@ const ShippingInfo = ({ freeShipping, shippingCost, estimatedDelivery, shippingL
         </div>
         <div className="flex-1">
           {freeShipping && (
-            <p className="text-sm font-bold text-marketplace-green">Frete grátis</p>
+            <p className="text-sm font-bold text-marketplace-green">{shippingLabel}</p>
           )}
           <p className="text-xs text-muted-foreground mt-0.5">
             {estimatedDelivery || "Chegará entre 7 e 15 dias úteis"}

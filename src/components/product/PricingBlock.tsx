@@ -56,7 +56,7 @@ const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, fl
             R$ {salePrice.toFixed(2).replace('.', ',')}
           </span>
         </div>
-        {flashSale && (
+        {flashSale && showFlashSale && (
           <div className="flex flex-col items-end">
             <span className="flex items-center gap-1 text-primary-foreground text-[11px] font-bold">
               <Zap className="w-3 h-3 fill-current" />

@@ -101,12 +101,14 @@ const ProductInfo = ({ title, promoTag, rating, reviewCount, soldCount, variants
         </div>
         <span>{formatCount(reviewCount)} avaliações</span>
         <span>•</span>
-        <span>{formatCount(soldCount)} vendidos</span>
+        {showSoldCount && <><span>•</span><span>{formatCount(soldCount)} vendidos</span></>}
       </div>
 
-      <p className="text-xs text-marketplace-orange font-medium mt-1.5">
-        13 unidades disponíveis
-      </p>
+      {showUnitsAvailable && (
+        <p className="text-xs text-marketplace-orange font-medium mt-1.5">
+          {unitsAvailableText}
+        </p>
+      )}
 
       {/* Variant groups */}
       {variantGroups.map((g) =>
