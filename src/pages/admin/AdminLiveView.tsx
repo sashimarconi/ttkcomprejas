@@ -34,7 +34,7 @@ const AdminLiveView = () => {
     visitors: 0, revenue: 0, orders: 0, paidOrders: 0, conversionRate: 0, avgTicket: 0,
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [todaySessions, setTodaySessions] = useState<{ session_id: string }[]>([]);
+  const [todaySessions, setTodaySessions] = useState<{ session_id: string; city?: string | null; region?: string | null; country?: string | null }[]>([]);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
   const [funnelData, setFunnelData] = useState<{ label: string; value: number; pct: number }[]>([]);
