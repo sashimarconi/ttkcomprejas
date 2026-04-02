@@ -296,11 +296,31 @@ const AdminPixels = () => {
         <Card className="border-border">
           <CardContent className="p-6 space-y-5">
             <div className="space-y-2">
+              <Label className="text-sm font-semibold text-primary">Nome</Label>
+              <Input
+                value={editingPixel.name || ""}
+                onChange={(e) => setEditingPixel({ ...editingPixel, name: e.target.value })}
+                placeholder="Ex: Campanha Principal"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label className="text-sm font-semibold text-primary">Pixel ID</Label>
               <Input
                 value={editingPixel.pixel_id}
                 onChange={(e) => setEditingPixel({ ...editingPixel, pixel_id: e.target.value })}
                 placeholder="Ex: CXXXXXXXXXXXXXXXXX"
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Disparar apenas quando a venda estiver paga</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Dispara o pixel SOMENTE quando o pagamento for confirmado (não dispara na criação)</p>
+              </div>
+              <Switch
+                checked={editingPixel.fire_on_paid_only || false}
+                onCheckedChange={(checked) => setEditingPixel({ ...editingPixel, fire_on_paid_only: checked })}
               />
             </div>
 
@@ -320,7 +340,13 @@ const AdminPixels = () => {
                 Cancelar
               </Button>
               <Button
-                onClick={() => updateMutation.mutate({ id: editingPixel.id, pixel_id: editingPixel.pixel_id.trim(), active: editingPixel.active })}
+                onClick={() => updateMutation.mutate({
+                  id: editingPixel.id,
+                  pixel_id: editingPixel.pixel_id.trim(),
+                  name: (editingPixel.name || "").trim(),
+                  active: editingPixel.active,
+                  fire_on_paid_only: editingPixel.fire_on_paid_only || false,
+                })}
                 disabled={!editingPixel.pixel_id.trim() || updateMutation.isPending}
                 className="bg-primary hover:bg-primary/90"
               >
