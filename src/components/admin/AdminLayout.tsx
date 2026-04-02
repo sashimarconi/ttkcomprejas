@@ -48,6 +48,7 @@ const navSections = [
     title: "Marketing",
     items: [
       { label: "Pixels", path: "/admin/pixels", icon: BarChart3 },
+      { label: "Webhooks", path: "/admin/webhooks", icon: Webhook },
     ],
   },
 ];
