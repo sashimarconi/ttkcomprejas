@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle, Search, X, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle, Search, X, ArrowRight, Radio, Zap, Shield, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +107,6 @@ const AdminGateways = () => {
 
       const shouldActivate = activate ?? state.active;
 
-      // If activating, deactivate all others
       if (shouldActivate) {
         for (const gw of gateways || []) {
           if (gw.gateway_name !== gatewayName && gw.active) {
@@ -145,6 +144,40 @@ const AdminGateways = () => {
     onError: () => toast.error("Erro ao salvar gateway"),
   });
 
+  const activateMutation = useMutation({
+    mutationFn: async (gatewayName: string) => {
+      const state = states[gatewayName];
+      if (!state || !state.id) {
+        toast.error("Configure as chaves antes de ativar");
+        return;
+      }
+      if (!state.publicKey && !state.secretKey) {
+        toast.error("Configure as chaves antes de ativar");
+        return;
+      }
+
+      // Deactivate all others
+      for (const gw of gateways || []) {
+        if (gw.active) {
+          await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
+        }
+      }
+
+      // Activate this one
+      const { error } = await supabase
+        .from("gateway_settings")
+        .update({ active: true })
+        .eq("id", state.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
+      setLoaded(false);
+      toast.success("Gateway ativado!");
+    },
+    onError: () => toast.error("Erro ao ativar gateway"),
+  });
+
   const filteredGateways = GATEWAYS.filter(
     (gw) =>
       gw.label.toLowerCase().includes(search.toLowerCase()) ||
@@ -163,16 +196,31 @@ const AdminGateways = () => {
       <div>
         <h2 className="text-lg font-bold text-foreground">Gateways de Pagamento</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure e ative gateways de pagamento. Apenas um pode estar ativo por vez.
+          Selecione o gateway ativo e configure suas chaves de API.
         </p>
       </div>
 
+      {/* Active gateway hero */}
       {activeGateway && (
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/10 border border-primary/20">
-          <CheckCircle className="w-5 h-5 text-primary shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-foreground">Gateway ativo: {activeGateway.label}</p>
-            <p className="text-xs text-muted-foreground">Processando pagamentos PIX</p>
+        <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-5">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-10 -mt-10" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-primary/5 rounded-full -ml-6 -mb-6" />
+          <div className="relative flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-card border border-border flex items-center justify-center overflow-hidden shadow-sm">
+              <img src={activeGateway.logoUrl} alt={activeGateway.label} className="w-10 h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                <span className="text-xs font-semibold text-primary uppercase tracking-wider">Gateway Ativo</span>
+              </div>
+              <p className="text-lg font-bold text-foreground mt-0.5">{activeGateway.label}</p>
+              <p className="text-xs text-muted-foreground">{activeGateway.description}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-medium text-green-600">Online</span>
+            </div>
           </div>
         </div>
       )}
@@ -187,7 +235,8 @@ const AdminGateways = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Gateway list */}
+      <div className="space-y-3">
         {filteredGateways.map((gw) => {
           const state = states[gw.name];
           if (!state) return null;
@@ -198,46 +247,65 @@ const AdminGateways = () => {
             <div
               key={gw.name}
               className={cn(
-                "bg-card rounded-xl border p-5 flex flex-col gap-4 transition-all hover:shadow-md",
-                active ? "border-primary ring-1 ring-primary/30" : "border-border"
+                "group bg-card rounded-xl border p-4 flex items-center gap-4 transition-all cursor-pointer hover:shadow-md",
+                active ? "border-primary ring-2 ring-primary/20 shadow-sm" : "border-border hover:border-muted-foreground/30"
               )}
+              onClick={() => {
+                if (configured && !active) {
+                  activateMutation.mutate(gw.name);
+                } else if (!configured) {
+                  setConfigOpen(gw.name);
+                }
+              }}
             >
-              <div className="flex items-start justify-between">
-                <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                  <img
-                    src={gw.logoUrl}
-                    alt={gw.label}
-                    className="w-10 h-10 object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = "none";
-                    }}
-                  />
-                </div>
+              {/* Radio indicator */}
+              <div
+                className={cn(
+                  "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
+                  active ? "border-primary bg-primary" : "border-muted-foreground/30 group-hover:border-muted-foreground/50"
+                )}
+              >
                 {active && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider bg-primary/15 text-primary px-2 py-0.5 rounded-full">
-                    Ativo
-                  </span>
+                  <div className="w-2 h-2 rounded-full bg-primary-foreground" />
                 )}
               </div>
 
-              <div>
-                <p className="text-sm font-bold text-foreground">{gw.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{gw.description}</p>
+              {/* Logo */}
+              <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                <img
+                  src={gw.logoUrl}
+                  alt={gw.label}
+                  className="w-9 h-9 object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
               </div>
 
-              <div className="mt-auto">
-                <Button
-                  variant={configured ? "outline" : "ghost"}
-                  className={cn(
-                    "w-full justify-between",
-                    configured && "border-primary/30 text-primary hover:bg-primary/5"
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-foreground">{gw.label}</p>
+                  {configured && (
+                    <span className="text-[9px] font-semibold uppercase tracking-wider bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                      <Shield className="w-2.5 h-2.5" />
+                      Configurado
+                    </span>
                   )}
-                  onClick={() => setConfigOpen(gw.name)}
-                >
-                  {configured ? "Configurado" : "Configurar Gateway"}
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{gw.description}</p>
               </div>
+
+              {/* Config button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setConfigOpen(gw.name);
+                }}
+              >
+                <Settings2 className="w-4 h-4" />
+              </Button>
             </div>
           );
         })}
@@ -286,18 +354,6 @@ const AdminGateways = () => {
                     >
                       {currentState.showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="text-sm font-medium">Processar Pix</p>
-                    <p className="text-xs text-muted-foreground">Pagamentos via PIX</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-4 rounded-full bg-primary relative">
-                      <span className="absolute top-0.5 right-0.5 w-3 h-3 rounded-full bg-primary-foreground" />
-                    </span>
                   </div>
                 </div>
 
