@@ -22,6 +22,9 @@ interface ProductInfoProps {
   soldCount: number;
   variants: Variant[];
   variantGroups?: VariantGroup[];
+  showSoldCount?: boolean;
+  showUnitsAvailable?: boolean;
+  unitsAvailableText?: string;
 }
 
 const formatCount = (n: number): string => {
@@ -29,7 +32,7 @@ const formatCount = (n: number): string => {
   return n.toLocaleString("pt-BR");
 };
 
-const ProductInfo = ({ title, promoTag, rating, reviewCount, soldCount, variants, variantGroups = [] }: ProductInfoProps) => {
+const ProductInfo = ({ title, promoTag, rating, reviewCount, soldCount, variants, variantGroups = [], showSoldCount = true, showUnitsAvailable = true, unitsAvailableText = "13 unidades disponíveis" }: ProductInfoProps) => {
   const [selections, setSelections] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     variantGroups.forEach((g) => {
@@ -98,12 +101,14 @@ const ProductInfo = ({ title, promoTag, rating, reviewCount, soldCount, variants
         </div>
         <span>{formatCount(reviewCount)} avaliações</span>
         <span>•</span>
-        <span>{formatCount(soldCount)} vendidos</span>
+        {showSoldCount && <><span>•</span><span>{formatCount(soldCount)} vendidos</span></>}
       </div>
 
-      <p className="text-xs text-marketplace-orange font-medium mt-1.5">
-        13 unidades disponíveis
-      </p>
+      {showUnitsAvailable && (
+        <p className="text-xs text-marketplace-orange font-medium mt-1.5">
+          {unitsAvailableText}
+        </p>
+      )}
 
       {/* Variant groups */}
       {variantGroups.map((g) =>

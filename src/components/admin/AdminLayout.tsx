@@ -29,6 +29,7 @@ const navSections = [
     title: "Catálogo",
     items: [
       { label: "Produtos", path: "/admin/products", icon: Package },
+      { label: "Editor de Produto", path: "/admin/product-builder", icon: PenTool },
       { label: "Avaliações", path: "/admin/reviews", icon: Star },
       { label: "Badges", path: "/admin/badges", icon: ShieldCheck },
       { label: "Lojas", path: "/admin/stores", icon: Store },

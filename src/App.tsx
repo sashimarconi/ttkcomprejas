@@ -18,6 +18,7 @@ import AdminShipping from "./pages/admin/AdminShipping";
 import AdminOrderBumps from "./pages/admin/AdminOrderBumps";
 import CheckoutPage from "./pages/CheckoutPage";
 import AdminCheckoutBuilder from "./pages/admin/AdminCheckoutBuilder";
+import AdminProductBuilder from "./pages/admin/AdminProductBuilder";
 import AdminPixels from "./pages/admin/AdminPixels";
 import AdminStores from "./pages/admin/AdminStores";
 import AdminLiveView from "./pages/admin/AdminLiveView";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="shipping" element={<AdminShipping />} />
             <Route path="order-bumps" element={<AdminOrderBumps />} />
             <Route path="checkout-builder" element={<AdminCheckoutBuilder />} />
+            <Route path="product-builder" element={<AdminProductBuilder />} />
             <Route path="pixels" element={<AdminPixels />} />
             <Route path="stores" element={<AdminStores />} />
           </Route>

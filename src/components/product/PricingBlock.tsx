@@ -8,6 +8,8 @@ interface PricingBlockProps {
   discountPercent: number;
   flashSale: boolean;
   flashSaleEndsIn: string;
+  showDiscountBadge?: boolean;
+  showFlashSale?: boolean;
 }
 
 const parseTimeToSeconds = (timeStr: string): number => {
@@ -29,7 +31,7 @@ const formatTime = (totalSeconds: number): string => {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 };
 
-const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, flashSaleEndsIn }: PricingBlockProps) => {
+const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, flashSaleEndsIn, showDiscountBadge = true, showFlashSale = true }: PricingBlockProps) => {
   const [secondsLeft, setSecondsLeft] = useState(() => parseTimeToSeconds(flashSaleEndsIn));
 
   useEffect(() => {
@@ -45,14 +47,16 @@ const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, fl
       {/* Row: discount badge + price + flash sale */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="bg-marketplace-red text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded">
-            -{discountPercent}%
-          </span>
+          {showDiscountBadge && (
+            <span className="bg-marketplace-red text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded">
+              -{discountPercent}%
+            </span>
+          )}
           <span className="text-2xl font-extrabold text-primary-foreground">
             R$ {salePrice.toFixed(2).replace('.', ',')}
           </span>
         </div>
-        {flashSale && (
+        {flashSale && showFlashSale && (
           <div className="flex flex-col items-end">
             <span className="flex items-center gap-1 text-primary-foreground text-[11px] font-bold">
               <Zap className="w-3 h-3 fill-current" />

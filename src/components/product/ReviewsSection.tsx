@@ -4,6 +4,7 @@ import type { Review } from "@/data/mockData";
 interface ReviewsSectionProps {
   reviews: Review[];
   totalReviews: number;
+  title?: string;
 }
 
 const formatCount = (n: number): string => {
@@ -11,7 +12,7 @@ const formatCount = (n: number): string => {
   return n.toLocaleString("pt-BR");
 };
 
-const ReviewsSection = ({ reviews, totalReviews }: ReviewsSectionProps) => {
+const ReviewsSection = ({ reviews, totalReviews, title = "Avaliações dos clientes" }: ReviewsSectionProps) => {
   const avgRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : "5.0";
@@ -21,7 +22,7 @@ const ReviewsSection = ({ reviews, totalReviews }: ReviewsSectionProps) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-foreground">
-          Avaliações dos clientes ({formatCount(totalReviews)})
+          {title} ({formatCount(totalReviews)})
         </p>
         <button className="flex items-center gap-0.5 text-xs text-marketplace-blue font-medium">
           Ver mais
