@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle, Search, X, ArrowRight, Radio, Zap, Shield, Settings2 } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle, Search, Zap, Shield, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
