@@ -218,8 +218,8 @@ const AdminGateways = () => {
               <p className="text-xs text-muted-foreground">{activeGateway.description}</p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-medium text-green-600">Online</span>
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Online</span>
             </div>
           </div>
         </div>
