@@ -45,6 +45,28 @@ export interface ProductListItem {
   product_images: { id: string; url: string; alt: string | null; sort_order: number | null }[];
 }
 
+export interface RelatedProductItem {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  original_price: number;
+  sale_price: number;
+  discount_percent: number;
+  promo_tag: string | null;
+  flash_sale: boolean | null;
+  flash_sale_ends_in: string | null;
+  free_shipping: boolean | null;
+  shipping_cost: number | null;
+  estimated_delivery: string | null;
+  checkout_type: string;
+  external_checkout_url: string | null;
+  rating: number | null;
+  review_count: number | null;
+  sold_count: number | null;
+  product_images: { id: string; url: string; alt: string | null; sort_order: number | null }[];
+}
+
 export async function fetchProducts() {
   const { data, error } = await supabase
     .from("products")
@@ -69,35 +91,69 @@ export async function fetchProductBySlug(slug: string) {
   const { data, error } = await supabase
     .from("products")
     .select(`
-      *,
+      id,
+      slug,
+      title,
+      description,
+      original_price,
+      sale_price,
+      discount_percent,
+      promo_tag,
+      flash_sale,
+      flash_sale_ends_in,
+      free_shipping,
+      shipping_cost,
+      estimated_delivery,
+      checkout_type,
+      external_checkout_url,
+      rating,
+      review_count,
+      sold_count,
+      active,
+      sort_order,
+      video_url,
       product_images(id, url, alt, sort_order),
       product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
-      variant_groups(id, name, sort_order),
-      reviews(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)
+      variant_groups(id, name, sort_order)
     `)
     .eq("slug", slug)
     .single();
 
   if (error) throw error;
+  return { ...data, reviews: [] } as ProductWithRelations;
+}
 
-  // Fetch linked reviews in parallel (single query with join)
-  const { data: linkedReviews } = await supabase
-    .from("review_products")
-    .select("reviews:review_id(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)")
-    .eq("product_id", data.id);
+export async function fetchProductReviews(productId: string) {
+  const reviewSelect = "id, user_name, user_avatar_url, city, rating, comment, photos, review_date";
 
-  if (linkedReviews && linkedReviews.length > 0) {
-    const existingIds = new Set((data.reviews || []).map((r: any) => r.id));
-    const extras = linkedReviews
-      .map((rp: any) => rp.reviews)
-      .filter(Boolean)
-      .filter((r: any) => !existingIds.has(r.id));
-    if (extras.length > 0) {
-      data.reviews = [...(data.reviews || []), ...extras];
+  const [{ data: directReviews, error: directError }, { data: linkedReviews, error: linkedError }] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select(reviewSelect)
+      .eq("product_id", productId),
+    supabase
+      .from("review_products")
+      .select(`reviews:review_id(${reviewSelect})`)
+      .eq("product_id", productId),
+  ]);
+
+  if (directError) throw directError;
+  if (linkedError) throw linkedError;
+
+  const uniqueReviews = new Map<string, ProductWithRelations["reviews"][number]>();
+
+  for (const review of directReviews || []) {
+    uniqueReviews.set(review.id, review);
+  }
+
+  for (const row of linkedReviews || []) {
+    const review = (row as any).reviews;
+    if (review?.id) {
+      uniqueReviews.set(review.id, review);
     }
   }
 
-  return data as ProductWithRelations;
+  return Array.from(uniqueReviews.values());
 }
 
 export async function fetchStoreSettings() {
@@ -130,7 +186,13 @@ export async function fetchStoreProducts(storeId: string) {
       product_id,
       sort_order,
       products:product_id (
-        *,
+        id,
+        slug,
+        title,
+        original_price,
+        sale_price,
+        discount_percent,
+        sold_count,
         product_images(id, url, alt, sort_order)
       )
     `)
@@ -138,10 +200,50 @@ export async function fetchStoreProducts(storeId: string) {
     .order("sort_order");
 
   if (error) throw error;
-  // Flatten the joined data
   return (data || [])
     .map((sp: any) => sp.products)
-    .filter(Boolean) as ProductWithRelations[];
+    .filter(Boolean) as ProductListItem[];
+}
+
+export async function fetchRelatedStoreProducts(storeId: string, currentProductId: string, limit = 6) {
+  const { data, error } = await supabase
+    .from("store_products")
+    .select(`
+      product_id,
+      sort_order,
+      products:product_id (
+        id,
+        slug,
+        title,
+        description,
+        original_price,
+        sale_price,
+        discount_percent,
+        promo_tag,
+        flash_sale,
+        flash_sale_ends_in,
+        free_shipping,
+        shipping_cost,
+        estimated_delivery,
+        checkout_type,
+        external_checkout_url,
+        rating,
+        review_count,
+        sold_count,
+        product_images(id, url, alt, sort_order)
+      )
+    `)
+    .eq("store_id", storeId)
+    .order("sort_order")
+    .limit(limit + 1);
+
+  if (error) throw error;
+
+  return (data || [])
+    .map((sp: any) => sp.products)
+    .filter(Boolean)
+    .filter((product: RelatedProductItem) => product.id !== currentProductId)
+    .slice(0, limit) as RelatedProductItem[];
 }
 
 export async function fetchStoreForProduct(productId: string) {

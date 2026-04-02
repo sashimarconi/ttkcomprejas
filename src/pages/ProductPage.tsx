@@ -1,10 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePageTracking, useVisitorHeartbeat } from "@/hooks/usePageTracking";
 import { useTikTokPixel } from "@/hooks/useTikTokPixel";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProductBySlug, fetchStoreForProduct, fetchStoreProducts, fetchStoreSettings } from "@/lib/supabase-queries";
+import { fetchProductBySlug, fetchProductReviews, fetchRelatedStoreProducts, fetchStoreForProduct, fetchStoreSettings } from "@/lib/supabase-queries";
 import ProductHeader from "@/components/product/ProductHeader";
 import ProductGallery from "@/components/product/ProductGallery";
 import PricingBlock from "@/components/product/PricingBlock";
@@ -70,35 +70,69 @@ const ProductPage = () => {
   useVisitorHeartbeat();
   useTikTokPixel();
 
-  const { data: product, isLoading } = useQuery({
-    queryKey: ["product", slug],
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const [buySheetOpen, setBuySheetOpen] = useState(false);
+  const [secondaryReady, setSecondaryReady] = useState(false);
+
+  const { data: product, isLoading, isError, refetch } = useQuery({
+    queryKey: ["product-page", slug],
     queryFn: () => fetchProductBySlug(slug!),
     enabled: !!slug,
-    staleTime: 5 * 60_000, // 5 min cache
+    staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (!product?.id) {
+      setSecondaryReady(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setSecondaryReady(true), 250);
+    return () => window.clearTimeout(timeout);
+  }, [product?.id]);
+
+  const { data: reviewsData = [], isLoading: reviewsLoading } = useQuery({
+    queryKey: ["product-reviews", product?.id],
+    queryFn: () => fetchProductReviews(product!.id),
+    enabled: !!product?.id && secondaryReady,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const { data: productStore } = useQuery({
     queryKey: ["product-store", product?.id],
     queryFn: () => fetchStoreForProduct(product!.id),
-    enabled: !!product?.id,
+    enabled: !!product?.id && secondaryReady,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: storeProducts } = useQuery({
-    queryKey: ["store-products", productStore?.id],
-    queryFn: () => fetchStoreProducts(productStore!.id),
-    enabled: !!productStore?.id,
+  const { data: storeProducts = [] } = useQuery({
+    queryKey: ["related-products", productStore?.id, product?.id],
+    queryFn: () => fetchRelatedStoreProducts(productStore!.id, product!.id),
+    enabled: !!productStore?.id && !!product?.id && secondaryReady,
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const { data: storeSettings } = useQuery({
     queryKey: ["store-settings"],
     queryFn: () => fetchStoreSettings(),
+    enabled: secondaryReady,
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const { data: builderRaw } = useQuery({
@@ -112,8 +146,11 @@ const ProductPage = () => {
       if (error) return null;
       return data as any;
     },
+    enabled: secondaryReady,
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const builder: ProductPageBuilderConfig = (() => {
@@ -126,10 +163,6 @@ const ProductPage = () => {
       conversion: { ...DEFAULT_BUILDER.conversion, ...(c.conversion || {}) },
     };
   })();
-
-  const reviewsRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLDivElement>(null);
-  const [buySheetOpen, setBuySheetOpen] = useState(false);
 
   const handleBuyNow = (selectedVariants: Record<string, string> | string | null, quantity: number) => {
     setBuySheetOpen(false);
@@ -148,7 +181,7 @@ const ProductPage = () => {
     }
   };
 
-  if (isLoading || !product) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Carregando...</p>
@@ -156,31 +189,58 @@ const ProductPage = () => {
     );
   }
 
-  const otherProducts = (storeProducts || []).filter((p) => p.id !== product.id);
+  if (isError || !product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center space-y-3">
+          <p className="text-sm font-medium text-foreground">Não foi possível carregar este produto.</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const images = (product.product_images || []).map((img) => ({ id: img.id, url: img.url, alt: img.alt || "" }));
   const variants = (product.product_variants || []).map((v) => ({ id: v.id, name: v.name, color: v.color || "", thumbnail: v.thumbnail_url || "", groupId: v.variant_group_id || null }));
   const variantGroups = (product.variant_groups || []).map((g) => ({ id: g.id, name: g.name }));
-  const reviews = (product.reviews || []).map((r) => ({ id: r.id, userName: r.user_name, userAvatar: r.user_avatar_url || "", city: r.city || "", rating: r.rating, comment: r.comment || "", photos: r.photos || [], date: r.review_date || "" }));
+  const reviews = reviewsData.map((r) => ({ id: r.id, userName: r.user_name, userAvatar: r.user_avatar_url || "", city: r.city || "", rating: r.rating, comment: r.comment || "", photos: r.photos || [], date: r.review_date || "" }));
+  const reviewsPending = !secondaryReady || reviewsLoading;
 
-  const relatedFormatted = otherProducts.map((p) => ({
-    id: p.slug, title: p.title, description: p.description || "",
-    originalPrice: Number(p.original_price), salePrice: Number(p.sale_price), discountPercent: p.discount_percent,
+  const relatedFormatted = storeProducts.map((p) => ({
+    id: p.slug,
+    title: p.title,
+    description: p.description || "",
+    originalPrice: Number(p.original_price),
+    salePrice: Number(p.sale_price),
+    discountPercent: p.discount_percent,
     images: (p.product_images || []).map((img) => ({ id: img.id, url: img.url, alt: img.alt || "" })),
-    variants: [], rating: Number(p.rating) || 0, reviewCount: p.review_count || 0, soldCount: p.sold_count || 0,
-    promoTag: p.promo_tag || "", flashSale: p.flash_sale || false, flashSaleEndsIn: p.flash_sale_ends_in || "",
-    freeShipping: p.free_shipping || false, shippingCost: Number(p.shipping_cost) || 0, estimatedDelivery: p.estimated_delivery || "",
-    checkoutType: p.checkout_type as "external" | "pix", externalCheckoutUrl: p.external_checkout_url || "", reviews: [],
+    variants: [],
+    rating: Number(p.rating) || 0,
+    reviewCount: p.review_count || 0,
+    soldCount: p.sold_count || 0,
+    promoTag: p.promo_tag || "",
+    flashSale: p.flash_sale || false,
+    flashSaleEndsIn: p.flash_sale_ends_in || "",
+    freeShipping: p.free_shipping || false,
+    shippingCost: Number(p.shipping_cost) || 0,
+    estimatedDelivery: p.estimated_delivery || "",
+    checkoutType: p.checkout_type as "external" | "pix",
+    externalCheckoutUrl: p.external_checkout_url || "",
+    reviews: [],
   }));
 
   const isSectionEnabled = (id: string) => {
-    const s = builder.sections.find((s) => s.id === id);
+    const s = builder.sections.find((section) => section.id === id);
     return s ? s.enabled : true;
   };
 
   const btnRadius = builder.appearance.button_radius === "full" ? "9999px" : builder.appearance.button_radius === "lg" ? "8px" : builder.appearance.button_radius === "md" ? "6px" : "0px";
 
-  // Build section rendering map
   const sectionComponents: Record<string, React.ReactNode> = {
     gallery: isSectionEnabled("gallery") && <ProductGallery images={images} />,
     pricing: isSectionEnabled("pricing") && (
@@ -225,7 +285,13 @@ const ProductPage = () => {
     ),
     reviews: isSectionEnabled("reviews") && (
       <div ref={reviewsRef}>
-        <ReviewsSection reviews={reviews} totalReviews={product.review_count || 0} title={builder.texts.reviews_title} />
+        {reviewsPending ? (
+          <div className="bg-card px-4 py-4 mt-2">
+            <p className="text-sm text-muted-foreground">Carregando avaliações...</p>
+          </div>
+        ) : (
+          <ReviewsSection reviews={reviews} totalReviews={product.review_count || 0} title={builder.texts.reviews_title} />
+        )}
       </div>
     ),
     description: isSectionEnabled("description") && (
@@ -243,7 +309,7 @@ const ProductPage = () => {
         )}
       </div>
     ),
-    related: isSectionEnabled("related") && (
+    related: isSectionEnabled("related") && relatedFormatted.length > 0 && (
       <>
         <RelatedProducts title={builder.texts.related_title} products={relatedFormatted} />
         {relatedFormatted.length > 2 && <RelatedProducts title="Você também pode gostar" products={relatedFormatted.slice(0, 2)} />}
