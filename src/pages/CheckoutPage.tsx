@@ -353,6 +353,17 @@ const CheckoutPage = () => {
 
       if (data.payment_status === "paid") {
         setPaymentConfirmed(true);
+
+        // Fire TikTok CompletePayment for pixels with fire_on_paid_only=true
+        trackTikTokPurchase(total, "BRL", {
+          orderId: pixData.orderId,
+          contentId: product?.id,
+          contentName: selectedVariant ? `${product?.title} - ${selectedVariant}` : product?.title,
+          quantity,
+          email: customerEmail,
+          phone: customerPhone,
+        }, true);
+
         // Redirect to thank you page if configured
         const thankYouUrl = (product as any)?.thank_you_url;
         if (thankYouUrl) {
