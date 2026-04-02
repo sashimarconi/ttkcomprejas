@@ -8,6 +8,8 @@ interface PricingBlockProps {
   discountPercent: number;
   flashSale: boolean;
   flashSaleEndsIn: string;
+  showDiscountBadge?: boolean;
+  showFlashSale?: boolean;
 }
 
 const parseTimeToSeconds = (timeStr: string): number => {
