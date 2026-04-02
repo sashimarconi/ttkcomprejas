@@ -32,7 +32,6 @@ function sessionToLocation(sessionId: string): string {
 }
 
 export default function SessionsByLocation({ liveSessions, todaySessions }: SessionsByLocationProps) {
-  const navigate = useNavigate();
   const [mode, setMode] = useState<"live" | "today">("today");
   const [expanded, setExpanded] = useState(false);
 
