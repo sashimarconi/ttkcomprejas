@@ -21,8 +21,6 @@ import {
   Save,
   Smartphone,
   Monitor,
-  ShieldCheck,
-  ArrowLeft,
   Upload,
 } from "lucide-react";
 
