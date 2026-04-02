@@ -134,7 +134,7 @@ const AdminCheckoutBuilder = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, title, sale_price, original_price, discount_percent")
+        .select("id, title, slug, sale_price, original_price, discount_percent")
         .eq("active", true)
         .limit(1)
         .single();
