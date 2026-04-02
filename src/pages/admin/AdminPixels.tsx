@@ -277,6 +277,60 @@ const AdminPixels = () => {
     );
   }
 
+  // ─── Edit pixel form ───
+  if (view === "edit" && editingPixel) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <button onClick={() => setView("grid")} className="hover:text-foreground transition-colors">Integrações</button>
+          <span>/</span>
+          <button onClick={() => { setView("list"); setEditingPixel(null); }} className="hover:text-foreground transition-colors">{platform.name}</button>
+          <span>/</span>
+          <span className="text-foreground">Editar</span>
+        </div>
+
+        <h1 className="text-2xl font-bold text-foreground">Editar Pixel</h1>
+
+        <Card className="border-border">
+          <CardContent className="p-6 space-y-5">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-primary">Pixel ID</Label>
+              <Input
+                value={editingPixel.pixel_id}
+                onChange={(e) => setEditingPixel({ ...editingPixel, pixel_id: e.target.value })}
+                placeholder="Ex: CXXXXXXXXXXXXXXXXX"
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-3">
+              <p className="text-sm font-semibold text-foreground">Conversão Ativa</p>
+              <Switch
+                checked={editingPixel.active}
+                onCheckedChange={(checked) => setEditingPixel({ ...editingPixel, active: checked })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setView("list"); setEditingPixel(null); }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => updateMutation.mutate({ id: editingPixel.id, pixel_id: editingPixel.pixel_id.trim(), active: editingPixel.active })}
+                disabled={!editingPixel.pixel_id.trim() || updateMutation.isPending}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Salvar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // ─── List view (pixels for a platform) ───
   return (
     <div className="space-y-6">
