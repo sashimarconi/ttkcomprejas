@@ -24,6 +24,7 @@ type TrackTikTokPurchaseOptions = {
 };
 
 const activeTikTokPixelIds = new Set<string>();
+const pixelConfigMap = new Map<string, { fire_on_paid_only: boolean }>();
 const queuedTikTokEvents: QueuedTikTokEvent[] = [];
 let tikTokLibraryLoaded = false;
 let tikTokReadyHandlerRegistered = false;
