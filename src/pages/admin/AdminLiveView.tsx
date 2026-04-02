@@ -61,7 +61,7 @@ const AdminLiveView = () => {
     setSessions(sessionsArr);
 
     const todayAll = todaySessionsRes.data || [];
-    const uniqueToday = new Map<string, { session_id: string }>();
+    const uniqueToday = new Map<string, { session_id: string; city?: string | null; region?: string | null; country?: string | null }>();
     todayAll.forEach(s => { if (!uniqueToday.has(s.session_id)) uniqueToday.set(s.session_id, s); });
     setTodaySessions(Array.from(uniqueToday.values()));
 
