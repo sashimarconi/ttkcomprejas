@@ -4,6 +4,7 @@ import type { Review } from "@/data/mockData";
 interface ReviewsSectionProps {
   reviews: Review[];
   totalReviews: number;
+  title?: string;
 }
 
 const formatCount = (n: number): string => {
