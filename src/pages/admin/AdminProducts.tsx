@@ -26,6 +26,7 @@ interface ProductForm {
   estimated_delivery: string;
   checkout_type: string;
   external_checkout_url: string;
+  thank_you_url: string;
   rating: number;
   review_count: number;
   sold_count: number;
@@ -48,6 +49,7 @@ const emptyForm: ProductForm = {
   estimated_delivery: "",
   checkout_type: "external",
   external_checkout_url: "",
+  thank_you_url: "",
   rating: 5.0,
   review_count: 0,
   sold_count: 0,
@@ -262,6 +264,7 @@ const AdminProducts = () => {
       estimated_delivery: product.estimated_delivery || "",
       checkout_type: product.checkout_type,
       external_checkout_url: product.external_checkout_url || "",
+      thank_you_url: product.thank_you_url || "",
       rating: product.rating || 5,
       review_count: product.review_count || 0,
       sold_count: product.sold_count || 0,
@@ -443,6 +446,12 @@ const AdminProducts = () => {
                 <Input value={form.external_checkout_url} onChange={(e) => updateField("external_checkout_url", e.target.value)} placeholder="https://pay.hotmart.com/..." />
               </div>
             )}
+
+            <div className="space-y-1">
+              <Label>Página de Obrigado (Upsell)</Label>
+              <Input value={form.thank_you_url} onChange={(e) => updateField("thank_you_url", e.target.value)} placeholder="https://seusite.com/obrigado" />
+              <p className="text-xs text-muted-foreground">Link externo para redirecionar o cliente após o pagamento ser confirmado</p>
+            </div>
 
             <div className="space-y-2">
               <Label>Vídeo (opcional)</Label>

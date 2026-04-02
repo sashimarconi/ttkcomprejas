@@ -475,6 +475,7 @@ export type Database = {
           slug: string
           sold_count: number | null
           sort_order: number | null
+          thank_you_url: string | null
           title: string
           updated_at: string
           video_url: string | null
@@ -500,6 +501,7 @@ export type Database = {
           slug: string
           sold_count?: number | null
           sort_order?: number | null
+          thank_you_url?: string | null
           title: string
           updated_at?: string
           video_url?: string | null
@@ -525,6 +527,7 @@ export type Database = {
           slug?: string
           sold_count?: number | null
           sort_order?: number | null
+          thank_you_url?: string | null
           title?: string
           updated_at?: string
           video_url?: string | null

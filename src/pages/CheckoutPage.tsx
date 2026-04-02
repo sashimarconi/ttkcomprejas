@@ -353,6 +353,11 @@ const CheckoutPage = () => {
 
       if (data.payment_status === "paid") {
         setPaymentConfirmed(true);
+        // Redirect to thank you page if configured
+        const thankYouUrl = (product as any)?.thank_you_url;
+        if (thankYouUrl) {
+          window.location.href = thankYouUrl;
+        }
       }
     };
 

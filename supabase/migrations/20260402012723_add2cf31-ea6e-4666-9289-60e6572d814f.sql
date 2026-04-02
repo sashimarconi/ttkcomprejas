@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN thank_you_url text DEFAULT NULL;
