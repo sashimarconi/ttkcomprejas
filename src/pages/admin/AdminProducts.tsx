@@ -447,7 +447,12 @@ const AdminProducts = () => {
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-1">
+              <Label>Página de Obrigado (Upsell)</Label>
+              <Input value={form.thank_you_url} onChange={(e) => updateField("thank_you_url", e.target.value)} placeholder="https://seusite.com/obrigado" />
+              <p className="text-xs text-muted-foreground">Link externo para redirecionar o cliente após o pagamento ser confirmado</p>
+            </div>
+
               <Label>Vídeo (opcional)</Label>
               <div className="flex gap-2">
                 <Input
