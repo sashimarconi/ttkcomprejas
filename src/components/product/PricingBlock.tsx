@@ -31,7 +31,7 @@ const formatTime = (totalSeconds: number): string => {
   return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 };
 
-const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, flashSaleEndsIn }: PricingBlockProps) => {
+const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, flashSaleEndsIn, showDiscountBadge = true, showFlashSale = true }: PricingBlockProps) => {
   const [secondsLeft, setSecondsLeft] = useState(() => parseTimeToSeconds(flashSaleEndsIn));
 
   useEffect(() => {
