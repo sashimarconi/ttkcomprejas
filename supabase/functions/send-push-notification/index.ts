@@ -202,12 +202,12 @@ Deno.serve(async (req) => {
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { title, body: notifBody, url: notifUrl, tag } = await req.json();
+    const { title, body: notifBody, url: notifUrl, tag, event_type } = await req.json();
 
-    // Get all push subscriptions
+    // Get all push subscriptions with user preferences
     const { data: subscriptions, error } = await supabase
       .from("push_subscriptions")
-      .select("endpoint, p256dh, auth");
+      .select("endpoint, p256dh, auth, user_id");
 
     if (error) {
       console.error("Error fetching subscriptions:", error);
@@ -223,6 +223,30 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Filter subscriptions by notification preferences
+    const userIds = [...new Set(subscriptions.map((s) => s.user_id))];
+    const { data: settings } = await supabase
+      .from("notification_settings")
+      .select("user_id, push_enabled, notify_paid, notify_pending")
+      .in("user_id", userIds);
+
+    const settingsMap = new Map(
+      (settings || []).map((s) => [s.user_id, s])
+    );
+
+    const filteredSubs = subscriptions.filter((sub) => {
+      const prefs = settingsMap.get(sub.user_id);
+      // Default: push enabled, notify_paid true, notify_pending false
+      const pushEnabled = prefs ? prefs.push_enabled : true;
+      const notifyPaid = prefs ? prefs.notify_paid : true;
+      const notifyPending = prefs ? prefs.notify_pending : false;
+
+      if (!pushEnabled) return false;
+      if (event_type === "order_paid" && !notifyPaid) return false;
+      if (event_type === "order_pending" && !notifyPending) return false;
+      return true;
+    });
 
     const payload = {
       title: title || "Nova venda!",
