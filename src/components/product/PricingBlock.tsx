@@ -47,9 +47,11 @@ const PricingBlock = ({ originalPrice, salePrice, discountPercent, flashSale, fl
       {/* Row: discount badge + price + flash sale */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="bg-marketplace-red text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded">
-            -{discountPercent}%
-          </span>
+          {showDiscountBadge && (
+            <span className="bg-marketplace-red text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded">
+              -{discountPercent}%
+            </span>
+          )}
           <span className="text-2xl font-extrabold text-primary-foreground">
             R$ {salePrice.toFixed(2).replace('.', ',')}
           </span>
