@@ -285,7 +285,7 @@ const AdminGateways = () => {
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-foreground">{gw.label}</p>
                   {configured && (
-                    <span className="text-[9px] font-semibold uppercase tracking-wider bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                       <Shield className="w-2.5 h-2.5" />
                       Configurado
                     </span>
