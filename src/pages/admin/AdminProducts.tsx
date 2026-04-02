@@ -319,6 +319,13 @@ const AdminProducts = () => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" title="Copiar link" onClick={() => {
+                const url = `${window.location.origin}/product/${product.slug}`;
+                navigator.clipboard.writeText(url);
+                sonnerToast.success("Link copiado!", { description: url });
+              }}>
+                <Link2 className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => { setSelectedProductId(product.id); setVariantDialogOpen(true); }} title="Variantes">
                 <Palette className="w-4 h-4" />
               </Button>
