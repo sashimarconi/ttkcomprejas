@@ -34,21 +34,35 @@ export interface ProductWithRelations {
   reviews: { id: string; user_name: string; user_avatar_url: string | null; city: string | null; rating: number; comment: string | null; photos: string[] | null; review_date: string | null }[];
 }
 
+export interface ProductListItem {
+  id: string;
+  slug: string;
+  title: string;
+  original_price: number;
+  sale_price: number;
+  discount_percent: number;
+  sold_count: number | null;
+  product_images: { id: string; url: string; alt: string | null; sort_order: number | null }[];
+}
+
 export async function fetchProducts() {
   const { data, error } = await supabase
     .from("products")
     .select(`
-      *,
-      product_images(id, url, alt, sort_order),
-      product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
-      variant_groups(id, name, sort_order),
-      reviews(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)
+      id,
+      slug,
+      title,
+      original_price,
+      sale_price,
+      discount_percent,
+      sold_count,
+      product_images(id, url, alt, sort_order)
     `)
     .eq("active", true)
     .order("sort_order");
 
   if (error) throw error;
-  return data as ProductWithRelations[];
+  return data as ProductListItem[];
 }
 
 export async function fetchProductBySlug(slug: string) {

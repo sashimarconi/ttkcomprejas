@@ -7,8 +7,9 @@ const Index = () => {
   const navigate = useNavigate();
 
   const { data: products, isLoading } = useQuery({
-    queryKey: ["products"],
+    queryKey: ["products-list"],
     queryFn: fetchProducts,
+    staleTime: 60_000,
   });
 
   if (isLoading) {
