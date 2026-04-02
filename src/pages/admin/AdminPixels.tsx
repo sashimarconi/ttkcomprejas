@@ -93,8 +93,10 @@ const AdminPixels = () => {
         .from("tracking_pixels" as any)
         .insert({
           pixel_id: newPixelId.trim(),
+          name: newPixelName.trim() || null,
           platform: activePlatform,
           active: newPixelActive,
+          fire_on_paid_only: fireOnPaidOnly,
         });
       if (error) throw error;
     },
