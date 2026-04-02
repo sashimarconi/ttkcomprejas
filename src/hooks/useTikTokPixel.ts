@@ -245,6 +245,7 @@ export function trackTikTokPurchase(
   value: number,
   currency = "BRL",
   options: TrackTikTokPurchaseOptions = {},
+  filterPaidOnly?: boolean,
 ) {
   const normalizedValue = Number(value);
   const payload: Record<string, unknown> = {
@@ -271,6 +272,7 @@ export function trackTikTokPurchase(
   console.log("[TikTok Pixel] trackTikTokPurchase called:", {
     payload,
     pixelCount: activeTikTokPixelIds.size,
+    filterPaidOnly,
     ttqExists: typeof window !== "undefined" && !!window.ttq,
   });
 
@@ -283,10 +285,9 @@ export function trackTikTokPurchase(
       if (options.phone) identifyData.phone_number = options.phone;
       if (Object.keys(identifyData).length > 0) {
         ttq.identify(identifyData);
-        console.log("[TikTok Pixel] identify called:", identifyData);
       }
     }
-    trackTikTokEvent("CompletePayment", payload);
+    trackTikTokEvent("CompletePayment", payload, true, filterPaidOnly);
   } catch (e) {
     console.error("[TikTok Pixel] Error firing event:", e);
   }
