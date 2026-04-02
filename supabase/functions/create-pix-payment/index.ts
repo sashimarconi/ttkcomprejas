@@ -151,7 +151,15 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
 }
 
 async function callDuck(gateway: any, body: any, items: any[], webhookUrl: string) {
-  const webhookFields = getWebhookFields(webhookUrl);
+  const identifier = `${Date.now()}${Math.random().toString(36).slice(2, 16).toUpperCase()}`;
+
+  const products = items.map((item, idx) => ({
+    id: `prod_${idx}`,
+    name: item.title,
+    quantity: item.quantity,
+    price: item.unitPrice / 100,
+  }));
+
   const res = await fetch("https://api.duckoficial.com/api/v1/gateway/pix/receive", {
     method: "POST",
     headers: {
@@ -160,29 +168,33 @@ async function callDuck(gateway: any, body: any, items: any[], webhookUrl: strin
       "x-public-key": gateway.public_key,
     },
     body: JSON.stringify({
+      identifier,
       amount: body.amount / 100,
-      customer: {
+      client: {
         name: body.customerName,
         email: body.customerEmail,
         phone: body.customerPhone.replace(/\D/g, ""),
         document: body.customerDocument.replace(/\D/g, ""),
       },
-      items: items.map((item) => ({
-        title: item.title,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice / 100,
-      })),
-      ...webhookFields,
+      products,
+      callbackUrl: webhookUrl,
+      metadata: {
+        source: "lovable_checkout",
+      },
     }),
   });
   const data = await res.json();
+  console.log("Duck response:", JSON.stringify(data));
   if (!res.ok) throw { status: res.status, data };
+
+  const pix = data.pix ?? {};
+
   return {
-    transactionId: data.data?.transactionId || data.data?.id,
-    qrCode: data.data?.pix?.qrCode || data.data?.paymentData?.qrCode,
-    copyPaste: data.data?.pix?.copyPaste || data.data?.pix?.qrCode || data.data?.paymentData?.copyPaste,
-    qrCodeBase64: data.data?.pix?.qrCodeBase64 || data.data?.paymentData?.qrCodeBase64,
-    expiresAt: data.data?.pix?.expiresAt || data.data?.paymentData?.expiresAt,
+    transactionId: pickString(data.transactionId, data.order?.id),
+    qrCode: pickString(pix.image),
+    copyPaste: pickString(pix.code),
+    qrCodeBase64: pickString(pix.base64),
+    expiresAt: null,
   };
 }
 
