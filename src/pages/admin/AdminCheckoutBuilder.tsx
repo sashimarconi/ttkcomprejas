@@ -21,8 +21,6 @@ import {
   Save,
   Smartphone,
   Monitor,
-  ShieldCheck,
-  ArrowLeft,
   Upload,
 } from "lucide-react";
 
@@ -134,7 +132,7 @@ const AdminCheckoutBuilder = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, title, sale_price, original_price, discount_percent")
+        .select("id, title, slug, sale_price, original_price, discount_percent")
         .eq("active", true)
         .limit(1)
         .single();
@@ -142,32 +140,7 @@ const AdminCheckoutBuilder = () => {
     },
   });
 
-  // Fetch shipping options for preview
-  const { data: previewShipping } = useQuery({
-    queryKey: ["builder-preview-shipping"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("shipping_options")
-        .select("name, price, free")
-        .eq("active", true)
-        .order("sort_order")
-        .limit(3);
-      return data || [];
-    },
-  });
 
-  // Fetch order bumps for preview
-  const { data: previewBumps } = useQuery({
-    queryKey: ["builder-preview-bumps"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("order_bumps")
-        .select("title, price, original_price")
-        .eq("active", true)
-        .limit(2);
-      return data || [];
-    },
-  });
 
   const { data, isLoading } = useQuery({
     queryKey: ["checkout-builder-config"],
@@ -305,12 +278,6 @@ const AdminCheckoutBuilder = () => {
 
   if (isLoading) return <p className="text-muted-foreground">Carregando...</p>;
 
-  const btnRadiusClass =
-    config.appearance.button_radius === "full"
-      ? "rounded-full"
-      : config.appearance.button_radius === "md"
-      ? "rounded-lg"
-      : "rounded-none";
 
   return (
     <div className="flex h-[calc(100vh-64px)] -m-6 overflow-hidden">
@@ -671,222 +638,27 @@ const AdminCheckoutBuilder = () => {
           </button>
         </div>
 
-        {/* Preview content - always light theme */}
+        {/* Real checkout preview via iframe */}
         <div className="flex-1 overflow-y-auto flex justify-center p-6">
           <div
-            className={`rounded-2xl shadow-2xl border overflow-hidden transition-all ${
+            className={`rounded-2xl shadow-2xl border border-border overflow-hidden transition-all bg-white ${
               previewMode === "mobile" ? "w-[375px]" : "w-full max-w-2xl"
             }`}
-            style={{ minHeight: 600, backgroundColor: "#ffffff", color: "#1a1a1a", borderColor: "#e5e7eb" }}
+            style={{ minHeight: 600 }}
           >
-            {/* Preview header */}
-            <header className="sticky top-0 z-10" style={{ backgroundColor: "#ffffff", borderBottom: "1px solid #e5e7eb" }}>
-              <div className="flex items-center h-11 px-4">
-                <ArrowLeft className="w-4 h-4" style={{ color: "#9ca3af" }} />
-                <div className="flex-1 text-center">
-                  {config.appearance.logo_url ? (
-                    <img
-                      src={config.appearance.logo_url}
-                      alt="Logo"
-                      style={{ height: config.appearance.logo_height }}
-                      className="object-contain mx-auto"
-                    />
-                  ) : (
-                    <>
-                      <p className="text-xs font-semibold" style={{ color: "#1a1a1a" }}>{config.appearance.header_text}</p>
-                      {config.appearance.show_security_badge && (
-                        <p className="text-[9px] text-green-600 flex items-center justify-center gap-1">
-                          <ShieldCheck className="w-2.5 h-2.5" /> {config.appearance.security_text}
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-                <div className="w-4" />
+            {previewProduct ? (
+              <iframe
+                key={`${previewMode}-${previewProduct.slug}`}
+                src={`/checkout/${previewProduct.slug}?preview=true`}
+                className="w-full h-full border-0"
+                style={{ minHeight: 800 }}
+                title="Checkout Preview"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                Nenhum produto ativo encontrado para preview
               </div>
-              {config.appearance.show_progress_bar && (
-                <div className="flex gap-0.5 px-4 pb-1.5">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 h-0.5 rounded-full"
-                      style={{ backgroundColor: i < 6 ? config.appearance.primary_color : "#e5e7eb" }}
-                    />
-                  ))}
-                </div>
-              )}
-            </header>
-
-            {/* Rendered sections */}
-            <div className="pb-20">
-              {config.sections
-                .filter((s) => s.enabled)
-                .map((section) => (
-                  <div key={section.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                    {section.type === "timer" && config.appearance.timer_enabled && (
-                      <div
-                        className="mx-3 mt-3 rounded-xl py-2.5 px-4 flex items-center justify-center gap-2"
-                        style={{ backgroundColor: config.appearance.primary_color }}
-                      >
-                        <span className="text-white text-[10px]">{config.appearance.timer_text}</span>
-                        <div className="flex items-center gap-1">
-                          {["00", String(config.appearance.timer_minutes).padStart(2, "0"), "00"].map(
-                            (v, i) => (
-                              <span key={i} className="flex items-center gap-1">
-                                <span className="bg-white/20 rounded px-1.5 py-0.5 text-white text-xs font-bold">
-                                  {v}
-                                </span>
-                                {i < 2 && <span className="text-white/70 text-[8px]">{i === 0 ? "h" : "m"}</span>}
-                              </span>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {section.type === "customer_info" && (
-                      <div className="px-3 py-3">
-                        <button className="w-full border border-dashed rounded-lg py-3 text-xs" style={{ borderColor: "#d1d5db", color: "#9ca3af" }}>
-                          + Adicionar endereço de entrega
-                        </button>
-                        <button className="w-full border border-dashed rounded-lg py-3 text-xs mt-2" style={{ borderColor: "#d1d5db", color: "#9ca3af" }}>
-                          + Adicionar CPF
-                        </button>
-                      </div>
-                    )}
-
-                    {section.type === "product_card" && (
-                      <div className="px-3 py-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-semibold flex items-center gap-1" style={{ color: "#1a1a1a" }}>
-                            🛒 Resumo do Pedido
-                          </p>
-                          <span className="text-xs font-semibold" style={{ color: config.appearance.primary_color }}>
-                            {previewProduct ? `R$ ${previewProduct.sale_price.toFixed(2).replace(".", ",")}` : "R$ 97,70"}
-                          </span>
-                        </div>
-                        {previewProduct && (
-                          <div className="flex items-center gap-3 p-2 rounded-lg" style={{ backgroundColor: "#f9fafb" }}>
-                            <div className="w-12 h-12 rounded-lg" style={{ backgroundColor: "#e5e7eb" }} />
-                            <div className="flex-1">
-                              <p className="text-[11px] font-medium" style={{ color: "#1a1a1a" }}>{previewProduct.title}</p>
-                              <p className="text-[10px]" style={{ color: "#9ca3af" }}>Qtd: 1</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[11px] font-bold" style={{ color: config.appearance.primary_color }}>
-                                R$ {previewProduct.sale_price.toFixed(2).replace(".", ",")}
-                              </p>
-                              {previewProduct.original_price > previewProduct.sale_price && (
-                                <p className="text-[9px] line-through" style={{ color: "#9ca3af" }}>
-                                  R$ {previewProduct.original_price.toFixed(2).replace(".", ",")}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {section.type === "shipping" && (
-                      <div className="px-3 py-2">
-                        <p className="text-[10px] font-medium mb-1" style={{ color: "#6b7280" }}>Entrega</p>
-                        {(previewShipping && previewShipping.length > 0 ? previewShipping : [{ name: "Frete Grátis", price: 0, free: true }]).map((ship, idx) => (
-                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg mb-1" style={{ backgroundColor: idx === 0 ? "#f0fdf4" : "#f9fafb" }}>
-                            <div
-                              className="w-3 h-3 rounded-full border-2"
-                              style={{ borderColor: idx === 0 ? config.appearance.primary_color : "#d1d5db" }}
-                            >
-                              {idx === 0 && <div className="w-1.5 h-1.5 rounded-full m-[1px]" style={{ backgroundColor: config.appearance.primary_color }} />}
-                            </div>
-                            <span className="text-[10px] flex-1" style={{ color: "#1a1a1a" }}>{ship.name}</span>
-                            <span className="text-[10px] font-medium" style={{ color: ship.free ? "#16a34a" : "#1a1a1a" }}>
-                              {ship.free ? "Grátis" : `R$ ${Number(ship.price).toFixed(2).replace(".", ",")}`}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {section.type === "order_bumps" && (
-                      <div className="px-3 py-2" style={{ backgroundColor: `${config.appearance.primary_color}10` }}>
-                        <p className="text-[10px] font-bold uppercase mb-2" style={{ color: config.appearance.primary_color }}>
-                          ⚡ Ofertas especiais
-                        </p>
-                        {(previewBumps && previewBumps.length > 0 ? previewBumps : [{ title: "Produto extra", price: 19.90, original_price: 39.90 }]).map((bump, idx) => (
-                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg mb-1" style={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb" }}>
-                            <div className="w-4 h-4 rounded border" style={{ borderColor: "#d1d5db" }} />
-                            <div className="flex-1">
-                              <p className="text-[10px] font-medium" style={{ color: "#1a1a1a" }}>{bump.title}</p>
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-bold" style={{ color: config.appearance.primary_color }}>
-                                  R$ {Number(bump.price).toFixed(2).replace(".", ",")}
-                                </span>
-                                {bump.original_price && Number(bump.original_price) > Number(bump.price) && (
-                                  <span className="text-[8px] line-through" style={{ color: "#9ca3af" }}>
-                                    R$ {Number(bump.original_price).toFixed(2).replace(".", ",")}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {section.type === "summary" && (
-                      <div className="px-3 py-3 space-y-1">
-                        <p className="text-xs font-semibold" style={{ color: "#1a1a1a" }}>Informações de Contato</p>
-                        {Object.entries(config.fields)
-                          .filter(([, f]) => f.enabled)
-                          .map(([key, field]) => (
-                            <div key={key} className="py-2" style={{ borderBottom: "1px solid #f3f4f6" }}>
-                              <span className="text-[10px]" style={{ color: "#9ca3af" }}>
-                                {field.label}
-                                {field.required && " *"}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-
-                    {section.type === "payment" && (
-                      <div className="px-3 py-3">
-                        <p className="text-xs font-semibold mb-2" style={{ color: "#1a1a1a" }}>Forma de pagamento</p>
-                        <div className="flex items-center gap-2 p-2 rounded-lg border border-green-200 bg-green-50">
-                          <div className="w-3 h-3 rounded-full border-2 border-green-600">
-                            <div className="w-1.5 h-1.5 rounded-full bg-green-600 m-[1px]" />
-                          </div>
-                          <span className="text-[10px] font-medium" style={{ color: "#1a1a1a" }}>Pix</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {section.type === "savings" && (
-                      <div className="px-3 py-2 text-center">
-                        <p className="text-[10px] text-green-600">
-                          😊 Você está economizando R$ {previewProduct ? (previewProduct.original_price - previewProduct.sale_price).toFixed(2).replace(".", ",") : "100,00"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-
-            {/* Fixed bottom preview */}
-            <div className="sticky bottom-0 p-3 flex items-center justify-between" style={{ backgroundColor: "#ffffff", borderTop: "1px solid #e5e7eb" }}>
-              <div>
-                <p className="text-[9px]" style={{ color: "#9ca3af" }}>Total (1 item)</p>
-                <p className="text-sm font-bold" style={{ color: config.appearance.primary_color }}>
-                  {previewProduct ? `R$ ${previewProduct.sale_price.toFixed(2).replace(".", ",")}` : "R$ 97,70"}
-                </p>
-              </div>
-              <button
-                className={`flex-1 ml-3 py-2.5 text-white text-xs font-bold ${btnRadiusClass}`}
-                style={{ backgroundColor: config.appearance.primary_color }}
-              >
-                {config.appearance.button_text}
-              </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
