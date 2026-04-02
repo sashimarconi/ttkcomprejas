@@ -49,6 +49,7 @@ const emptyForm: ProductForm = {
   estimated_delivery: "",
   checkout_type: "external",
   external_checkout_url: "",
+  thank_you_url: "",
   rating: 5.0,
   review_count: 0,
   sold_count: 0,
