@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SaleNotification from "@/components/admin/SaleNotification";
+import PushNotificationToggle from "@/components/admin/PushNotificationToggle";
 
 const navSections = [
   {
