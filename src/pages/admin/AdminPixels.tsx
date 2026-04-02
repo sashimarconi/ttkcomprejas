@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ArrowRight, Search, Settings } from "lucide-react";
+import { Plus, Trash2, ArrowRight, Search, Settings, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 // Platform definitions for future expansion
@@ -61,7 +61,7 @@ const PLATFORMS = [
   },
 ];
 
-type View = "grid" | "list" | "create";
+type View = "grid" | "list" | "create" | "edit";
 
 const AdminPixels = () => {
   const [view, setView] = useState<View>("grid");
@@ -71,6 +71,7 @@ const AdminPixels = () => {
   const [newPixelId, setNewPixelId] = useState("");
   const [newPixelActive, setNewPixelActive] = useState(true);
   const [fireOnPaidOnly, setFireOnPaidOnly] = useState(false);
+  const [editingPixel, setEditingPixel] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -133,6 +134,28 @@ const AdminPixels = () => {
       toast({ title: "Pixel removido!" });
     },
   });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, pixel_id, active }: { id: string; pixel_id: string; active: boolean }) => {
+      const { error } = await supabase
+        .from("tracking_pixels" as any)
+        .update({ pixel_id, active })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-tracking-pixels"] });
+      setEditingPixel(null);
+      setView("list");
+      toast({ title: "Pixel atualizado com sucesso!" });
+    },
+    onError: (err: Error) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const openEdit = (pixel: any) => {
+    setEditingPixel({ ...pixel });
+    setView("edit");
+  };
 
   const platformPixels = (pixels || []).filter((p: any) => p.platform === activePlatform);
   const filteredPixels = platformPixels.filter((p: any) =>
@@ -254,6 +277,60 @@ const AdminPixels = () => {
     );
   }
 
+  // ─── Edit pixel form ───
+  if (view === "edit" && editingPixel) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <button onClick={() => setView("grid")} className="hover:text-foreground transition-colors">Integrações</button>
+          <span>/</span>
+          <button onClick={() => { setView("list"); setEditingPixel(null); }} className="hover:text-foreground transition-colors">{platform.name}</button>
+          <span>/</span>
+          <span className="text-foreground">Editar</span>
+        </div>
+
+        <h1 className="text-2xl font-bold text-foreground">Editar Pixel</h1>
+
+        <Card className="border-border">
+          <CardContent className="p-6 space-y-5">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-primary">Pixel ID</Label>
+              <Input
+                value={editingPixel.pixel_id}
+                onChange={(e) => setEditingPixel({ ...editingPixel, pixel_id: e.target.value })}
+                placeholder="Ex: CXXXXXXXXXXXXXXXXX"
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-3">
+              <p className="text-sm font-semibold text-foreground">Conversão Ativa</p>
+              <Switch
+                checked={editingPixel.active}
+                onCheckedChange={(checked) => setEditingPixel({ ...editingPixel, active: checked })}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => { setView("list"); setEditingPixel(null); }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => updateMutation.mutate({ id: editingPixel.id, pixel_id: editingPixel.pixel_id.trim(), active: editingPixel.active })}
+                disabled={!editingPixel.pixel_id.trim() || updateMutation.isPending}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Salvar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // ─── List view (pixels for a platform) ───
   return (
     <div className="space-y-6">
@@ -321,6 +398,14 @@ const AdminPixels = () => {
                       onCheckedChange={(checked) => toggleMutation.mutate({ id: pixel.id, active: checked })}
                     />
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => openEdit(pixel)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
