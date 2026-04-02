@@ -1,84 +1,103 @@
 
 
-## 🛒 Clone Exato - Landing Page Estilo Marketplace (TKPromos)
+# Product Page Builder — Plano de Implementação
 
-### 1. Header Superior
-- **Barra de navegação fixa** com ícones: voltar, compartilhar e carrinho
-- **Abas de navegação**: "Visão geral", "Avaliações", "Descrição", "Recomendações"
-- Scroll automático para cada seção ao clicar
+## Resumo
 
-### 2. Galeria de Produto
-- **Carrossel full-width** com múltiplas imagens
-- Setas de navegação laterais
-- **Indicadores de bolinhas** na parte inferior
-- Suporte para várias fotos por produto
+Criar um editor visual completo para a página de produto, seguindo o mesmo padrão do Checkout Builder: painel lateral com abas de configuração + preview real via iframe à direita.
 
-### 3. Bloco de Preço e Urgência (estilo laranja)
-- **Badge de desconto**: "-78%" em destaque
-- **Preço original riscado**: R$ 399,90
-- **Preço promocional grande**: R$ 89,90
-- **Tag "Oferta Relâmpago"** com ícone de raio
-- Texto "Termina em X dia(s)" configurável
+## O que será editável
 
-### 4. Informações do Produto
-- **Tag "Promo do Mês"** (configurável no admin)
-- **Título do produto** em destaque
-- **Avaliação com estrelas**: 4.9 ⭐ (1847) • 12,340 vendidos
-- **Seletor de cores/variantes** com thumbnails
+**Layout (seções)**
+- Reordenar e mostrar/esconder: Galeria, Preço, Info do Produto, Frete, Trust Badges, Loja, Avaliações, Descrição/Vídeo, Produtos Relacionados, Footer Fixo
+- Drag-and-drop para reordenar
 
-### 5. Seção de Frete
-- **Box verde "Frete grátis"** com data estimada de entrega
-- Texto "Taxa de envio: R$ X,XX" ou grátis
+**Aparência**
+- Cor de fundo da página
+- Cor do header
+- Logo do header (upload) + altura
+- Cor do botão "Comprar agora"
+- Estilo do botão (raio de borda)
+- Mostrar/esconder ícone de carrinho no header
 
-### 6. Seção "Nossos Serviços" (Trust Badges)
-- Ícones com: Devolução gratuita, Pagamento seguro, Cupom por atraso, Cupom por perda/dano
-- Todos configuráveis no admin
+**Textos**
+- Texto do botão de compra ("Comprar agora", "Garantir o meu", etc.)
+- Texto do frete ("Frete grátis", customizado)
+- Texto da seção de avaliações ("Avaliações", etc.)
+- Texto de "unidades disponíveis"
 
-### 7. Avaliações dos Clientes
-- Contador total: "Avaliações dos clientes (1,847)"
-- **Cards de review** com:
-  - Foto do usuário
-  - Nome e cidade
-  - Estrelas (5/5)
-  - Texto do comentário
-  - Foto(s) enviada(s) pelo cliente (opcional)
-- Cadastradas por você no painel admin
+**Elementos de conversão**
+- Mostrar/esconder badge de desconto
+- Mostrar/esconder flash sale timer
+- Mostrar/esconder contador de vendidos
+- Mostrar/esconder "unidades disponíveis" + valor customizável
 
-### 8. Seção da Loja
-- **Card "Loja Brinox Oficial"** (nome configurável)
-- Logo/avatar da loja
-- Total de vendas (ex: 35.4K)
-- Botão "Visitar"
+## Implementação Técnica
 
-### 9. Produtos Relacionados
-- **Seção "Mais desta loja"**: grid de outros produtos cadastrados
-- **Seção "Você também pode gostar"**: sugestões
-- Cards com: imagem, preço, desconto, quantidade vendida
+### 1. Nova tabela `product_page_builder_config`
+- `id`, `config` (jsonb), `created_at`, `updated_at`
+- RLS: leitura pública, escrita autenticada
+- Uma linha única (singleton, igual checkout_builder_config)
 
-### 10. Barra de Ações Fixa (Footer)
-- Ícones: "Loja" e "Chat" (apenas visual ou link configurável)
-- **Botão branco**: "Adicionar ao carrinho"
-- **Botão vermelho/rosa grande**: "Comprar agora" com "Frete Grátis" abaixo
-- Checkout duplo:
-  - **Opção A**: Redireciona para link externo (Hotmart, Kiwify, etc.)
-  - **Opção B**: Checkout próprio com API PIX (você envia a documentação)
+### 2. Nova página `src/pages/admin/AdminProductBuilder.tsx`
+- Mesmo layout split-panel do AdminCheckoutBuilder
+- Painel esquerdo com abas: Layout, Aparência, Textos, Conversão
+- Preview direito com iframe apontando para `/product/{slug}?preview=true`
+- Toggle mobile/desktop no preview
+- Salva config no Supabase
 
-### 11. Design Visual (Idêntico ao Exemplo)
-- **Cores**: laranja (urgência), rosa/vermelho (CTA), verde (frete grátis), azul (badges)
-- **Fundo**: branco/cinza claro
-- **Tipografia**: sans-serif, pesos bold para preços
-- **Layout mobile-first**: otimizado para celular igual ao exemplo
-- **Responsivo** para desktop
+### 3. Atualizar `src/pages/ProductPage.tsx`
+- Ler a config do `product_page_builder_config` via React Query
+- Aplicar: ordem das seções, visibilidade, cores, textos customizados
+- Passar config como props para cada componente filho
 
-### 12. Painel Administrativo
-- **Produtos**: cadastrar/editar/remover com todas as informações
-- **Avaliações**: cadastrar reviews com foto, nome, cidade, texto
-- **Configurações da Loja**: nome, logo, badges de serviço
-- **Checkout**: escolher entre link externo ou PIX por produto
-- **Autenticação**: login seguro para acessar o admin
+### 4. Rota e menu
+- Adicionar rota `/admin/product-builder` no `App.tsx`
+- Adicionar link "Editor de Produto" no menu lateral do `AdminLayout.tsx`
 
-### 13. Backend (Lovable Cloud)
-- Banco de dados para produtos, avaliações, configurações
-- Storage para upload de imagens
-- Autenticação admin
+### 5. Componentes adaptados
+- `ProductHeader`, `PricingBlock`, `ProductInfo`, `FixedFooter` etc. receberão props opcionais da config para override de textos/cores/visibilidade
+
+## Arquitetura da Config (JSON)
+
+```text
+{
+  sections: [
+    { id: "gallery", enabled: true, label: "Galeria de Imagens" },
+    { id: "pricing", enabled: true, label: "Preço e Desconto" },
+    { id: "info", enabled: true, label: "Informações do Produto" },
+    { id: "shipping", enabled: true, label: "Frete" },
+    { id: "trust_badges", enabled: true, label: "Selos de Confiança" },
+    { id: "store_card", enabled: true, label: "Card da Loja" },
+    { id: "reviews", enabled: true, label: "Avaliações" },
+    { id: "description", enabled: true, label: "Descrição" },
+    { id: "related", enabled: true, label: "Produtos Relacionados" },
+  ],
+  appearance: {
+    bg_color: "#F5F5F5",
+    header_bg_color: "#FFFFFF",
+    header_logo_url: "",
+    header_logo_height: 28,
+    show_cart_icon: true,
+    button_color: "#E63946",
+    button_text_color: "#FFFFFF",
+    button_radius: "full",
+    buy_button_text: "Comprar agora",
+  },
+  texts: {
+    shipping_label: "Frete grátis",
+    reviews_title: "Avaliações",
+    units_available_text: "13 unidades disponíveis",
+    description_title: "Descrição do produto",
+    related_title: "Mais desta loja",
+  },
+  conversion: {
+    show_discount_badge: true,
+    show_flash_sale: true,
+    show_sold_count: true,
+    show_units_available: true,
+    units_available_count: 13,
+  }
+}
+```
 
