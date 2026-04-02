@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Image as ImageIcon, Palette, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Pencil, Trash2, Image as ImageIcon, Palette, ChevronDown, ChevronUp, Link2 } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
 
 interface ProductForm {
   slug: string;
@@ -318,6 +319,13 @@ const AdminProducts = () => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" title="Copiar link" onClick={() => {
+                const url = `${window.location.origin}/product/${product.slug}`;
+                navigator.clipboard.writeText(url);
+                sonnerToast.success("Link copiado!", { description: url });
+              }}>
+                <Link2 className="w-4 h-4" />
+              </Button>
               <Button variant="ghost" size="sm" onClick={() => { setSelectedProductId(product.id); setVariantDialogOpen(true); }} title="Variantes">
                 <Palette className="w-4 h-4" />
               </Button>
