@@ -97,7 +97,7 @@ const AdminLiveView = () => {
     setHourlyData(hours);
 
     const pageViews = events.filter(e => e.event_type === "page_view").length;
-    const pixGenerated = events.filter(e => e.event_type === "pix_generated").length;
+    const pixGenerated = orders.length;
     const total = pageViews || 1;
     setFunnelData([
       { label: "Acessos", value: pageViews, pct: 100 },
