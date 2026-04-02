@@ -264,6 +264,7 @@ const AdminProducts = () => {
       estimated_delivery: product.estimated_delivery || "",
       checkout_type: product.checkout_type,
       external_checkout_url: product.external_checkout_url || "",
+      thank_you_url: product.thank_you_url || "",
       rating: product.rating || 5,
       review_count: product.review_count || 0,
       sold_count: product.sold_count || 0,
