@@ -168,8 +168,8 @@ function dispatchTikTokEvent(eventName: string, payload: Record<string, unknown>
   return true;
 }
 
-function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, allowQueue = true) {
-  if (dispatchTikTokEvent(eventName, payload)) return;
+function trackTikTokEvent(eventName: string, payload: Record<string, unknown>, allowQueue = true, filterPaidOnly?: boolean) {
+  if (dispatchTikTokEvent(eventName, payload, filterPaidOnly)) return;
 
   if (!allowQueue) return;
 
