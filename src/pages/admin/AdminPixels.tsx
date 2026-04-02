@@ -401,6 +401,14 @@ const AdminPixels = () => {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => openEdit(pixel)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => deleteMutation.mutate(pixel.id)}
                     className="text-destructive hover:text-destructive"
                   >
