@@ -861,21 +861,27 @@ export type Database = {
         Row: {
           active: boolean | null
           created_at: string
+          fire_on_paid_only: boolean
           id: string
+          name: string | null
           pixel_id: string
           platform: string
         }
         Insert: {
           active?: boolean | null
           created_at?: string
+          fire_on_paid_only?: boolean
           id?: string
+          name?: string | null
           pixel_id: string
           platform?: string
         }
         Update: {
           active?: boolean | null
           created_at?: string
+          fire_on_paid_only?: boolean
           id?: string
+          name?: string | null
           pixel_id?: string
           platform?: string
         }
