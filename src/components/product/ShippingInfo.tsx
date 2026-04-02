@@ -4,9 +4,10 @@ interface ShippingInfoProps {
   freeShipping: boolean;
   shippingCost: number;
   estimatedDelivery: string;
+  shippingLabel?: string;
 }
 
-const ShippingInfo = ({ freeShipping, shippingCost, estimatedDelivery }: ShippingInfoProps) => {
+const ShippingInfo = ({ freeShipping, shippingCost, estimatedDelivery, shippingLabel = "Frete grátis" }: ShippingInfoProps) => {
   return (
     <div className="bg-card px-4 py-3 mt-2">
       <div className="flex items-start gap-3">
