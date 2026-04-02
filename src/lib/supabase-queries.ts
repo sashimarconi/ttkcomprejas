@@ -80,27 +80,20 @@ export async function fetchProductBySlug(slug: string) {
 
   if (error) throw error;
 
-  // Also fetch reviews linked via review_products join table
-  const { data: linkedReviewProducts } = await supabase
+  // Fetch linked reviews in parallel (single query with join)
+  const { data: linkedReviews } = await supabase
     .from("review_products")
-    .select("review_id")
+    .select("reviews:review_id(id, user_name, user_avatar_url, city, rating, comment, photos, review_date)")
     .eq("product_id", data.id);
 
-  if (linkedReviewProducts && linkedReviewProducts.length > 0) {
-    const linkedReviewIds = linkedReviewProducts.map((rp: any) => rp.review_id);
-    // Filter out reviews already present
+  if (linkedReviews && linkedReviews.length > 0) {
     const existingIds = new Set((data.reviews || []).map((r: any) => r.id));
-    const missingIds = linkedReviewIds.filter((id: string) => !existingIds.has(id));
-
-    if (missingIds.length > 0) {
-      const { data: extraReviews } = await supabase
-        .from("reviews")
-        .select("id, user_name, user_avatar_url, city, rating, comment, photos, review_date")
-        .in("id", missingIds);
-
-      if (extraReviews) {
-        data.reviews = [...(data.reviews || []), ...extraReviews];
-      }
+    const extras = linkedReviews
+      .map((rp: any) => rp.reviews)
+      .filter(Boolean)
+      .filter((r: any) => !existingIds.has(r.id));
+    if (extras.length > 0) {
+      data.reviews = [...(data.reviews || []), ...extras];
     }
   }
 
