@@ -101,16 +101,16 @@ async function encryptPayload(
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const enc = new TextEncoder();
 
-  // IKM
+  // IKM: auth secret is the HKDF salt, shared secret is the input key material
   const authInfo = new Uint8Array([
     ...enc.encode("WebPush: info\0"),
     ...subscriberPublicKey,
     ...localPublicKeyRaw,
   ]);
-  const authHkdfKey = await crypto.subtle.importKey("raw", subscriberAuth, "HKDF", false, ["deriveBits"]);
+  const authHkdfKey = await crypto.subtle.importKey("raw", sharedSecret, "HKDF", false, ["deriveBits"]);
   const ikm = new Uint8Array(
     await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt: sharedSecret, info: authInfo },
+      { name: "HKDF", hash: "SHA-256", salt: subscriberAuth, info: authInfo },
       authHkdfKey,
       256
     )
