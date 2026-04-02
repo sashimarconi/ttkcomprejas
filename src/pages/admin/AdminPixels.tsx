@@ -412,8 +412,11 @@ const AdminPixels = () => {
                     {platform.icon}
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{pixel.pixel_id}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{pixel.platform}</p>
+                    <p className="text-sm font-medium text-foreground">{pixel.name || pixel.pixel_id}</p>
+                    <p className="text-xs text-muted-foreground">{pixel.pixel_id}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {pixel.fire_on_paid_only ? "Dispara só quando pago" : "Dispara ao gerar pedido"}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
