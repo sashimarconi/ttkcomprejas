@@ -238,7 +238,7 @@ const AdminLiveView = () => {
 
           {/* Sessions by Location */}
           <SessionsByLocation
-            liveSessions={sessions.map(s => ({ session_id: s.session_id }))}
+            liveSessions={sessions.map(s => ({ session_id: s.session_id, city: s.city, region: s.region, country: s.country }))}
             todaySessions={todaySessions}
           />
         </div>
