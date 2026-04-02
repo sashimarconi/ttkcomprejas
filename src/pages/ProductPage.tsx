@@ -74,23 +74,31 @@ const ProductPage = () => {
     queryKey: ["product", slug],
     queryFn: () => fetchProductBySlug(slug!),
     enabled: !!slug,
+    staleTime: 5 * 60_000, // 5 min cache
+    gcTime: 10 * 60_000,
   });
 
   const { data: productStore } = useQuery({
     queryKey: ["product-store", product?.id],
     queryFn: () => fetchStoreForProduct(product!.id),
     enabled: !!product?.id,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const { data: storeProducts } = useQuery({
     queryKey: ["store-products", productStore?.id],
     queryFn: () => fetchStoreProducts(productStore!.id),
     enabled: !!productStore?.id,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const { data: storeSettings } = useQuery({
     queryKey: ["store-settings"],
     queryFn: () => fetchStoreSettings(),
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   const { data: builderRaw } = useQuery({
@@ -104,6 +112,8 @@ const ProductPage = () => {
       if (error) return null;
       return data as any;
     },
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   const builder: ProductPageBuilderConfig = (() => {
