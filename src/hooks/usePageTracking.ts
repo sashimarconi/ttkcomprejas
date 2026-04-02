@@ -10,6 +10,42 @@ function getSessionId() {
   return sid;
 }
 
+interface GeoData {
+  city: string;
+  region: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
+
+let cachedGeo: GeoData | null = null;
+let geoPromise: Promise<GeoData | null> | null = null;
+
+async function fetchGeoOnce(): Promise<GeoData | null> {
+  if (cachedGeo) return cachedGeo;
+  if (geoPromise) return geoPromise;
+
+  geoPromise = (async () => {
+    try {
+      const res = await fetch("https://ipapi.co/json/", { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      cachedGeo = {
+        city: data.city || "",
+        region: data.region || "",
+        country: data.country_name || "",
+        latitude: data.latitude || 0,
+        longitude: data.longitude || 0,
+      };
+      return cachedGeo;
+    } catch {
+      return null;
+    }
+  })();
+
+  return geoPromise;
+}
+
 export function usePageTracking(eventType: string = "page_view", metadata?: Record<string, unknown>) {
   const tracked = useRef(false);
 
@@ -28,11 +64,22 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
       metadata: metadata || {},
     } as any).then();
 
-    // Upsert visitor session
-    supabase.from("visitor_sessions").upsert(
-      { session_id: sessionId, last_seen_at: new Date().toISOString(), page_url: pageUrl },
-      { onConflict: "session_id" }
-    ).then();
+    // Upsert visitor session with geo data
+    fetchGeoOnce().then(geo => {
+      const sessionData: any = {
+        session_id: sessionId,
+        last_seen_at: new Date().toISOString(),
+        page_url: pageUrl,
+      };
+      if (geo) {
+        sessionData.city = geo.city;
+        sessionData.region = geo.region;
+        sessionData.country = geo.country;
+        sessionData.latitude = geo.latitude;
+        sessionData.longitude = geo.longitude;
+      }
+      supabase.from("visitor_sessions").upsert(sessionData, { onConflict: "session_id" }).then();
+    });
   }, [eventType, metadata]);
 }
 
@@ -55,7 +102,7 @@ export function useVisitorHeartbeat() {
         { session_id: sessionId, last_seen_at: new Date().toISOString(), page_url: window.location.pathname },
         { onConflict: "session_id" }
       ).then();
-    }, 30000); // every 30s
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);

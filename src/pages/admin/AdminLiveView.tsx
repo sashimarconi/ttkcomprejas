@@ -13,6 +13,11 @@ interface SessionData {
   session_id: string;
   page_url: string | null;
   last_seen_at: string;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface LiveStats {
@@ -29,7 +34,7 @@ const AdminLiveView = () => {
     visitors: 0, revenue: 0, orders: 0, paidOrders: 0, conversionRate: 0, avgTicket: 0,
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [todaySessions, setTodaySessions] = useState<{ session_id: string }[]>([]);
+  const [todaySessions, setTodaySessions] = useState<{ session_id: string; city?: string | null; region?: string | null; country?: string | null }[]>([]);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
   const [funnelData, setFunnelData] = useState<{ label: string; value: number; pct: number }[]>([]);
@@ -41,10 +46,10 @@ const AdminLiveView = () => {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
     const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at").gte("last_seen_at", fiveMinAgo),
+      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude").gte("last_seen_at", fiveMinAgo),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
       supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", todayStart),
-      supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", todayStart),
+      supabase.from("visitor_sessions").select("session_id, city, region, country").gte("last_seen_at", todayStart),
     ]);
 
     const activeSessions = sessionsRes.data || [];
@@ -56,7 +61,7 @@ const AdminLiveView = () => {
     setSessions(sessionsArr);
 
     const todayAll = todaySessionsRes.data || [];
-    const uniqueToday = new Map<string, { session_id: string }>();
+    const uniqueToday = new Map<string, { session_id: string; city?: string | null; region?: string | null; country?: string | null }>();
     todayAll.forEach(s => { if (!uniqueToday.has(s.session_id)) uniqueToday.set(s.session_id, s); });
     setTodaySessions(Array.from(uniqueToday.values()));
 
@@ -218,7 +223,7 @@ const AdminLiveView = () => {
 
               <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
                 <LiveGlobe
-                  visitors={sessions.map(s => ({ session_id: s.session_id }))}
+                  visitors={sessions.map(s => ({ session_id: s.session_id, latitude: s.latitude, longitude: s.longitude }))}
                   className="w-full h-full"
                 />
               </Suspense>
@@ -233,7 +238,7 @@ const AdminLiveView = () => {
 
           {/* Sessions by Location */}
           <SessionsByLocation
-            liveSessions={sessions.map(s => ({ session_id: s.session_id }))}
+            liveSessions={sessions.map(s => ({ session_id: s.session_id, city: s.city, region: s.region, country: s.country }))}
             todaySessions={todaySessions}
           />
         </div>
