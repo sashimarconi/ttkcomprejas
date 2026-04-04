@@ -18,6 +18,8 @@ interface TypeSettings {
 
 export default function SaleNotification() {
   const processedIds = useRef(new Set<string>());
+  const [notifyPaid, setNotifyPaid] = useState(true);
+  const [notifyPending, setNotifyPending] = useState(false);
   const [paidSettings, setPaidSettings] = useState<TypeSettings>({
     ringtone: 'cash_register',
     custom_ringtone_url: null,
@@ -42,6 +44,8 @@ export default function SaleNotification() {
         .maybeSingle();
       if (data) {
         const d = data as any;
+        setNotifyPaid(d.notify_paid !== false);
+        setNotifyPending(d.notify_pending === true);
         setPaidSettings({
           ringtone: d.ringtone || 'cash_register',
           custom_ringtone_url: d.custom_ringtone_url || null,
@@ -55,6 +59,24 @@ export default function SaleNotification() {
           notification_icon_url: d.notification_icon_url_pending || null,
         });
       }
+
+      // Also check device-level prefs for this specific device (computer)
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("notify_paid, notify_pending, device_label")
+        .eq("user_id", user.id);
+      
+      if (subs && subs.length > 0) {
+        // Find computer subscriptions (not celular/mobile)
+        const computerSubs = subs.filter((s: any) => {
+          const l = (s.device_label || '').toLowerCase();
+          return !l.includes('celular') && !l.includes('mobile');
+        });
+        if (computerSubs.length > 0) {
+          setNotifyPaid(computerSubs.every((s: any) => s.notify_paid !== false));
+          setNotifyPending(computerSubs.every((s: any) => s.notify_pending !== false));
+        }
+      }
     }
     loadSettings();
   }, []);
@@ -66,6 +88,7 @@ export default function SaleNotification() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: "payment_status=eq.paid" },
         async (payload) => {
+          if (!notifyPaid) return;
           const order = payload.new as any;
           if (processedIds.current.has(order.id)) return;
           processedIds.current.add(order.id);
@@ -76,6 +99,7 @@ export default function SaleNotification() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders" },
         async (payload) => {
+          if (!notifyPending) return;
           const order = payload.new as any;
           if (order.payment_status !== 'pending') return;
           const key = order.id + '-pending';
@@ -87,7 +111,7 @@ export default function SaleNotification() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [paidSettings, pendingSettings]);
+  }, [paidSettings, pendingSettings, notifyPaid, notifyPending]);
 
   async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending') {
     let gatewayName = "Gateway";
