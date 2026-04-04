@@ -43,6 +43,8 @@ const DEFAULT_SETTINGS: NotifSettings = {
   notification_icon_url_pending: null,
 };
 
+const NOTIFICATION_SETTINGS_UPDATED_EVENT = "notification-settings-updated";
+
 interface DeviceSub {
   id: string;
   endpoint: string;
@@ -67,6 +69,12 @@ function getSettingsPayload(userId: string, nextState: NotifSettings) {
     notification_icon_url_pending: nextState.notification_icon_url_pending,
     updated_at: new Date().toISOString(),
   } as any;
+}
+
+function emitNotificationSettingsUpdated() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(NOTIFICATION_SETTINGS_UPDATED_EVENT));
+  }
 }
 
 export default function AdminNotifications() {
@@ -115,7 +123,6 @@ export default function AdminNotifications() {
       });
     }
 
-    // Load registered devices
     const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("id, endpoint, device_label, notify_paid, notify_pending")
@@ -148,6 +155,7 @@ export default function AdminNotifications() {
     if (error) {
       toast.error("Erro ao salvar configurações");
     } else {
+      emitNotificationSettingsUpdated();
       toast.success("Configurações salvas");
     }
     setSaving(false);
@@ -198,6 +206,7 @@ export default function AdminNotifications() {
       setSettings(previousSettings);
       setDevices(previousDevices);
     } else {
+      emitNotificationSettingsUpdated();
       toast.success("Preferência atualizada");
     }
     setSavingDevice(null);

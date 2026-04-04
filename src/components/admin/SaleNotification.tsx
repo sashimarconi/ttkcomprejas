@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ interface TypeSettings {
   notification_icon_url: string | null;
 }
 
+const NOTIFICATION_SETTINGS_UPDATED_EVENT = "notification-settings-updated";
+
 export default function SaleNotification() {
   const processedIds = useRef(new Set<string>());
   const [notifyPaid, setNotifyPaid] = useState(true);
@@ -34,50 +36,62 @@ export default function SaleNotification() {
     notification_icon_url: null,
   });
 
-  useEffect(() => {
-    async function loadSettings() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("notification_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data) {
-        const d = data as any;
-        setNotifyPaid(d.notify_paid !== false);
-        setNotifyPending(d.notify_pending === true);
-        setPaidSettings({
-          ringtone: d.ringtone || 'cash_register',
-          custom_ringtone_url: d.custom_ringtone_url || null,
-          notification_title: d.notification_title || 'Venda Realizada',
-          notification_icon_url: d.notification_icon_url || null,
-        });
-        setPendingSettings({
-          ringtone: d.ringtone_pending || 'soft_chime',
-          custom_ringtone_url: d.custom_ringtone_url_pending || null,
-          notification_title: d.notification_title_pending || 'Novo Pedido Pendente',
-          notification_icon_url: d.notification_icon_url_pending || null,
-        });
-      }
+  const loadSettings = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("notification_settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (data) {
+      const d = data as any;
+      setNotifyPaid(d.notify_paid !== false);
+      setNotifyPending(d.notify_pending === true);
+      setPaidSettings({
+        ringtone: d.ringtone || 'cash_register',
+        custom_ringtone_url: d.custom_ringtone_url || null,
+        notification_title: d.notification_title || 'Venda Realizada',
+        notification_icon_url: d.notification_icon_url || null,
+      });
+      setPendingSettings({
+        ringtone: d.ringtone_pending || 'soft_chime',
+        custom_ringtone_url: d.custom_ringtone_url_pending || null,
+        notification_title: d.notification_title_pending || 'Novo Pedido Pendente',
+        notification_icon_url: d.notification_icon_url_pending || null,
+      });
+    }
 
-      if (isCurrentBrowserMobile()) {
-        const { data: subs } = await supabase
-          .from("push_subscriptions")
-          .select("notify_paid, notify_pending, device_label, endpoint")
-          .eq("user_id", user.id);
+    if (isCurrentBrowserMobile()) {
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("notify_paid, notify_pending, device_label, endpoint")
+        .eq("user_id", user.id);
 
-        if (subs && subs.length > 0) {
-          const mobileSubs = subs.filter((sub: any) => getStoredDeviceGroup(sub) === "mobile");
-          if (mobileSubs.length > 0) {
-            setNotifyPaid(mobileSubs.every((sub: any) => sub.notify_paid !== false));
-            setNotifyPending(mobileSubs.every((sub: any) => sub.notify_pending !== false));
-          }
+      if (subs && subs.length > 0) {
+        const mobileSubs = subs.filter((sub: any) => getStoredDeviceGroup(sub) === "mobile");
+        if (mobileSubs.length > 0) {
+          setNotifyPaid(mobileSubs.every((sub: any) => sub.notify_paid !== false));
+          setNotifyPending(mobileSubs.every((sub: any) => sub.notify_pending !== false));
         }
       }
     }
-    loadSettings();
   }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  useEffect(() => {
+    const handleSettingsUpdated = () => {
+      void loadSettings();
+    };
+
+    window.addEventListener(NOTIFICATION_SETTINGS_UPDATED_EVENT, handleSettingsUpdated);
+    return () => {
+      window.removeEventListener(NOTIFICATION_SETTINGS_UPDATED_EVENT, handleSettingsUpdated);
+    };
+  }, [loadSettings]);
 
   useEffect(() => {
     const channel = supabase
