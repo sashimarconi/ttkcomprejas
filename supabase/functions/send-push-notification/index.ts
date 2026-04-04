@@ -205,6 +205,7 @@ Deno.serve(async (req) => {
       body: notifBody || (isPaid ? "Você recebeu um novo pagamento." : "Um novo PIX foi gerado."),
       url: notifUrl || "/admin/orders",
       tag: tag || "sale-" + Date.now(),
+      silent: !isPaid,
     };
     if (customIcon) {
       payload.icon = customIcon;
