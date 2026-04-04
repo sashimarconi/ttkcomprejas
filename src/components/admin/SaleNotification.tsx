@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 import { playRingtone, type RingtoneId } from "@/lib/notification-sounds";
+import { getStoredDeviceGroup, isCurrentBrowserMobile } from "@/lib/notification-device-group";
 import defaultIcon from "@/assets/notification-icon-default.png";
 
 function formatCurrency(value: number) {
@@ -60,21 +61,18 @@ export default function SaleNotification() {
         });
       }
 
-      // Also check device-level prefs for this specific device (computer)
-      const { data: subs } = await supabase
-        .from("push_subscriptions")
-        .select("notify_paid, notify_pending, device_label")
-        .eq("user_id", user.id);
-      
-      if (subs && subs.length > 0) {
-        // Find computer subscriptions (not celular/mobile)
-        const computerSubs = subs.filter((s: any) => {
-          const l = (s.device_label || '').toLowerCase();
-          return !l.includes('celular') && !l.includes('mobile');
-        });
-        if (computerSubs.length > 0) {
-          setNotifyPaid(computerSubs.every((s: any) => s.notify_paid !== false));
-          setNotifyPending(computerSubs.every((s: any) => s.notify_pending !== false));
+      if (isCurrentBrowserMobile()) {
+        const { data: subs } = await supabase
+          .from("push_subscriptions")
+          .select("notify_paid, notify_pending, device_label, endpoint")
+          .eq("user_id", user.id);
+
+        if (subs && subs.length > 0) {
+          const mobileSubs = subs.filter((sub: any) => getStoredDeviceGroup(sub) === "mobile");
+          if (mobileSubs.length > 0) {
+            setNotifyPaid(mobileSubs.every((sub: any) => sub.notify_paid !== false));
+            setNotifyPending(mobileSubs.every((sub: any) => sub.notify_pending !== false));
+          }
         }
       }
     }

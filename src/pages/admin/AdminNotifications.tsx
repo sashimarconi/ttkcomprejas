@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { RINGTONE_PRESETS, playRingtone, type RingtoneId } from "@/lib/notification-sounds";
+import { getStoredDeviceGroup } from "@/lib/notification-device-group";
 import defaultIcon from "@/assets/notification-icon-default.png";
 
 interface NotifSettings {
@@ -48,6 +49,24 @@ interface DeviceSub {
   device_label: string;
   notify_paid: boolean;
   notify_pending: boolean;
+}
+
+function getSettingsPayload(userId: string, nextState: NotifSettings) {
+  return {
+    user_id: userId,
+    push_enabled: nextState.push_enabled,
+    notify_paid: nextState.notify_paid,
+    notify_pending: nextState.notify_pending,
+    ringtone: nextState.ringtone,
+    custom_ringtone_url: nextState.custom_ringtone_url,
+    notification_title: nextState.notification_title,
+    notification_icon_url: nextState.notification_icon_url,
+    ringtone_pending: nextState.ringtone_pending,
+    custom_ringtone_url_pending: nextState.custom_ringtone_url_pending,
+    notification_title_pending: nextState.notification_title_pending,
+    notification_icon_url_pending: nextState.notification_icon_url_pending,
+    updated_at: new Date().toISOString(),
+  } as any;
 }
 
 export default function AdminNotifications() {
@@ -124,21 +143,7 @@ export default function AdminNotifications() {
 
     const { error } = await supabase
       .from("notification_settings")
-      .upsert({
-        user_id: userId,
-        push_enabled: newState.push_enabled,
-        notify_paid: newState.notify_paid,
-        notify_pending: newState.notify_pending,
-        ringtone: newState.ringtone,
-        custom_ringtone_url: newState.custom_ringtone_url,
-        notification_title: newState.notification_title,
-        notification_icon_url: newState.notification_icon_url,
-        ringtone_pending: newState.ringtone_pending,
-        custom_ringtone_url_pending: newState.custom_ringtone_url_pending,
-        notification_title_pending: newState.notification_title_pending,
-        notification_icon_url_pending: newState.notification_icon_url_pending,
-        updated_at: new Date().toISOString(),
-      } as any, { onConflict: "user_id" });
+      .upsert(getSettingsPayload(userId, newState), { onConflict: "user_id" });
 
     if (error) {
       toast.error("Erro ao salvar configurações");
@@ -149,38 +154,51 @@ export default function AdminNotifications() {
   }
 
   async function handleGroupToggle(group: 'computer' | 'mobile', field: 'notify_paid' | 'notify_pending', value: boolean) {
-    const isMobile = group === 'mobile';
-    const groupDevices = devices.filter(d => {
-      const label = (d.device_label || '').toLowerCase();
-      const ep = (d.endpoint || '').toLowerCase();
-      const isMobileDevice = label.includes('celular') || label.includes('mobile') || ep.includes('web.push.apple.com') || ep.includes('fcm.googleapis.com');
-      return isMobile ? isMobileDevice : !isMobileDevice;
-    });
+    if (!userId) return;
 
-    if (groupDevices.length === 0) return;
+    const groupDevices = devices.filter((device) => getStoredDeviceGroup(device) === group);
+    if (group === 'mobile' && groupDevices.length === 0) {
+      toast.error("Nenhum celular registrado");
+      return;
+    }
+
+    const previousDevices = devices;
+    const previousSettings = settings;
+    const nextSettings = group === 'computer' ? { ...settings, [field]: value } : settings;
+    const nextDevices = groupDevices.length > 0
+      ? devices.map((device) =>
+          groupDevices.some((groupDevice) => groupDevice.id === device.id)
+            ? { ...device, [field]: value }
+            : device
+        )
+      : devices;
 
     setSavingDevice(group);
-    setDevices(prev => prev.map(d => {
-      if (groupDevices.some(gd => gd.id === d.id)) {
-        return { ...d, [field]: value };
-      }
-      return d;
-    }));
+    if (group === 'computer') {
+      setSettings(nextSettings);
+    }
+    if (groupDevices.length > 0) {
+      setDevices(nextDevices);
+    }
 
-    const ids = groupDevices.map(d => d.id);
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .update({ [field]: value } as any)
-      .in("id", ids);
+    const [settingsResult, devicesResult] = await Promise.all([
+      group === 'computer'
+        ? supabase.from("notification_settings").upsert(getSettingsPayload(userId, nextSettings), { onConflict: "user_id" })
+        : Promise.resolve({ error: null }),
+      groupDevices.length > 0
+        ? supabase
+            .from("push_subscriptions")
+            .update({ [field]: value } as any)
+            .in("id", groupDevices.map((device) => device.id))
+        : Promise.resolve({ error: null }),
+    ]);
 
-    if (error) {
+    if (settingsResult.error || devicesResult.error) {
       toast.error("Erro ao salvar preferência");
-      setDevices(prev => prev.map(d => {
-        if (groupDevices.some(gd => gd.id === d.id)) {
-          return { ...d, [field]: !value };
-        }
-        return d;
-      }));
+      setSettings(previousSettings);
+      setDevices(previousDevices);
+    } else {
+      toast.success("Preferência atualizada");
     }
     setSavingDevice(null);
   }
@@ -253,7 +271,9 @@ export default function AdminNotifications() {
 
     const body = isPaid ? '🎉 Teste — Sua comissão: R$ 199,90' : '⏳ Teste — Novo PIX gerado: R$ 199,90';
 
-    playRingtone(ringtone, customUrl);
+    if (isPaid) {
+      playRingtone(ringtone, customUrl);
+    }
     toast(title, {
       description: body,
       icon: <img src={iconUrl} alt="icon" className="w-6 h-6 rounded" />,
@@ -373,22 +393,13 @@ export default function AdminNotifications() {
           </CardHeader>
           <CardContent className="space-y-4">
             {(() => {
-              const computers = devices.filter(d => {
-                const l = (d.device_label || '').toLowerCase();
-                const ep = (d.endpoint || '').toLowerCase();
-                const isMobileDevice = l.includes('celular') || l.includes('mobile') || ep.includes('web.push.apple.com') || ep.includes('fcm.googleapis.com');
-                return !isMobileDevice;
-              });
-              const mobiles = devices.filter(d => {
-                const l = (d.device_label || '').toLowerCase();
-                const ep = (d.endpoint || '').toLowerCase();
-                return l.includes('celular') || l.includes('mobile') || ep.includes('web.push.apple.com') || ep.includes('fcm.googleapis.com');
-              });
+              const computers = devices.filter((device) => getStoredDeviceGroup(device) === 'computer');
+              const mobiles = devices.filter((device) => getStoredDeviceGroup(device) === 'mobile');
 
-              const computerPaid = computers.length > 0 && computers.every(d => d.notify_paid);
-              const computerPending = computers.length > 0 && computers.every(d => d.notify_pending);
-              const mobilePaid = mobiles.length > 0 && mobiles.every(d => d.notify_paid);
-              const mobilePending = mobiles.length > 0 && mobiles.every(d => d.notify_pending);
+              const computerPaid = settings.notify_paid && computers.every((device) => device.notify_paid !== false);
+              const computerPending = settings.notify_pending && computers.every((device) => device.notify_pending !== false);
+              const mobilePaid = mobiles.length > 0 && mobiles.every((device) => device.notify_paid !== false);
+              const mobilePending = mobiles.length > 0 && mobiles.every((device) => device.notify_pending !== false);
 
               return (
                 <div className="space-y-3">
@@ -399,7 +410,7 @@ export default function AdminNotifications() {
                       <div>
                         <p className="text-sm font-medium text-foreground">Computadores</p>
                         <p className="text-xs text-muted-foreground">
-                          {computers.length === 0 ? 'Nenhum registrado' : `${computers.length} dispositivo(s)`}
+                          {computers.length === 0 ? 'Painel web deste admin' : `Painel web + ${computers.length} PC(s) com push`}
                         </p>
                       </div>
                     </div>
