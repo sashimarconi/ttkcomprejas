@@ -1,31 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DollarSign } from "lucide-react";
-
-// Sound generated via Web Audio API
-
-function playMoneySound() {
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  
-  const playTone = (freq: number, start: number, duration: number, gain: number) => {
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
-    g.gain.setValueAtTime(gain, audioCtx.currentTime + start);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + start + duration);
-    osc.connect(g);
-    g.connect(audioCtx.destination);
-    osc.start(audioCtx.currentTime + start);
-    osc.stop(audioCtx.currentTime + start + duration);
-  };
-
-  // "tiktin" cash register sound
-  playTone(2200, 0, 0.08, 0.3);
-  playTone(2800, 0.1, 0.08, 0.3);
-  playTone(3400, 0.2, 0.15, 0.25);
-}
+import { playRingtone, type RingtoneId } from "@/lib/notification-sounds";
+import defaultIcon from "@/assets/notification-icon-default.png";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -33,6 +11,38 @@ function formatCurrency(value: number) {
 
 export default function SaleNotification() {
   const processedIds = useRef(new Set<string>());
+  const [notifSettings, setNotifSettings] = useState<{
+    ringtone: RingtoneId;
+    custom_ringtone_url: string | null;
+    notification_title: string;
+    notification_icon_url: string | null;
+  }>({
+    ringtone: 'cash_register',
+    custom_ringtone_url: null,
+    notification_title: 'Venda Realizada',
+    notification_icon_url: null,
+  });
+
+  useEffect(() => {
+    async function loadSettings() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("notification_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) {
+        setNotifSettings({
+          ringtone: (data as any).ringtone || 'cash_register',
+          custom_ringtone_url: (data as any).custom_ringtone_url || null,
+          notification_title: (data as any).notification_title || 'Venda Realizada',
+          notification_icon_url: (data as any).notification_icon_url || null,
+        });
+      }
+    }
+    loadSettings();
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -50,7 +60,6 @@ export default function SaleNotification() {
           if (processedIds.current.has(order.id)) return;
           processedIds.current.add(order.id);
 
-          // Fetch gateway name
           let gatewayName = "Gateway";
           try {
             const { data } = await supabase
@@ -71,19 +80,20 @@ export default function SaleNotification() {
             }
           } catch {}
 
-          playMoneySound();
+          playRingtone(notifSettings.ringtone, notifSettings.custom_ringtone_url);
+
+          const iconUrl = notifSettings.notification_icon_url || defaultIcon;
+          const title = notifSettings.notification_title || "Venda Realizada";
 
           toast.custom(
             () => (
               <div className="flex items-center gap-3 bg-black/80 backdrop-blur-xl text-white rounded-xl px-4 py-3 shadow-2xl border border-white/10 min-w-[280px]">
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-5 h-5 text-emerald-400" />
-                </div>
+                <img src={iconUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white">Venda Realizada</p>
+                  <p className="text-sm font-semibold text-white">{title}</p>
                   <p className="text-xs text-white/60">from {gatewayName}</p>
                   <p className="text-sm font-bold text-emerald-400 mt-0.5">
-                    Você recebeu {formatCurrency(order.total || 0)}
+                    Sua comissão: {formatCurrency(order.total || 0)}
                   </p>
                 </div>
               </div>
@@ -97,7 +107,7 @@ export default function SaleNotification() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [notifSettings]);
 
   return null;
 }
