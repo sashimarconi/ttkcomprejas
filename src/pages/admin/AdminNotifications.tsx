@@ -204,10 +204,9 @@ export default function AdminNotifications() {
           body,
           icon: iconUrl,
           badge: iconUrl,
-          vibrate: [200, 100, 200],
           tag: 'test-local-' + Date.now(),
           data: { url: '/admin/notifications' },
-        });
+        } as NotificationOptions);
       }
     } catch (err) {
       console.error('Local notification error:', err);
