@@ -523,6 +523,33 @@ export default function AdminNotifications() {
           </div>
         </CardContent>
       </Card>
+      {/* Test Notification */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Send className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Testar Notificação</CardTitle>
+              <CardDescription>Dispara uma notificação de teste no app e no celular (push)</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={handleTestNotification}
+            disabled={testing}
+            className="w-full sm:w-auto"
+          >
+            {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            Enviar notificação de teste
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            O toast aparece imediatamente no app. A push chega no celular se as notificações estiverem ativadas.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
