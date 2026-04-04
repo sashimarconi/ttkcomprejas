@@ -147,39 +147,51 @@ export type Database = {
         Row: {
           created_at: string
           custom_ringtone_url: string | null
+          custom_ringtone_url_pending: string | null
           id: string
           notification_icon_url: string | null
+          notification_icon_url_pending: string | null
           notification_title: string
+          notification_title_pending: string
           notify_paid: boolean
           notify_pending: boolean
           push_enabled: boolean
           ringtone: string
+          ringtone_pending: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           custom_ringtone_url?: string | null
+          custom_ringtone_url_pending?: string | null
           id?: string
           notification_icon_url?: string | null
+          notification_icon_url_pending?: string | null
           notification_title?: string
+          notification_title_pending?: string
           notify_paid?: boolean
           notify_pending?: boolean
           push_enabled?: boolean
           ringtone?: string
+          ringtone_pending?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           custom_ringtone_url?: string | null
+          custom_ringtone_url_pending?: string | null
           id?: string
           notification_icon_url?: string | null
+          notification_icon_url_pending?: string | null
           notification_title?: string
+          notification_title_pending?: string
           notify_paid?: boolean
           notify_pending?: boolean
           push_enabled?: boolean
           ringtone?: string
+          ringtone_pending?: string
           updated_at?: string
           user_id?: string
         }
