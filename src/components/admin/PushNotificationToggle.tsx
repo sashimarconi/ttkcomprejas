@@ -67,13 +67,19 @@ export default function PushNotificationToggle() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Detect device type for label
+      const ua = navigator.userAgent;
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+      const deviceLabel = isMobile ? "Celular" : "Computador";
+
       await supabase.from("push_subscriptions").upsert(
         {
           user_id: user.id,
           endpoint: json.endpoint!,
           p256dh: json.keys!.p256dh,
           auth: json.keys!.auth,
-        },
+          device_label: deviceLabel,
+        } as any,
         { onConflict: "endpoint" }
       );
 

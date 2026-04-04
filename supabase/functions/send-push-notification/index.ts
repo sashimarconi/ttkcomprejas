@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
 
     const { data: subscriptions, error } = await supabase
       .from("push_subscriptions")
-      .select("endpoint, p256dh, auth, user_id");
+      .select("endpoint, p256dh, auth, user_id, notify_paid, notify_pending");
 
     if (error) {
       console.error("Error fetching subscriptions:", error);
@@ -169,20 +169,23 @@ Deno.serve(async (req) => {
     const userIds = [...new Set(subscriptions.map((s) => s.user_id))];
     const { data: settings } = await supabase
       .from("notification_settings")
-      .select("user_id, push_enabled, notify_paid, notify_pending, notification_title, notification_icon_url, notification_title_pending, notification_icon_url_pending")
+      .select("user_id, push_enabled, notification_title, notification_icon_url, notification_title_pending, notification_icon_url_pending")
       .in("user_id", userIds);
 
     const settingsMap = new Map((settings || []).map((s: any) => [s.user_id, s]));
 
-    const filteredSubs = subscriptions.filter((sub) => {
+    // Filter per-subscription using device-level preferences
+    const filteredSubs = subscriptions.filter((sub: any) => {
       const prefs = settingsMap.get(sub.user_id);
       const pushEnabled = prefs ? prefs.push_enabled : true;
-      const notifyPaid = prefs ? prefs.notify_paid : true;
-      const notifyPending = prefs ? prefs.notify_pending : false;
-
       if (!pushEnabled) return false;
-      if (event_type === "order_paid" && !notifyPaid) return false;
-      if (event_type === "order_pending" && !notifyPending) return false;
+
+      // Device-level toggles (columns on push_subscriptions)
+      const deviceNotifyPaid = sub.notify_paid !== false;
+      const deviceNotifyPending = sub.notify_pending !== false;
+
+      if (event_type === "order_paid" && !deviceNotifyPaid) return false;
+      if (event_type === "order_pending" && !deviceNotifyPending) return false;
       return true;
     });
 
