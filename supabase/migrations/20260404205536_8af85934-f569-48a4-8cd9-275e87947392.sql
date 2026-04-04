@@ -1,0 +1,1 @@
+UPDATE push_subscriptions SET device_label = 'Celular' WHERE endpoint LIKE '%web.push.apple.com%' AND device_label = 'Dispositivo';
