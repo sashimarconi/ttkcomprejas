@@ -21,15 +21,15 @@ const NOTIFICATION_SETTINGS_UPDATED_EVENT = "notification-settings-updated";
 
 export default function SaleNotification() {
   const processedIds = useRef(new Set<string>());
-  const [notifyPaid, setNotifyPaid] = useState(true);
-  const [notifyPending, setNotifyPending] = useState(false);
-  const [paidSettings, setPaidSettings] = useState<TypeSettings>({
+  const notifyPaidRef = useRef(true);
+  const notifyPendingRef = useRef(false);
+  const paidSettingsRef = useRef<TypeSettings>({
     ringtone: 'cash_register',
     custom_ringtone_url: null,
     notification_title: 'Venda Realizada',
     notification_icon_url: null,
   });
-  const [pendingSettings, setPendingSettings] = useState<TypeSettings>({
+  const pendingSettingsRef = useRef<TypeSettings>({
     ringtone: 'soft_chime',
     custom_ringtone_url: null,
     notification_title: 'Novo Pedido Pendente',
@@ -46,20 +46,20 @@ export default function SaleNotification() {
       .maybeSingle();
     if (data) {
       const d = data as any;
-      setNotifyPaid(d.notify_paid !== false);
-      setNotifyPending(d.notify_pending === true);
-      setPaidSettings({
+      notifyPaidRef.current = d.notify_paid !== false;
+      notifyPendingRef.current = d.notify_pending === true;
+      paidSettingsRef.current = {
         ringtone: d.ringtone || 'cash_register',
         custom_ringtone_url: d.custom_ringtone_url || null,
         notification_title: d.notification_title || 'Venda Realizada',
         notification_icon_url: d.notification_icon_url || null,
-      });
-      setPendingSettings({
+      };
+      pendingSettingsRef.current = {
         ringtone: d.ringtone_pending || 'soft_chime',
         custom_ringtone_url: d.custom_ringtone_url_pending || null,
         notification_title: d.notification_title_pending || 'Novo Pedido Pendente',
         notification_icon_url: d.notification_icon_url_pending || null,
-      });
+      };
     }
 
     if (isCurrentBrowserMobile()) {
@@ -71,8 +71,8 @@ export default function SaleNotification() {
       if (subs && subs.length > 0) {
         const mobileSubs = subs.filter((sub: any) => getStoredDeviceGroup(sub) === "mobile");
         if (mobileSubs.length > 0) {
-          setNotifyPaid(mobileSubs.every((sub: any) => sub.notify_paid !== false));
-          setNotifyPending(mobileSubs.every((sub: any) => sub.notify_pending !== false));
+          notifyPaidRef.current = mobileSubs.every((sub: any) => sub.notify_paid !== false);
+          notifyPendingRef.current = mobileSubs.every((sub: any) => sub.notify_pending !== false);
         }
       }
     }
@@ -98,32 +98,34 @@ export default function SaleNotification() {
       .channel("admin-sale-notifications")
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: "payment_status=eq.paid" },
+        { event: "UPDATE", schema: "public", table: "orders" },
         async (payload) => {
-          if (!notifyPaid) return;
           const order = payload.new as any;
-          if (processedIds.current.has(order.id)) return;
-          processedIds.current.add(order.id);
-          showToast(paidSettings, order, 'paid');
+          if (order.payment_status === 'paid') {
+            if (!notifyPaidRef.current) return;
+            if (processedIds.current.has(order.id)) return;
+            processedIds.current.add(order.id);
+            showToast(paidSettingsRef.current, order, 'paid');
+          }
         }
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders" },
         async (payload) => {
-          if (!notifyPending) return;
+          if (!notifyPendingRef.current) return;
           const order = payload.new as any;
           if (order.payment_status !== 'pending') return;
           const key = order.id + '-pending';
           if (processedIds.current.has(key)) return;
           processedIds.current.add(key);
-          showToast(pendingSettings, order, 'pending', false);
+          showToast(pendingSettingsRef.current, order, 'pending', false);
         }
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [paidSettings, pendingSettings, notifyPaid, notifyPending]);
+  }, []);
 
   async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending', playSound = true) {
     let gatewayName = "Gateway";
