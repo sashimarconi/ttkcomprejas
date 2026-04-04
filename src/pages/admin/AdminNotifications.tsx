@@ -42,6 +42,14 @@ const DEFAULT_SETTINGS: NotifSettings = {
   notification_icon_url_pending: null,
 };
 
+interface DeviceSub {
+  id: string;
+  endpoint: string;
+  device_label: string;
+  notify_paid: boolean;
+  notify_pending: boolean;
+}
+
 export default function AdminNotifications() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,6 +59,8 @@ export default function AdminNotifications() {
   const [uploadingIcon, setUploadingIcon] = useState<string | null>(null);
   const [uploadingAudio, setUploadingAudio] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
+  const [devices, setDevices] = useState<DeviceSub[]>([]);
+  const [savingDevice, setSavingDevice] = useState<string | null>(null);
   const audioInputPaidRef = useRef<HTMLInputElement>(null);
   const audioInputPendingRef = useRef<HTMLInputElement>(null);
   const iconInputPaidRef = useRef<HTMLInputElement>(null);
