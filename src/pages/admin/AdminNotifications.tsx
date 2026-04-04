@@ -187,13 +187,32 @@ export default function AdminNotifications() {
       : (settings.notification_title_pending || 'Novo Pedido Pendente');
     const iconUrl = (isPaid ? settings.notification_icon_url : settings.notification_icon_url_pending) || defaultIcon;
 
+    const body = isPaid ? '🎉 Teste — Sua comissão: R$ 199,90' : '⏳ Teste — Novo PIX gerado: R$ 199,90';
+
     playRingtone(ringtone, customUrl);
     toast(title, {
-      description: isPaid ? '🎉 Teste — Sua comissão: R$ 199,90' : '⏳ Teste — Novo PIX gerado: R$ 199,90',
+      description: body,
       icon: <img src={iconUrl} alt="icon" className="w-6 h-6 rounded" />,
       duration: 5000,
     });
 
+    // Trigger local desktop notification via Service Worker
+    try {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      if (reg && Notification.permission === 'granted') {
+        await reg.showNotification(title, {
+          body,
+          icon: iconUrl,
+          badge: iconUrl,
+          tag: 'test-local-' + Date.now(),
+          data: { url: '/admin/notifications' },
+        } as NotificationOptions);
+      }
+    } catch (err) {
+      console.error('Local notification error:', err);
+    }
+
+    // Also send push to other devices (mobile etc)
     try {
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -206,7 +225,7 @@ export default function AdminNotifications() {
         },
         body: JSON.stringify({
           title,
-          body: isPaid ? '🎉 Teste — Sua comissão: R$ 199,90' : '⏳ Teste — Novo PIX gerado: R$ 199,90',
+          body,
           url: '/admin/notifications',
           tag: 'test-' + Date.now(),
           event_type: isPaid ? 'order_paid' : 'order_pending',
