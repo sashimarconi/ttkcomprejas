@@ -375,11 +375,14 @@ export default function AdminNotifications() {
             {(() => {
               const computers = devices.filter(d => {
                 const l = (d.device_label || '').toLowerCase();
-                return !l.includes('celular') && !l.includes('mobile');
+                const ep = (d.endpoint || '').toLowerCase();
+                const isMobileDevice = l.includes('celular') || l.includes('mobile') || ep.includes('web.push.apple.com') || ep.includes('fcm.googleapis.com');
+                return !isMobileDevice;
               });
               const mobiles = devices.filter(d => {
                 const l = (d.device_label || '').toLowerCase();
-                return l.includes('celular') || l.includes('mobile');
+                const ep = (d.endpoint || '').toLowerCase();
+                return l.includes('celular') || l.includes('mobile') || ep.includes('web.push.apple.com') || ep.includes('fcm.googleapis.com');
               });
 
               const computerPaid = computers.length > 0 && computers.every(d => d.notify_paid);
