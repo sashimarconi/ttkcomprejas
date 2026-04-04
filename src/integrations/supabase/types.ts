@@ -146,28 +146,40 @@ export type Database = {
       notification_settings: {
         Row: {
           created_at: string
+          custom_ringtone_url: string | null
           id: string
+          notification_icon_url: string | null
+          notification_title: string
           notify_paid: boolean
           notify_pending: boolean
           push_enabled: boolean
+          ringtone: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          custom_ringtone_url?: string | null
           id?: string
+          notification_icon_url?: string | null
+          notification_title?: string
           notify_paid?: boolean
           notify_pending?: boolean
           push_enabled?: boolean
+          ringtone?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          custom_ringtone_url?: string | null
           id?: string
+          notification_icon_url?: string | null
+          notification_title?: string
           notify_paid?: boolean
           notify_pending?: boolean
           push_enabled?: boolean
+          ringtone?: string
           updated_at?: string
           user_id?: string
         }
