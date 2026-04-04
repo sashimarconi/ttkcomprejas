@@ -105,7 +105,7 @@ export default function SaleNotification() {
           const key = order.id + '-pending';
           if (processedIds.current.has(key)) return;
           processedIds.current.add(key);
-          showToast(pendingSettings, order, 'pending');
+          showToast(pendingSettings, order, 'pending', false);
         }
       )
       .subscribe();
@@ -113,7 +113,7 @@ export default function SaleNotification() {
     return () => { supabase.removeChannel(channel); };
   }, [paidSettings, pendingSettings, notifyPaid, notifyPending]);
 
-  async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending') {
+  async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending', playSound = true) {
     let gatewayName = "Gateway";
     try {
       const { data } = await supabase
@@ -131,7 +131,9 @@ export default function SaleNotification() {
       }
     } catch {}
 
-    playRingtone(s.ringtone, s.custom_ringtone_url);
+    if (playSound) {
+      playRingtone(s.ringtone, s.custom_ringtone_url);
+    }
 
     const iconUrl = s.notification_icon_url || defaultIcon;
     const title = s.notification_title || (type === 'paid' ? 'Venda Realizada' : 'Novo Pedido Pendente');
