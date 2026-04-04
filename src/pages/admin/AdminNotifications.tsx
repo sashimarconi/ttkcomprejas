@@ -609,9 +609,7 @@ function NotificationTypeEditor({
               value={currentTitle}
               onChange={(e) => {
                 const val = e.target.value;
-                // @ts-ignore
-                onSave.__parent_setSettings?.((s: NotifSettings) => ({ ...s, [titleKey]: val }));
-                // fallback: save on blur
+                onSetSettings((s) => ({ ...s, [titleKey]: val }));
               }}
               onBlur={(e) => onSave({ [titleKey]: e.target.value })}
               placeholder={type === 'paid' ? "Ex: Venda Realizada, Nova Comissão" : "Ex: Novo Pedido, PIX Gerado"}
