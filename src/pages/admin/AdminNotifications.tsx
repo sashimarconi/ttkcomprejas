@@ -401,9 +401,9 @@ interface EditorProps {
 function NotificationTypeEditor({
   type, label, settings,
   ringtoneKey, customUrlKey, titleKey, iconKey,
-  playingId, uploadingIcon, uploadingAudio, saving, testing,
+  playingId, uploadingIcon, uploadingAudio, testing,
   audioInputRef, iconInputRef,
-  onSave, onPlay, onUploadIcon, onUploadAudio, onTest,
+  onSave, onSetSettings, onPlay, onUploadIcon, onUploadAudio, onTest,
 }: EditorProps) {
   const currentRingtone = settings[ringtoneKey] as RingtoneId;
   const currentCustomUrl = settings[customUrlKey] as string | null;
