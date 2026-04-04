@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, BellOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getCurrentDeviceLabel } from "@/lib/notification-device-group";
 
 const VAPID_PUBLIC_KEY = "BFyppJtb3JtCXuKOmfiScZGFZzIQqz59-Nc4AGIxINDLgzfXe5DjW9ug_0zdlrAml28YpGfb4kWfkS9f5Oe4Q_w";
 
@@ -36,6 +37,17 @@ export default function PushNotificationToggle() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       setIsSubscribed(!!subscription);
+
+      if (subscription) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("push_subscriptions")
+            .update({ device_label: getCurrentDeviceLabel() } as any)
+            .eq("user_id", user.id)
+            .eq("endpoint", subscription.endpoint);
+        }
+      }
     } catch {
       // ignore
     }
@@ -67,19 +79,13 @@ export default function PushNotificationToggle() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Detect device type for label using UA + endpoint
-      const ua = navigator.userAgent;
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-      const isApplePush = json.endpoint?.includes('web.push.apple.com');
-      const deviceLabel = (isMobile || isApplePush) ? "Celular" : "Computador";
-
       await supabase.from("push_subscriptions").upsert(
         {
           user_id: user.id,
           endpoint: json.endpoint!,
           p256dh: json.keys!.p256dh,
           auth: json.keys!.auth,
-          device_label: deviceLabel,
+          device_label: getCurrentDeviceLabel(),
         } as any,
         { onConflict: "endpoint" }
       );
