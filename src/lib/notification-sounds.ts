@@ -1,6 +1,6 @@
 // Preset notification sounds via Web Audio API
 
-export type RingtoneId = 'cash_register' | 'coins' | 'kaching' | 'soft_chime' | 'bell' | 'custom';
+export type RingtoneId = 'none' | 'cash_register' | 'coins' | 'kaching' | 'soft_chime' | 'bell' | 'custom';
 
 export interface RingtonePreset {
   id: RingtoneId;
@@ -9,6 +9,7 @@ export interface RingtonePreset {
 }
 
 export const RINGTONE_PRESETS: RingtonePreset[] = [
+  { id: 'none', label: 'Nenhum', description: 'Sem som de notificação' },
   { id: 'cash_register', label: 'Caixa Registradora', description: 'Som clássico de caixa registradora' },
   { id: 'coins', label: 'Moedas Caindo', description: 'Efeito de moedas tilintando' },
   { id: 'kaching', label: 'Ka-ching!', description: 'Som rápido e satisfatório de venda' },
@@ -70,6 +71,7 @@ function playBell() {
 }
 
 export function playRingtone(id: RingtoneId, customUrl?: string | null) {
+  if (id === 'none') return;
   if (id === 'custom' && customUrl) {
     const audio = new Audio(customUrl);
     audio.volume = 0.7;
