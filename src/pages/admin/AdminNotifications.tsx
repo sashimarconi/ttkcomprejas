@@ -149,6 +149,44 @@ export default function AdminNotifications() {
     setUploadingAudio(false);
   }
 
+  async function handleTestNotification() {
+    setTesting(true);
+
+    // 1) In-app: play sound + show toast
+    playRingtone(settings.ringtone, settings.custom_ringtone_url);
+    const iconUrl = settings.notification_icon_url || defaultIcon;
+    toast(settings.notification_title || 'Venda Realizada', {
+      description: '🎉 Teste — Sua comissão: R$ 199,90',
+      icon: <img src={iconUrl} alt="icon" className="w-6 h-6 rounded" />,
+      duration: 5000,
+    });
+
+    // 2) Push notification via edge function
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      await fetch(`https://${projectId}.supabase.co/functions/v1/send-push-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({
+          title: settings.notification_title || 'Venda Realizada',
+          body: '🎉 Teste — Sua comissão: R$ 199,90',
+          url: '/admin/notifications',
+          tag: 'test-' + Date.now(),
+          event_type: 'order_paid',
+        }),
+      });
+    } catch (err) {
+      console.error('Push test error:', err);
+    }
+
+    setTesting(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
