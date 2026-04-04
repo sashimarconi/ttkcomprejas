@@ -113,7 +113,7 @@ export default function SaleNotification() {
     return () => { supabase.removeChannel(channel); };
   }, [paidSettings, pendingSettings, notifyPaid, notifyPending]);
 
-  async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending') {
+  async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending', playSound = true) {
     let gatewayName = "Gateway";
     try {
       const { data } = await supabase
