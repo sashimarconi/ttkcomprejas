@@ -228,16 +228,15 @@ Deno.serve(async (req) => {
     const userIds = [...new Set(subscriptions.map((s) => s.user_id))];
     const { data: settings } = await supabase
       .from("notification_settings")
-      .select("user_id, push_enabled, notify_paid, notify_pending")
+      .select("user_id, push_enabled, notify_paid, notify_pending, notification_title, notification_icon_url")
       .in("user_id", userIds);
 
     const settingsMap = new Map(
-      (settings || []).map((s) => [s.user_id, s])
+      (settings || []).map((s: any) => [s.user_id, s])
     );
 
     const filteredSubs = subscriptions.filter((sub) => {
       const prefs = settingsMap.get(sub.user_id);
-      // Default: push enabled, notify_paid true, notify_pending false
       const pushEnabled = prefs ? prefs.push_enabled : true;
       const notifyPaid = prefs ? prefs.notify_paid : true;
       const notifyPending = prefs ? prefs.notify_pending : false;
@@ -248,12 +247,20 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    const payload = {
-      title: title || "Nova venda!",
+    // Use first user's custom settings for title/icon (single-admin setup)
+    const firstUserSettings: any = filteredSubs.length > 0 ? settingsMap.get(filteredSubs[0].user_id) : null;
+    const customTitle = firstUserSettings?.notification_title || null;
+    const customIcon = firstUserSettings?.notification_icon_url || null;
+
+    const payload: any = {
+      title: title || customTitle || "Nova venda!",
       body: notifBody || "Você recebeu um novo pagamento.",
       url: notifUrl || "/admin/orders",
       tag: tag || "sale-" + Date.now(),
     };
+    if (customIcon) {
+      payload.icon = customIcon;
+    }
 
     const results = await Promise.allSettled(
       filteredSubs.map((sub) => sendPush(sub, payload, vapidPublicKey, vapidPrivateKey))
