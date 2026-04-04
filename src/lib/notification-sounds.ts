@@ -1,6 +1,6 @@
 // Preset notification sounds via Web Audio API
 
-export type RingtoneId = 'cash_register' | 'coins' | 'kaching' | 'soft_chime' | 'bell' | 'custom';
+export type RingtoneId = 'none' | 'cash_register' | 'coins' | 'kaching' | 'soft_chime' | 'bell' | 'custom';
 
 export interface RingtonePreset {
   id: RingtoneId;
