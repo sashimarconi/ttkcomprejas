@@ -613,24 +613,33 @@ export type Database = {
         Row: {
           auth: string
           created_at: string
+          device_label: string | null
           endpoint: string
           id: string
+          notify_paid: boolean
+          notify_pending: boolean
           p256dh: string
           user_id: string
         }
         Insert: {
           auth: string
           created_at?: string
+          device_label?: string | null
           endpoint: string
           id?: string
+          notify_paid?: boolean
+          notify_pending?: boolean
           p256dh: string
           user_id: string
         }
         Update: {
           auth?: string
           created_at?: string
+          device_label?: string | null
           endpoint?: string
           id?: string
+          notify_paid?: boolean
+          notify_pending?: boolean
           p256dh?: string
           user_id?: string
         }
