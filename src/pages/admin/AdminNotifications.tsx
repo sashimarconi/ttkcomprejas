@@ -39,6 +39,7 @@ export default function AdminNotifications() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [testing, setTesting] = useState(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
 
