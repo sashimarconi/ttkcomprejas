@@ -387,11 +387,11 @@ interface EditorProps {
   playingId: string | null;
   uploadingIcon: string | null;
   uploadingAudio: string | null;
-  saving: boolean;
   testing: boolean;
   audioInputRef: React.RefObject<HTMLInputElement>;
   iconInputRef: React.RefObject<HTMLInputElement>;
   onSave: (u: Partial<NotifSettings>) => void;
+  onSetSettings: React.Dispatch<React.SetStateAction<NotifSettings>>;
   onPlay: (id: RingtoneId, customUrl?: string | null) => void;
   onUploadIcon: (e: React.ChangeEvent<HTMLInputElement>, type: 'paid' | 'pending') => void;
   onUploadAudio: (e: React.ChangeEvent<HTMLInputElement>, type: 'paid' | 'pending') => void;
