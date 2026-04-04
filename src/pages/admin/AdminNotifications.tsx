@@ -148,34 +148,41 @@ export default function AdminNotifications() {
     setSaving(false);
   }
 
-  async function handleDeviceToggle(deviceId: string, field: 'notify_paid' | 'notify_pending', value: boolean) {
-    setSavingDevice(deviceId);
-    setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, [field]: value } : d));
+  async function handleGroupToggle(group: 'computer' | 'mobile', field: 'notify_paid' | 'notify_pending', value: boolean) {
+    const isMobile = group === 'mobile';
+    const groupDevices = devices.filter(d => {
+      const label = (d.device_label || '').toLowerCase();
+      return isMobile
+        ? (label.includes('celular') || label.includes('mobile'))
+        : (!label.includes('celular') && !label.includes('mobile'));
+    });
 
+    if (groupDevices.length === 0) return;
+
+    setSavingDevice(group);
+    setDevices(prev => prev.map(d => {
+      if (groupDevices.some(gd => gd.id === d.id)) {
+        return { ...d, [field]: value };
+      }
+      return d;
+    }));
+
+    const ids = groupDevices.map(d => d.id);
     const { error } = await supabase
       .from("push_subscriptions")
       .update({ [field]: value } as any)
-      .eq("id", deviceId);
+      .in("id", ids);
 
     if (error) {
-      toast.error("Erro ao salvar preferência do dispositivo");
-      setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, [field]: !value } : d));
+      toast.error("Erro ao salvar preferência");
+      setDevices(prev => prev.map(d => {
+        if (groupDevices.some(gd => gd.id === d.id)) {
+          return { ...d, [field]: !value };
+        }
+        return d;
+      }));
     }
     setSavingDevice(null);
-  }
-
-  async function handleRemoveDevice(deviceId: string) {
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .delete()
-      .eq("id", deviceId);
-
-    if (error) {
-      toast.error("Erro ao remover dispositivo");
-    } else {
-      setDevices(prev => prev.filter(d => d.id !== deviceId));
-      toast.success("Dispositivo removido");
-    }
   }
 
   function handlePlayPreset(id: RingtoneId, customUrl?: string | null) {
@@ -359,72 +366,113 @@ export default function AdminNotifications() {
                 <Monitor className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-base">Dispositivos Registrados</CardTitle>
-                <CardDescription>Escolha quais tipos de notificação cada dispositivo recebe</CardDescription>
+                <CardTitle className="text-base">Preferências por Dispositivo</CardTitle>
+                <CardDescription>Escolha quais notificações cada tipo de dispositivo recebe</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {devices.length === 0 ? (
-              <div className="text-sm text-muted-foreground text-center py-4">
-                Nenhum dispositivo registrado. Ative as notificações push em cada dispositivo desejado.
-              </div>
-            ) : (
-              devices.map((device) => (
-                <div key={device.id} className="border border-border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
+            {(() => {
+              const computers = devices.filter(d => {
+                const l = (d.device_label || '').toLowerCase();
+                return !l.includes('celular') && !l.includes('mobile');
+              });
+              const mobiles = devices.filter(d => {
+                const l = (d.device_label || '').toLowerCase();
+                return l.includes('celular') || l.includes('mobile');
+              });
+
+              const computerPaid = computers.length > 0 && computers.every(d => d.notify_paid);
+              const computerPending = computers.length > 0 && computers.every(d => d.notify_pending);
+              const mobilePaid = mobiles.length > 0 && mobiles.every(d => d.notify_paid);
+              const mobilePending = mobiles.length > 0 && mobiles.every(d => d.notify_pending);
+
+              return (
+                <div className="space-y-3">
+                  {/* Computadores */}
+                  <div className="border border-border rounded-lg p-4 space-y-3">
                     <div className="flex items-center gap-3">
-                      {device.device_label?.toLowerCase().includes('celular') || device.device_label?.toLowerCase().includes('mobile') ? (
-                        <Smartphone className="w-5 h-5 text-muted-foreground" />
-                      ) : (
-                        <Monitor className="w-5 h-5 text-muted-foreground" />
-                      )}
+                      <Monitor className="w-5 h-5 text-muted-foreground" />
                       <div>
-                        <p className="text-sm font-medium text-foreground">{device.device_label}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
-                          {device.endpoint.split('/').pop()?.slice(0, 20)}...
+                        <p className="text-sm font-medium text-foreground">Computadores</p>
+                        <p className="text-xs text-muted-foreground">
+                          {computers.length === 0 ? 'Nenhum registrado' : `${computers.length} dispositivo(s)`}
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveDevice(device.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    {computers.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-xs font-medium">Vendas pagas</span>
+                          </div>
+                          <Switch
+                            checked={computerPaid}
+                            onCheckedChange={(v) => handleGroupToggle('computer', 'notify_paid', v)}
+                            disabled={savingDevice === 'computer'}
+                            className="scale-90"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span className="text-xs font-medium">Pendentes</span>
+                          </div>
+                          <Switch
+                            checked={computerPending}
+                            onCheckedChange={(v) => handleGroupToggle('computer', 'notify_pending', v)}
+                            disabled={savingDevice === 'computer'}
+                            className="scale-90"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="text-xs font-medium">Vendas pagas</span>
+                  {/* Celulares */}
+                  <div className="border border-border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <Smartphone className="w-5 h-5 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Celulares</p>
+                        <p className="text-xs text-muted-foreground">
+                          {mobiles.length === 0 ? 'Nenhum registrado' : `${mobiles.length} dispositivo(s)`}
+                        </p>
                       </div>
-                      <Switch
-                        checked={device.notify_paid}
-                        onCheckedChange={(v) => handleDeviceToggle(device.id, 'notify_paid', v)}
-                        disabled={savingDevice === device.id}
-                        className="scale-90"
-                      />
                     </div>
-                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-amber-500" />
-                        <span className="text-xs font-medium">Pendentes</span>
+                    {mobiles.length > 0 && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <span className="text-xs font-medium">Vendas pagas</span>
+                          </div>
+                          <Switch
+                            checked={mobilePaid}
+                            onCheckedChange={(v) => handleGroupToggle('mobile', 'notify_paid', v)}
+                            disabled={savingDevice === 'mobile'}
+                            className="scale-90"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span className="text-xs font-medium">Pendentes</span>
+                          </div>
+                          <Switch
+                            checked={mobilePending}
+                            onCheckedChange={(v) => handleGroupToggle('mobile', 'notify_pending', v)}
+                            disabled={savingDevice === 'mobile'}
+                            className="scale-90"
+                          />
+                        </div>
                       </div>
-                      <Switch
-                        checked={device.notify_pending}
-                        onCheckedChange={(v) => handleDeviceToggle(device.id, 'notify_pending', v)}
-                        disabled={savingDevice === device.id}
-                        className="scale-90"
-                      />
-                    </div>
+                    )}
                   </div>
                 </div>
-              ))
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
       )}
