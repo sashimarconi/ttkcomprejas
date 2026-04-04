@@ -105,7 +105,7 @@ export default function SaleNotification() {
           const key = order.id + '-pending';
           if (processedIds.current.has(key)) return;
           processedIds.current.add(key);
-          showToast(pendingSettings, order, 'pending');
+          showToast(pendingSettings, order, 'pending', false);
         }
       )
       .subscribe();
