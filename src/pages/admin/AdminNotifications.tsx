@@ -95,6 +95,23 @@ export default function AdminNotifications() {
         notification_icon_url_pending: d.notification_icon_url_pending || null,
       });
     }
+
+    // Load registered devices
+    const { data: subs } = await supabase
+      .from("push_subscriptions")
+      .select("id, endpoint, device_label, notify_paid, notify_pending")
+      .eq("user_id", user.id);
+
+    if (subs) {
+      setDevices(subs.map((s: any) => ({
+        id: s.id,
+        endpoint: s.endpoint,
+        device_label: s.device_label || 'Dispositivo',
+        notify_paid: s.notify_paid !== false,
+        notify_pending: s.notify_pending !== false,
+      })));
+    }
+
     setLoading(false);
   }
 
