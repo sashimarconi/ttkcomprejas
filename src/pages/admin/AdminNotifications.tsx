@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, BellOff, Loader2, Smartphone, Play, Upload, Trash2, Image, Type, Volume2 } from "lucide-react";
+import { Bell, BellOff, Loader2, Smartphone, Play, Upload, Trash2, Image, Type, Volume2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
