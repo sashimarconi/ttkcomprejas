@@ -332,11 +332,11 @@ export default function AdminNotifications() {
             playingId={playingId}
             uploadingIcon={uploadingIcon}
             uploadingAudio={uploadingAudio}
-            saving={saving}
             testing={testing}
             audioInputRef={audioInputPaidRef}
             iconInputRef={iconInputPaidRef}
             onSave={save}
+            onSetSettings={setSettings}
             onPlay={handlePlayPreset}
             onUploadIcon={handleUploadIcon}
             onUploadAudio={handleUploadAudio}
@@ -357,11 +357,11 @@ export default function AdminNotifications() {
             playingId={playingId}
             uploadingIcon={uploadingIcon}
             uploadingAudio={uploadingAudio}
-            saving={saving}
             testing={testing}
             audioInputRef={audioInputPendingRef}
             iconInputRef={iconInputPendingRef}
             onSave={save}
+            onSetSettings={setSettings}
             onPlay={handlePlayPreset}
             onUploadIcon={handleUploadIcon}
             onUploadAudio={handleUploadAudio}
