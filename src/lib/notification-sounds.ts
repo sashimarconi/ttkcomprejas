@@ -9,6 +9,7 @@ export interface RingtonePreset {
 }
 
 export const RINGTONE_PRESETS: RingtonePreset[] = [
+  { id: 'none', label: 'Nenhum', description: 'Sem som de notificação' },
   { id: 'cash_register', label: 'Caixa Registradora', description: 'Som clássico de caixa registradora' },
   { id: 'coins', label: 'Moedas Caindo', description: 'Efeito de moedas tilintando' },
   { id: 'kaching', label: 'Ka-ching!', description: 'Som rápido e satisfatório de venda' },
