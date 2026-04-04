@@ -152,9 +152,9 @@ export default function AdminNotifications() {
     const isMobile = group === 'mobile';
     const groupDevices = devices.filter(d => {
       const label = (d.device_label || '').toLowerCase();
-      return isMobile
-        ? (label.includes('celular') || label.includes('mobile'))
-        : (!label.includes('celular') && !label.includes('mobile'));
+      const ep = (d.endpoint || '').toLowerCase();
+      const isMobileDevice = label.includes('celular') || label.includes('mobile') || ep.includes('web.push.apple.com') || ep.includes('fcm.googleapis.com');
+      return isMobile ? isMobileDevice : !isMobileDevice;
     });
 
     if (groupDevices.length === 0) return;
