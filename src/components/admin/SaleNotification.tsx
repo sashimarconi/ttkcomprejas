@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { DollarSign } from "lucide-react";
+
 import { playRingtone, type RingtoneId } from "@/lib/notification-sounds";
 import defaultIcon from "@/assets/notification-icon-default.png";
 
