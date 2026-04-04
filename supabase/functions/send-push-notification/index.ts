@@ -24,10 +24,7 @@ function uint8ArrayToBase64url(arr: Uint8Array): string {
 }
 
 async function generateVapidJwt(
-  audience: string,
-  subject: string,
-  privateKeyBase64url: string,
-  publicKeyBase64url: string
+  audience: string, subject: string, privateKeyBase64url: string, publicKeyBase64url: string
 ): Promise<string> {
   const header = { typ: "JWT", alg: "ES256" };
   const now = Math.floor(Date.now() / 1000);
@@ -42,111 +39,62 @@ async function generateVapidJwt(
   const cryptoKey = await crypto.subtle.importKey(
     "jwk",
     {
-      kty: "EC",
-      crv: "P-256",
+      kty: "EC", crv: "P-256",
       x: uint8ArrayToBase64url(base64urlToUint8Array(publicKeyBase64url).slice(1, 33)),
       y: uint8ArrayToBase64url(base64urlToUint8Array(publicKeyBase64url).slice(33, 65)),
       d: uint8ArrayToBase64url(privateKeyBytes),
     },
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"]
+    { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]
   );
 
   const signature = new Uint8Array(
-    await crypto.subtle.sign(
-      { name: "ECDSA", hash: { name: "SHA-256" } },
-      cryptoKey,
-      enc.encode(unsignedToken)
-    )
+    await crypto.subtle.sign({ name: "ECDSA", hash: { name: "SHA-256" } }, cryptoKey, enc.encode(unsignedToken))
   );
 
   return `${unsignedToken}.${uint8ArrayToBase64url(signature)}`;
 }
 
 async function encryptPayload(
-  p256dhKey: string,
-  authSecret: string,
-  payload: Uint8Array
+  p256dhKey: string, authSecret: string, payload: Uint8Array
 ): Promise<{ ciphertext: Uint8Array; salt: Uint8Array; localPublicKey: Uint8Array }> {
   const subscriberPublicKey = base64urlToUint8Array(p256dhKey);
   const subscriberAuth = base64urlToUint8Array(authSecret);
 
-  const localKeyPair = await crypto.subtle.generateKey(
-    { name: "ECDH", namedCurve: "P-256" },
-    true,
-    ["deriveBits"]
-  );
+  const localKeyPair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const localPublicKeyRaw = new Uint8Array(await crypto.subtle.exportKey("raw", localKeyPair.publicKey));
 
-  const localPublicKeyRaw = new Uint8Array(
-    await crypto.subtle.exportKey("raw", localKeyPair.publicKey)
-  );
-
-  const subscriberCryptoKey = await crypto.subtle.importKey(
-    "raw",
-    subscriberPublicKey,
-    { name: "ECDH", namedCurve: "P-256" },
-    false,
-    []
-  );
-
+  const subscriberCryptoKey = await crypto.subtle.importKey("raw", subscriberPublicKey, { name: "ECDH", namedCurve: "P-256" }, false, []);
   const sharedSecret = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      { name: "ECDH", public: subscriberCryptoKey },
-      localKeyPair.privateKey,
-      256
-    )
+    await crypto.subtle.deriveBits({ name: "ECDH", public: subscriberCryptoKey }, localKeyPair.privateKey, 256)
   );
 
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const enc = new TextEncoder();
 
-  // IKM: auth secret is the HKDF salt, shared secret is the input key material
-  const authInfo = new Uint8Array([
-    ...enc.encode("WebPush: info\0"),
-    ...subscriberPublicKey,
-    ...localPublicKeyRaw,
-  ]);
+  const authInfo = new Uint8Array([...enc.encode("WebPush: info\0"), ...subscriberPublicKey, ...localPublicKeyRaw]);
   const authHkdfKey = await crypto.subtle.importKey("raw", sharedSecret, "HKDF", false, ["deriveBits"]);
   const ikm = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt: subscriberAuth, info: authInfo },
-      authHkdfKey,
-      256
-    )
+    await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: subscriberAuth, info: authInfo }, authHkdfKey, 256)
   );
 
-  // PRK
   const prkKey = await crypto.subtle.importKey("raw", ikm, "HKDF", false, ["deriveBits"]);
 
-  // CEK
   const cekInfo = new Uint8Array([...enc.encode("Content-Encoding: aes128gcm\0")]);
   const cek = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt, info: cekInfo },
-      prkKey,
-      128
-    )
+    await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: cekInfo }, prkKey, 128)
   );
 
-  // Nonce
   const nonceInfo = new Uint8Array([...enc.encode("Content-Encoding: nonce\0")]);
   const nonce = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      { name: "HKDF", hash: "SHA-256", salt, info: nonceInfo },
-      prkKey,
-      96
-    )
+    await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt, info: nonceInfo }, prkKey, 96)
   );
 
-  // Pad and encrypt
-  const paddedPayload = new Uint8Array([...payload, 2]); // delimiter
+  const paddedPayload = new Uint8Array([...payload, 2]);
   const aesKey = await crypto.subtle.importKey("raw", cek, "AES-GCM", false, ["encrypt"]);
   const encrypted = new Uint8Array(
     await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, paddedPayload)
   );
 
-  // Build aes128gcm body
   const recordSize = encrypted.length + 86;
   const header = new Uint8Array(86);
   header.set(salt, 0);
@@ -163,16 +111,13 @@ async function encryptPayload(
 
 async function sendPush(
   subscription: { endpoint: string; p256dh: string; auth: string },
-  payload: object,
-  vapidPublicKey: string,
-  vapidPrivateKey: string
+  payload: object, vapidPublicKey: string, vapidPrivateKey: string
 ) {
   const url = new URL(subscription.endpoint);
   const audience = `${url.protocol}//${url.host}`;
   const subject = "mailto:admin@ttkcompras.com";
 
   const jwt = await generateVapidJwt(audience, subject, vapidPrivateKey, vapidPublicKey);
-
   const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
   const { ciphertext } = await encryptPayload(subscription.p256dh, subscription.auth, payloadBytes);
 
@@ -204,7 +149,6 @@ Deno.serve(async (req) => {
 
     const { title, body: notifBody, url: notifUrl, tag, event_type } = await req.json();
 
-    // Get all push subscriptions with user preferences
     const { data: subscriptions, error } = await supabase
       .from("push_subscriptions")
       .select("endpoint, p256dh, auth, user_id");
@@ -212,28 +156,23 @@ Deno.serve(async (req) => {
     if (error) {
       console.error("Error fetching subscriptions:", error);
       return new Response(JSON.stringify({ error: "Failed to fetch subscriptions" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!subscriptions?.length) {
       return new Response(JSON.stringify({ sent: 0 }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Filter subscriptions by notification preferences
     const userIds = [...new Set(subscriptions.map((s) => s.user_id))];
     const { data: settings } = await supabase
       .from("notification_settings")
-      .select("user_id, push_enabled, notify_paid, notify_pending, notification_title, notification_icon_url")
+      .select("user_id, push_enabled, notify_paid, notify_pending, notification_title, notification_icon_url, notification_title_pending, notification_icon_url_pending")
       .in("user_id", userIds);
 
-    const settingsMap = new Map(
-      (settings || []).map((s: any) => [s.user_id, s])
-    );
+    const settingsMap = new Map((settings || []).map((s: any) => [s.user_id, s]));
 
     const filteredSubs = subscriptions.filter((sub) => {
       const prefs = settingsMap.get(sub.user_id);
@@ -247,14 +186,20 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    // Use first user's custom settings for title/icon (single-admin setup)
+    // Use type-specific settings
     const firstUserSettings: any = filteredSubs.length > 0 ? settingsMap.get(filteredSubs[0].user_id) : null;
-    const customTitle = firstUserSettings?.notification_title || null;
-    const customIcon = firstUserSettings?.notification_icon_url || null;
+    const isPaid = event_type !== "order_pending";
+
+    const customTitle = isPaid
+      ? (firstUserSettings?.notification_title || null)
+      : (firstUserSettings?.notification_title_pending || null);
+    const customIcon = isPaid
+      ? (firstUserSettings?.notification_icon_url || null)
+      : (firstUserSettings?.notification_icon_url_pending || null);
 
     const payload: any = {
-      title: title || customTitle || "Nova venda!",
-      body: notifBody || "Você recebeu um novo pagamento.",
+      title: title || customTitle || (isPaid ? "Nova venda!" : "Novo pedido pendente"),
+      body: notifBody || (isPaid ? "Você recebeu um novo pagamento." : "Um novo PIX foi gerado."),
       url: notifUrl || "/admin/orders",
       tag: tag || "sale-" + Date.now(),
     };
@@ -266,7 +211,6 @@ Deno.serve(async (req) => {
       filteredSubs.map((sub) => sendPush(sub, payload, vapidPublicKey, vapidPrivateKey))
     );
 
-    // Clean up expired subscriptions (410 Gone)
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
       if (result.status === "fulfilled" && result.value.status === 410) {
@@ -274,21 +218,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    const sent = results.filter(
-      (r) => r.status === "fulfilled" && r.value.ok
-    ).length;
-
+    const sent = results.filter((r) => r.status === "fulfilled" && r.value.ok).length;
     console.log(`Push notifications sent: ${sent}/${filteredSubs.length} (${subscriptions.length} total subs)`);
 
     return new Response(JSON.stringify({ sent, total: filteredSubs.length }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("Push notification error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
