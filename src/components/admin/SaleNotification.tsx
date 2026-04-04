@@ -131,7 +131,9 @@ export default function SaleNotification() {
       }
     } catch {}
 
-    playRingtone(s.ringtone, s.custom_ringtone_url);
+    if (playSound) {
+      playRingtone(s.ringtone, s.custom_ringtone_url);
+    }
 
     const iconUrl = s.notification_icon_url || defaultIcon;
     const title = s.notification_title || (type === 'paid' ? 'Venda Realizada' : 'Novo Pedido Pendente');
