@@ -312,7 +312,7 @@ export default function AdminNotifications() {
         </p>
       </div>
 
-      {/* Push toggle + types */}
+      {/* Push toggle */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -321,7 +321,7 @@ export default function AdminNotifications() {
             </div>
             <div>
               <CardTitle className="text-base">Notificações Push</CardTitle>
-              <CardDescription>Receba alertas no celular quando houver vendas</CardDescription>
+              <CardDescription>Receba alertas nos seus dispositivos quando houver vendas</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -331,7 +331,7 @@ export default function AdminNotifications() {
               <Bell className="w-4 h-4 text-muted-foreground" />
               <div>
                 <Label className="text-sm font-medium">Ativar notificações push</Label>
-                <p className="text-xs text-muted-foreground">Habilita o envio de notificações para o seu dispositivo</p>
+                <p className="text-xs text-muted-foreground">Habilita o envio de notificações para seus dispositivos</p>
               </div>
             </div>
             <Switch
@@ -339,38 +339,6 @@ export default function AdminNotifications() {
               onCheckedChange={(v) => save({ push_enabled: v })}
               disabled={saving}
             />
-          </div>
-
-          <div className="border-t border-border pt-4 space-y-4">
-            <p className="text-sm font-semibold text-foreground">Tipos de notificação</p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                <div>
-                  <Label className="text-sm font-medium">Vendas pagas</Label>
-                  <p className="text-xs text-muted-foreground">Notificar quando um pagamento for confirmado</p>
-                </div>
-              </div>
-              <Switch
-                checked={settings.notify_paid}
-                onCheckedChange={(v) => save({ notify_paid: v })}
-                disabled={saving || !settings.push_enabled}
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-amber-500" />
-                <div>
-                  <Label className="text-sm font-medium">Vendas geradas (pendentes)</Label>
-                  <p className="text-xs text-muted-foreground">Notificar quando um pedido for criado (PIX gerado)</p>
-                </div>
-              </div>
-              <Switch
-                checked={settings.notify_pending}
-                onCheckedChange={(v) => save({ notify_pending: v })}
-                disabled={saving || !settings.push_enabled}
-              />
-            </div>
           </div>
 
           {!settings.push_enabled && (
@@ -381,6 +349,85 @@ export default function AdminNotifications() {
           )}
         </CardContent>
       </Card>
+
+      {/* Per-device management */}
+      {settings.push_enabled && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Monitor className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Dispositivos Registrados</CardTitle>
+                <CardDescription>Escolha quais tipos de notificação cada dispositivo recebe</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {devices.length === 0 ? (
+              <div className="text-sm text-muted-foreground text-center py-4">
+                Nenhum dispositivo registrado. Ative as notificações push em cada dispositivo desejado.
+              </div>
+            ) : (
+              devices.map((device) => (
+                <div key={device.id} className="border border-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {device.device_label?.toLowerCase().includes('celular') || device.device_label?.toLowerCase().includes('mobile') ? (
+                        <Smartphone className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <Monitor className="w-5 h-5 text-muted-foreground" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{device.device_label}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-[300px]">
+                          {device.endpoint.split('/').pop()?.slice(0, 20)}...
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveDevice(device.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <span className="text-xs font-medium">Vendas pagas</span>
+                      </div>
+                      <Switch
+                        checked={device.notify_paid}
+                        onCheckedChange={(v) => handleDeviceToggle(device.id, 'notify_paid', v)}
+                        disabled={savingDevice === device.id}
+                        className="scale-90"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                        <span className="text-xs font-medium">Pendentes</span>
+                      </div>
+                      <Switch
+                        checked={device.notify_pending}
+                        onCheckedChange={(v) => handleDeviceToggle(device.id, 'notify_pending', v)}
+                        disabled={savingDevice === device.id}
+                        className="scale-90"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Per-type customization */}
       <Tabs defaultValue="paid" className="space-y-4">
