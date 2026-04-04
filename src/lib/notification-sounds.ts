@@ -71,6 +71,7 @@ function playBell() {
 }
 
 export function playRingtone(id: RingtoneId, customUrl?: string | null) {
+  if (id === 'none') return;
   if (id === 'custom' && customUrl) {
     const audio = new Audio(customUrl);
     audio.volume = 0.7;
