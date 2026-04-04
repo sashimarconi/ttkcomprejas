@@ -148,6 +148,36 @@ export default function AdminNotifications() {
     setSaving(false);
   }
 
+  async function handleDeviceToggle(deviceId: string, field: 'notify_paid' | 'notify_pending', value: boolean) {
+    setSavingDevice(deviceId);
+    setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, [field]: value } : d));
+
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .update({ [field]: value } as any)
+      .eq("id", deviceId);
+
+    if (error) {
+      toast.error("Erro ao salvar preferência do dispositivo");
+      setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, [field]: !value } : d));
+    }
+    setSavingDevice(null);
+  }
+
+  async function handleRemoveDevice(deviceId: string) {
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("id", deviceId);
+
+    if (error) {
+      toast.error("Erro ao remover dispositivo");
+    } else {
+      setDevices(prev => prev.filter(d => d.id !== deviceId));
+      toast.success("Dispositivo removido");
+    }
+  }
+
   function handlePlayPreset(id: RingtoneId, customUrl?: string | null) {
     setPlayingId(id);
     playRingtone(id, customUrl);
