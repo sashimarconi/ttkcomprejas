@@ -88,6 +88,7 @@ export default function SaleNotification() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders", filter: "payment_status=eq.paid" },
         async (payload) => {
+          if (!notifyPaid) return;
           const order = payload.new as any;
           if (processedIds.current.has(order.id)) return;
           processedIds.current.add(order.id);
@@ -98,6 +99,7 @@ export default function SaleNotification() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders" },
         async (payload) => {
+          if (!notifyPending) return;
           const order = payload.new as any;
           if (order.payment_status !== 'pending') return;
           const key = order.id + '-pending';
@@ -109,7 +111,7 @@ export default function SaleNotification() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [paidSettings, pendingSettings]);
+  }, [paidSettings, pendingSettings, notifyPaid, notifyPending]);
 
   async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending') {
     let gatewayName = "Gateway";
