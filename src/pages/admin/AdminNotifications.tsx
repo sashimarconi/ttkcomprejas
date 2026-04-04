@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Bell, BellOff, Loader2, Smartphone, Play, Upload, Trash2, Image, Type, Volume2 } from "lucide-react";
+import { Bell, BellOff, Loader2, Smartphone, Play, Upload, Trash2, Image, Type, Volume2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +39,7 @@ export default function AdminNotifications() {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [testing, setTesting] = useState(false);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
 
@@ -146,6 +147,44 @@ export default function AdminNotifications() {
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     await save({ ringtone: 'custom', custom_ringtone_url: urlData.publicUrl });
     setUploadingAudio(false);
+  }
+
+  async function handleTestNotification() {
+    setTesting(true);
+
+    // 1) In-app: play sound + show toast
+    playRingtone(settings.ringtone, settings.custom_ringtone_url);
+    const iconUrl = settings.notification_icon_url || defaultIcon;
+    toast(settings.notification_title || 'Venda Realizada', {
+      description: '🎉 Teste — Sua comissão: R$ 199,90',
+      icon: <img src={iconUrl} alt="icon" className="w-6 h-6 rounded" />,
+      duration: 5000,
+    });
+
+    // 2) Push notification via edge function
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      await fetch(`https://${projectId}.supabase.co/functions/v1/send-push-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({
+          title: settings.notification_title || 'Venda Realizada',
+          body: '🎉 Teste — Sua comissão: R$ 199,90',
+          url: '/admin/notifications',
+          tag: 'test-' + Date.now(),
+          event_type: 'order_paid',
+        }),
+      });
+    } catch (err) {
+      console.error('Push test error:', err);
+    }
+
+    setTesting(false);
   }
 
   if (loading) {
@@ -482,6 +521,33 @@ export default function AdminNotifications() {
             />
             <p className="text-xs text-muted-foreground">Texto principal exibido no topo da notificação</p>
           </div>
+        </CardContent>
+      </Card>
+      {/* Test Notification */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Send className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Testar Notificação</CardTitle>
+              <CardDescription>Dispara uma notificação de teste no app e no celular (push)</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={handleTestNotification}
+            disabled={testing}
+            className="w-full sm:w-auto"
+          >
+            {testing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            Enviar notificação de teste
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">
+            O toast aparece imediatamente no app. A push chega no celular se as notificações estiverem ativadas.
+          </p>
         </CardContent>
       </Card>
     </div>
