@@ -148,34 +148,41 @@ export default function AdminNotifications() {
     setSaving(false);
   }
 
-  async function handleDeviceToggle(deviceId: string, field: 'notify_paid' | 'notify_pending', value: boolean) {
-    setSavingDevice(deviceId);
-    setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, [field]: value } : d));
+  async function handleGroupToggle(group: 'computer' | 'mobile', field: 'notify_paid' | 'notify_pending', value: boolean) {
+    const isMobile = group === 'mobile';
+    const groupDevices = devices.filter(d => {
+      const label = (d.device_label || '').toLowerCase();
+      return isMobile
+        ? (label.includes('celular') || label.includes('mobile'))
+        : (!label.includes('celular') && !label.includes('mobile'));
+    });
 
+    if (groupDevices.length === 0) return;
+
+    setSavingDevice(group);
+    setDevices(prev => prev.map(d => {
+      if (groupDevices.some(gd => gd.id === d.id)) {
+        return { ...d, [field]: value };
+      }
+      return d;
+    }));
+
+    const ids = groupDevices.map(d => d.id);
     const { error } = await supabase
       .from("push_subscriptions")
       .update({ [field]: value } as any)
-      .eq("id", deviceId);
+      .in("id", ids);
 
     if (error) {
-      toast.error("Erro ao salvar preferência do dispositivo");
-      setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, [field]: !value } : d));
+      toast.error("Erro ao salvar preferência");
+      setDevices(prev => prev.map(d => {
+        if (groupDevices.some(gd => gd.id === d.id)) {
+          return { ...d, [field]: !value };
+        }
+        return d;
+      }));
     }
     setSavingDevice(null);
-  }
-
-  async function handleRemoveDevice(deviceId: string) {
-    const { error } = await supabase
-      .from("push_subscriptions")
-      .delete()
-      .eq("id", deviceId);
-
-    if (error) {
-      toast.error("Erro ao remover dispositivo");
-    } else {
-      setDevices(prev => prev.filter(d => d.id !== deviceId));
-      toast.success("Dispositivo removido");
-    }
   }
 
   function handlePlayPreset(id: RingtoneId, customUrl?: string | null) {
