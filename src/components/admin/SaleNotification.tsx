@@ -18,6 +18,8 @@ interface TypeSettings {
 
 export default function SaleNotification() {
   const processedIds = useRef(new Set<string>());
+  const [notifyPaid, setNotifyPaid] = useState(true);
+  const [notifyPending, setNotifyPending] = useState(false);
   const [paidSettings, setPaidSettings] = useState<TypeSettings>({
     ringtone: 'cash_register',
     custom_ringtone_url: null,
@@ -42,6 +44,8 @@ export default function SaleNotification() {
         .maybeSingle();
       if (data) {
         const d = data as any;
+        setNotifyPaid(d.notify_paid !== false);
+        setNotifyPending(d.notify_pending === true);
         setPaidSettings({
           ringtone: d.ringtone || 'cash_register',
           custom_ringtone_url: d.custom_ringtone_url || null,
@@ -54,6 +58,24 @@ export default function SaleNotification() {
           notification_title: d.notification_title_pending || 'Novo Pedido Pendente',
           notification_icon_url: d.notification_icon_url_pending || null,
         });
+      }
+
+      // Also check device-level prefs for this specific device (computer)
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("notify_paid, notify_pending, device_label")
+        .eq("user_id", user.id);
+      
+      if (subs && subs.length > 0) {
+        // Find computer subscriptions (not celular/mobile)
+        const computerSubs = subs.filter((s: any) => {
+          const l = (s.device_label || '').toLowerCase();
+          return !l.includes('celular') && !l.includes('mobile');
+        });
+        if (computerSubs.length > 0) {
+          setNotifyPaid(computerSubs.every((s: any) => s.notify_paid !== false));
+          setNotifyPending(computerSubs.every((s: any) => s.notify_pending !== false));
+        }
       }
     }
     loadSettings();
