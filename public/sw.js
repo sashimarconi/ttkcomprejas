@@ -1,4 +1,10 @@
-// Service Worker - Push Notifications only (no caching)
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(clients.claim());
+});
 
 self.addEventListener("push", (event) => {
   let data = { title: "Nova venda!", body: "Você recebeu um novo pagamento." };
@@ -7,18 +13,19 @@ self.addEventListener("push", (event) => {
       data = event.data.json();
     }
   } catch (e) {
-    // fallback to default
   }
 
+  const isSilent = data.silent === true;
   const options = {
     body: data.body,
     icon: data.icon || "/icon-192.png",
     badge: data.icon || "/icon-192.png",
-    vibrate: [200, 100, 200],
     tag: data.tag || "sale-notification",
+    silent: isSilent,
     data: {
       url: data.url || "/admin/orders",
     },
+    ...(isSilent ? {} : { vibrate: [200, 100, 200] }),
   };
 
   event.waitUntil(self.registration.showNotification(data.title, options));

@@ -289,6 +289,7 @@ export default function AdminNotifications() {
           icon: iconUrl,
           badge: iconUrl,
           tag: 'test-local-' + Date.now(),
+          silent: !isPaid,
           data: { url: '/admin/notifications' },
         } as NotificationOptions);
       }
