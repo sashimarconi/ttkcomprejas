@@ -113,9 +113,7 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     });
   }, [visitors, dims, pan.x, pan.y, zoom]);
 
-  // Zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-  // Zoom — must use native listener to prevent page scroll (React onWheel is passive)
+  // Zoom — native listener to prevent page scroll (React onWheel is passive)
   const svgRef = useRef<SVGSVGElement>(null);
   useEffect(() => {
     const svg = svgRef.current;
