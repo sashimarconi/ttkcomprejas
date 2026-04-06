@@ -201,7 +201,8 @@ async function callDuck(gateway: any, body: any, items: any[], webhookUrl: strin
 async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl: string) {
   // Hiso Unique uses Basic Auth: Base64(PUBLIC_KEY:SECRET_KEY)
   const authToken = btoa(`${gateway.public_key}:${gateway.secret_key}`);
-  
+  const docRaw = body.customerDocument.replace(/\D/g, "");
+
   const res = await fetch("https://api.hiso.com.br/v1/payment-transaction/create", {
     method: "POST",
     headers: {
@@ -217,7 +218,10 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
         name: body.customerName,
         email: body.customerEmail,
         phone: body.customerPhone.replace(/\D/g, ""),
-        document: body.customerDocument.replace(/\D/g, ""),
+        document: {
+          type: docRaw.length <= 11 ? "cpf" : "cnpj",
+          number: docRaw,
+        },
       },
       items: items.map((item) => ({
         title: item.title,
@@ -237,29 +241,33 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
   console.log("HiSo response:", JSON.stringify(data));
   if (!res.ok) throw { status: res.status, data };
 
-  // HiSo webhook format has Id, Status fields
-  // Response likely has transaction id and pix data
-  const txn = data.data ?? data.transaction ?? data;
-  const pix = txn?.pix ?? txn?.paymentData ?? txn;
-
+  // HiSo returns fields with capital letters: Id, Status, Pix, etc.
   return {
     transactionId: pickString(
-      txn?.Id, txn?.id, txn?.transactionId, txn?.transaction_id,
       data?.Id, data?.id, data?.transactionId, data?.transaction_id,
+      data?.data?.Id, data?.data?.id,
     ),
     qrCode: pickString(
-      pix?.qrCode, pix?.qr_code, pix?.qrCodeUrl, pix?.qr_code_url,
+      data?.Pix?.QrCode, data?.Pix?.qr_code,
+      data?.pix?.qrCode, data?.pix?.qr_code,
+      data?.pix?.QrCode,
+      data?.QrCodeUrl, data?.qr_code_url,
     ),
     copyPaste: pickString(
-      pix?.copyPaste, pix?.copy_paste, pix?.code,
-      pix?.qrCode, pix?.qr_code,
-      pix?.pixCode, pix?.pix_code,
+      data?.Pix?.CopyPaste, data?.Pix?.Code, data?.Pix?.EmvCode,
+      data?.pix?.copyPaste, data?.pix?.copy_paste, data?.pix?.code, data?.pix?.emvCode,
+      data?.Pix?.QrCode, data?.pix?.qrCode, data?.pix?.qr_code,
+      data?.CopyPaste, data?.copy_paste, data?.emv_code,
     ),
     qrCodeBase64: pickString(
-      pix?.qrCodeBase64, pix?.qr_code_base64,
+      data?.Pix?.QrCodeBase64, data?.Pix?.qr_code_base64,
+      data?.pix?.qrCodeBase64, data?.pix?.qr_code_base64,
+      data?.QrCodeBase64, data?.qr_code_base64,
     ),
     expiresAt: pickString(
-      pix?.expiresAt, pix?.expires_at, pix?.expiration_date,
+      data?.Pix?.ExpiresAt, data?.Pix?.expires_at,
+      data?.pix?.expiresAt, data?.pix?.expires_at,
+      data?.ExpiresAt, data?.expires_at, data?.expiration_date,
     ),
   };
 }
