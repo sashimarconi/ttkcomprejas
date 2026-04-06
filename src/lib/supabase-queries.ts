@@ -28,6 +28,7 @@ export interface ProductWithRelations {
   active: boolean | null;
   sort_order: number | null;
   video_url: string | null;
+  thank_you_url: string | null;
   product_images: { id: string; url: string; alt: string | null; sort_order: number | null }[];
   product_variants: { id: string; name: string; color: string | null; thumbnail_url: string | null; sort_order: number | null; variant_group_id: string | null }[];
   variant_groups: VariantGroup[];
@@ -112,6 +113,7 @@ export async function fetchProductBySlug(slug: string) {
       active,
       sort_order,
       video_url,
+      thank_you_url,
       product_images(id, url, alt, sort_order),
       product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
       variant_groups(id, name, sort_order)
