@@ -115,8 +115,17 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
 
   // Zoom
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom(z => Math.max(0.8, Math.min(15, z * (e.deltaY < 0 ? 1.15 : 0.87))));
+  // Zoom — must use native listener to prevent page scroll (React onWheel is passive)
+  const svgRef = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      setZoom(z => Math.max(0.8, Math.min(15, z * (e.deltaY < 0 ? 1.15 : 0.87))));
+    };
+    svg.addEventListener("wheel", handler, { passive: false });
+    return () => svg.removeEventListener("wheel", handler);
   }, []);
 
   // Pan
