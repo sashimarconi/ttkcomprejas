@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 
 interface LiveGlobeProps {
   visitors: { session_id: string; latitude?: number | null; longitude?: number | null }[];
   className?: string;
 }
-
-const SERVER_LAT = -23.55;
-const SERVER_LNG = -46.63;
 
 function sessionToCoords(sessionId: string): { lat: number; lng: number } {
   let hash = 0;
@@ -19,19 +16,28 @@ function sessionToCoords(sessionId: string): { lat: number; lng: number } {
   return { lat, lng };
 }
 
-// Simple Mercator projection
-function project(lat: number, lng: number, width: number, height: number) {
-  const x = ((lng + 180) / 360) * width;
+function project(lat: number, lng: number, width: number, height: number, pan: { x: number; y: number }, zoom: number) {
+  const cx = width / 2;
+  const cy = height / 2;
+  const baseX = ((lng + 180) / 360) * width;
   const latRad = (lat * Math.PI) / 180;
   const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
-  const y = height / 2 - (mercN / Math.PI) * (height / 2);
-  return { x, y };
+  const baseY = height / 2 - (mercN / Math.PI) * (height / 2);
+  return {
+    x: (baseX - cx) * zoom + cx + pan.x,
+    y: (baseY - cy) * zoom + cy + pan.y,
+  };
 }
 
 export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 400, height: 300 });
-  const [worldPath, setWorldPath] = useState<string>("");
+  const [worldPath, setWorldPath] = useState("");
+  const [zoom, setZoom] = useState(2.8);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -43,100 +49,138 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     return () => obs.disconnect();
   }, []);
 
-  // Load simplified world outline
+  // Center on Brazil initially
+  useEffect(() => {
+    const { width, height } = dimensions;
+    const cx = width / 2;
+    const cy = height / 2;
+    const targetX = ((-50 + 180) / 360) * width;
+    const latRad = (-15 * Math.PI) / 180;
+    const mercN = Math.log(Math.tan(Math.PI / 4 + latRad / 2));
+    const targetY = height / 2 - (mercN / Math.PI) * (height / 2);
+    setPan({ x: -(targetX - cx) * 2.8, y: -(targetY - cy) * 2.8 });
+  }, [dimensions.width, dimensions.height]);
+
+  // Build world path per zoom/pan
+  const buildPath = useCallback((topoData: any, w: number, h: number, p: { x: number; y: number }, z: number) => {
+    import("topojson-client").then(topojson => {
+      const land = topojson.feature(topoData, topoData.objects.land) as any;
+      const features = land.features || [land];
+      let path = "";
+      for (const feature of features) {
+        const coords = feature.geometry?.coordinates || [];
+        const rings = feature.geometry?.type === "MultiPolygon"
+          ? coords.flatMap((poly: any) => poly)
+          : coords;
+        for (const ring of rings) {
+          if (!Array.isArray(ring) || ring.length < 2) continue;
+          const pts = ring.map(([lng, lat]: [number, number]) => project(lat, lng, w, h, p, z));
+          path += `M${pts.map((pt: any) => `${pt.x.toFixed(1)},${pt.y.toFixed(1)}`).join("L")}Z `;
+        }
+      }
+      setWorldPath(path);
+    });
+  }, []);
+
+  const topoRef = useRef<any>(null);
+
   useEffect(() => {
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json")
       .then(r => r.json())
-      .then(async (topoData) => {
-        const topojson = await import("topojson-client");
-        const land = topojson.feature(topoData, topoData.objects.land) as any;
-        const features = land.features || [land];
-        // Build SVG path from GeoJSON
-        const { width, height } = dimensions;
-        let path = "";
-        for (const feature of features) {
-          const coords = feature.geometry?.coordinates || [];
-          const rings = feature.geometry?.type === "MultiPolygon"
-            ? coords.flatMap((poly: any) => poly)
-            : coords;
-          for (const ring of rings) {
-            if (!Array.isArray(ring) || ring.length < 2) continue;
-            const pts = ring.map(([lng, lat]: [number, number]) => project(lat, lng, width, height));
-            path += `M${pts.map((p: any) => `${p.x},${p.y}`).join("L")}Z `;
-          }
-        }
-        setWorldPath(path);
+      .then(data => {
+        topoRef.current = data;
+        buildPath(data, dimensions.width, dimensions.height, pan, zoom);
       })
       .catch(console.error);
-  }, [dimensions.width, dimensions.height]);
+  }, []);
+
+  useEffect(() => {
+    if (topoRef.current) {
+      buildPath(topoRef.current, dimensions.width, dimensions.height, pan, zoom);
+    }
+  }, [dimensions.width, dimensions.height, pan.x, pan.y, zoom, buildPath]);
 
   const points = useMemo(() => {
     return visitors.map(v => {
       const hasReal = v.latitude != null && v.longitude != null && v.latitude !== 0 && v.longitude !== 0;
       const lat = hasReal ? v.latitude! : sessionToCoords(v.session_id).lat;
       const lng = hasReal ? v.longitude! : sessionToCoords(v.session_id).lng;
-      return { ...project(lat, lng, dimensions.width, dimensions.height), id: v.session_id };
+      return { ...project(lat, lng, dimensions.width, dimensions.height, pan, zoom), id: v.session_id };
     });
-  }, [visitors, dimensions]);
+  }, [visitors, dimensions, pan, zoom]);
 
-  const serverPt = useMemo(
-    () => project(SERVER_LAT, SERVER_LNG, dimensions.width, dimensions.height),
-    [dimensions]
-  );
+  // Zoom with wheel
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    setZoom(z => Math.max(0.8, Math.min(15, z * (e.deltaY < 0 ? 1.15 : 0.87))));
+  }, []);
 
+  // Pan with drag
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragging) return;
+    setPan({
+      x: dragStart.current.panX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.panY + (e.clientY - dragStart.current.y),
+    });
+  }, [dragging]);
+
+  const handleMouseUp = useCallback(() => setDragging(false), []);
+
+  // Pulse animation
   const [pulse, setPulse] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => setPulse(p => (p + 1) % 60), 50);
+    const interval = setInterval(() => setPulse(p => (p + 1) % 120), 40);
     return () => clearInterval(interval);
   }, []);
+
+  const dotRadius = Math.max(2, 4 / Math.sqrt(zoom));
 
   return (
     <div
       ref={containerRef}
       className={className}
-      style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}
+      style={{ width: "100%", height: "100%", overflow: "hidden", cursor: dragging ? "grabbing" : "grab" }}
     >
-      <svg width={dimensions.width} height={dimensions.height} viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}>
+      <svg
+        ref={svgRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ display: "block" }}
+      >
+        <defs>
+          <radialGradient id="dot-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#4ADE80" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#4ADE80" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
         <rect width="100%" height="100%" fill="transparent" />
 
-        {/* World map */}
         {worldPath && (
           <path
             d={worldPath}
-            fill="rgba(100, 60, 200, 0.12)"
-            stroke="rgba(140, 100, 230, 0.35)"
+            fill="rgba(100, 60, 200, 0.1)"
+            stroke="rgba(140, 100, 230, 0.3)"
             strokeWidth={0.5}
           />
         )}
 
-        {/* Arcs from visitors to server */}
-        {points.map((p) => {
-          const midX = (p.x + serverPt.x) / 2;
-          const midY = Math.min(p.y, serverPt.y) - 30;
-          return (
-            <path
-              key={p.id}
-              d={`M${p.x},${p.y} Q${midX},${midY} ${serverPt.x},${serverPt.y}`}
-              fill="none"
-              stroke="rgba(74, 222, 128, 0.3)"
-              strokeWidth={1}
-              strokeDasharray="4 3"
-              strokeDashoffset={-pulse}
-            />
-          );
-        })}
-
-        {/* Visitor dots */}
         {points.map((p) => (
           <g key={p.id}>
-            <circle cx={p.x} cy={p.y} r={3} fill="#4ADE80" opacity={0.8} />
-            <circle cx={p.x} cy={p.y} r={6} fill="none" stroke="#4ADE80" strokeWidth={0.5} opacity={0.4 + Math.sin(pulse / 10) * 0.2} />
+            <circle cx={p.x} cy={p.y} r={dotRadius * 2.5} fill="url(#dot-glow)" opacity={0.5 + Math.sin(pulse / 15) * 0.2} />
+            <circle cx={p.x} cy={p.y} r={dotRadius} fill="#4ADE80" opacity={0.9} />
           </g>
         ))}
-
-        {/* Server dot */}
-        <circle cx={serverPt.x} cy={serverPt.y} r={5} fill="#a78bfa" opacity={0.9} />
-        <circle cx={serverPt.x} cy={serverPt.y} r={10} fill="none" stroke="#a78bfa" strokeWidth={0.5} opacity={0.3 + Math.sin(pulse / 8) * 0.2} />
       </svg>
     </div>
   );
