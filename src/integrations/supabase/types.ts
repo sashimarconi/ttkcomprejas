@@ -56,6 +56,30 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_pin: {
+        Row: {
+          created_at: string
+          id: string
+          pin_hash: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pin_hash: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pin_hash?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       checkout_builder_config: {
         Row: {
           config: Json
@@ -1065,7 +1089,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      set_admin_pin: { Args: { p_pin: string }; Returns: undefined }
+      verify_admin_pin: { Args: { p_pin: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
