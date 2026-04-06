@@ -112,6 +112,7 @@ export async function fetchProductBySlug(slug: string) {
       active,
       sort_order,
       video_url,
+      thank_you_url,
       product_images(id, url, alt, sort_order),
       product_variants(id, name, color, thumbnail_url, sort_order, variant_group_id),
       variant_groups(id, name, sort_order)
