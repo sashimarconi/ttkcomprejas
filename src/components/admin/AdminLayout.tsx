@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Package, Star, ShieldCheck, LogOut, Menu, CreditCard, Truck, Tag,
   BarChart3, LayoutDashboard, ClipboardList, Store, PenTool, Radio,
-  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart, Webhook, Bell
+  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart, Webhook, Bell, Lock
 } from "lucide-react";
+import PinGate from "@/components/admin/PinGate";
 import { cn } from "@/lib/utils";
 import SaleNotification from "@/components/admin/SaleNotification";
 import PushNotificationToggle from "@/components/admin/PushNotificationToggle";
@@ -56,6 +57,7 @@ const navSections = [
     title: "Configurações",
     items: [
       { label: "Notificações", path: "/admin/notifications", icon: Bell },
+      { label: "Segurança", path: "/admin/security", icon: Lock },
     ],
   },
 ];
@@ -64,6 +66,7 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [pinVerified, setPinVerified] = useState(() => sessionStorage.getItem("admin_pin_verified") === "true");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
@@ -103,6 +106,7 @@ const AdminLayout = () => {
   }, [navigate]);
 
   const handleLogout = async () => {
+    sessionStorage.removeItem("admin_pin_verified");
     await supabase.auth.signOut();
     navigate("/admin/login");
   };
@@ -113,6 +117,10 @@ const AdminLayout = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
+  }
+
+  if (!pinVerified) {
+    return <PinGate onSuccess={() => setPinVerified(true)} />;
   }
 
   const isActive = (path: string) => {

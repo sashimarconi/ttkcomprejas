@@ -28,6 +28,7 @@ const AdminPixels = lazy(() => import("./pages/admin/AdminPixels"));
 const AdminWebhooks = lazy(() => import("./pages/admin/AdminWebhooks"));
 const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
 const AdminStores = lazy(() => import("./pages/admin/AdminStores"));
+const AdminSecurity = lazy(() => import("./pages/admin/AdminSecurity"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -68,6 +69,7 @@ const App = () => (
               <Route path="pixels" element={<AdminPixels />} />
               <Route path="webhooks" element={<AdminWebhooks />} />
               <Route path="notifications" element={<AdminNotifications />} />
+              <Route path="security" element={<AdminSecurity />} />
               <Route path="stores" element={<AdminStores />} />
             </Route>
             <Route path="*" element={<NotFound />} />
