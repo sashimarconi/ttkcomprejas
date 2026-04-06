@@ -64,6 +64,10 @@ const AdminGateways = () => {
   const [loaded, setLoaded] = useState(false);
   const [search, setSearch] = useState("");
   const [configOpen, setConfigOpen] = useState<string | null>(null);
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
+  const [pinValue, setPinValue] = useState("");
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const { data: gateways } = useQuery({
     queryKey: ["gateway-settings"],
