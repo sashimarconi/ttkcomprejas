@@ -66,6 +66,7 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [pinVerified, setPinVerified] = useState(() => sessionStorage.getItem("admin_pin_verified") === "true");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
