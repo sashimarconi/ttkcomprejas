@@ -113,10 +113,17 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     });
   }, [visitors, dims, pan.x, pan.y, zoom]);
 
-  // Zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setZoom(z => Math.max(0.8, Math.min(15, z * (e.deltaY < 0 ? 1.15 : 0.87))));
+  // Zoom — native listener to prevent page scroll (React onWheel is passive)
+  const svgRef = useRef<SVGSVGElement>(null);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      setZoom(z => Math.max(0.8, Math.min(15, z * (e.deltaY < 0 ? 1.15 : 0.87))));
+    };
+    svg.addEventListener("wheel", handler, { passive: false });
+    return () => svg.removeEventListener("wheel", handler);
   }, []);
 
   // Pan
@@ -158,10 +165,10 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
       style={{ width: "100%", height: "100%", overflow: "hidden", touchAction: "none" }}
     >
       <svg
+        ref={svgRef}
         width={dims.w}
         height={dims.h}
         style={{ display: "block", cursor: dragging.current ? "grabbing" : "grab" }}
-        onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
