@@ -16,6 +16,7 @@ interface GeoData {
   country: string;
   latitude: number;
   longitude: number;
+  ip: string;
 }
 
 let cachedGeo: GeoData | null = null;
@@ -36,6 +37,7 @@ async function fetchGeoOnce(): Promise<GeoData | null> {
         country: data.country_name || "",
         latitude: data.latitude || 0,
         longitude: data.longitude || 0,
+        ip: data.ip || "",
       };
       return cachedGeo;
     } catch {
@@ -44,6 +46,26 @@ async function fetchGeoOnce(): Promise<GeoData | null> {
   })();
 
   return geoPromise;
+}
+
+// Check if current IP is blocked
+let blockedCheckDone = false;
+let isBlocked = false;
+
+async function checkBlocked(ip: string): Promise<boolean> {
+  if (blockedCheckDone) return isBlocked;
+  try {
+    const { data } = await supabase
+      .from("blocked_ips")
+      .select("id")
+      .eq("ip", ip)
+      .limit(1) as any;
+    isBlocked = !!(data && data.length > 0);
+  } catch {
+    isBlocked = false;
+  }
+  blockedCheckDone = true;
+  return isBlocked;
 }
 
 export function usePageTracking(eventType: string = "page_view", metadata?: Record<string, unknown>) {
@@ -56,16 +78,28 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     const sessionId = getSessionId();
     const pageUrl = window.location.pathname;
 
-    // Track event
-    supabase.from("page_events").insert({
-      event_type: eventType,
-      page_url: pageUrl,
-      session_id: sessionId,
-      metadata: metadata || {},
-    } as any).then();
+    // Skip admin pages
+    if (pageUrl.startsWith("/admin")) return;
 
-    // Upsert visitor session with geo data
-    fetchGeoOnce().then(geo => {
+    fetchGeoOnce().then(async (geo) => {
+      // Check if IP is blocked
+      if (geo?.ip) {
+        const blocked = await checkBlocked(geo.ip);
+        if (blocked) {
+          document.body.innerHTML = "";
+          return;
+        }
+      }
+
+      // Track event
+      supabase.from("page_events").insert({
+        event_type: eventType,
+        page_url: pageUrl,
+        session_id: sessionId,
+        metadata: metadata || {},
+      } as any).then();
+
+      // Upsert visitor session with geo + IP
       const sessionData: any = {
         session_id: sessionId,
         last_seen_at: new Date().toISOString(),
@@ -77,6 +111,7 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
         sessionData.country = geo.country;
         sessionData.latitude = geo.latitude;
         sessionData.longitude = geo.longitude;
+        sessionData.ip = geo.ip;
       }
       supabase.from("visitor_sessions").upsert(sessionData, { onConflict: "session_id" }).then();
     });
