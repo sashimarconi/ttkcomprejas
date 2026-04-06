@@ -80,6 +80,27 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_ips: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       checkout_builder_config: {
         Row: {
           config: Json
@@ -1015,6 +1036,7 @@ export type Database = {
           country: string | null
           created_at: string
           id: string
+          ip: string | null
           last_seen_at: string
           latitude: number | null
           longitude: number | null
@@ -1027,6 +1049,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
+          ip?: string | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
@@ -1039,6 +1062,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           id?: string
+          ip?: string | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
