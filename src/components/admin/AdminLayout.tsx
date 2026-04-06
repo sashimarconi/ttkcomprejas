@@ -106,6 +106,7 @@ const AdminLayout = () => {
   }, [navigate]);
 
   const handleLogout = async () => {
+    sessionStorage.removeItem("admin_pin_verified");
     await supabase.auth.signOut();
     navigate("/admin/login");
   };
@@ -116,6 +117,10 @@ const AdminLayout = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
+  }
+
+  if (!pinVerified) {
+    return <PinGate onSuccess={() => setPinVerified(true)} />;
   }
 
   const isActive = (path: string) => {
