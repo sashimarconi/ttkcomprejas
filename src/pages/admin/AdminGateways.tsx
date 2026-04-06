@@ -64,6 +64,8 @@ const AdminGateways = () => {
   const [loaded, setLoaded] = useState(false);
   const [search, setSearch] = useState("");
   const [configOpen, setConfigOpen] = useState<string | null>(null);
+
+  // PIN verification state
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [pinValue, setPinValue] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
@@ -104,6 +106,37 @@ const AdminGateways = () => {
     const s = states[name];
     return s && s.id && (s.publicKey || s.secretKey);
   };
+
+  // Request PIN before executing action
+  const requirePin = (action: () => void) => {
+    setPinValue("");
+    setPendingAction(() => action);
+    setPinDialogOpen(true);
+  };
+
+  const verifyPin = async () => {
+    if (pinValue.length !== 6) return;
+    setPinLoading(true);
+    const { data, error } = await supabase.rpc("verify_admin_pin", { p_pin: pinValue });
+    setPinLoading(false);
+    if (error || !data) {
+      toast.error("PIN incorreto");
+      setPinValue("");
+      return;
+    }
+    setPinDialogOpen(false);
+    setPinValue("");
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  useEffect(() => {
+    if (pinDialogOpen && pinValue.length === 6) {
+      verifyPin();
+    }
+  }, [pinValue, pinDialogOpen]);
 
   const saveMutation = useMutation({
     mutationFn: async ({ gatewayName, activate }: { gatewayName: string; activate?: boolean }) => {
@@ -161,14 +194,12 @@ const AdminGateways = () => {
         return;
       }
 
-      // Deactivate all others
       for (const gw of gateways || []) {
         if (gw.active) {
           await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
         }
       }
 
-      // Activate this one
       const { error } = await supabase
         .from("gateway_settings")
         .update({ active: true })
@@ -205,7 +236,6 @@ const AdminGateways = () => {
         </p>
       </div>
 
-      {/* Active gateway hero */}
       {activeGateway && (
         <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-5">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-10 -mt-10" />
@@ -240,7 +270,6 @@ const AdminGateways = () => {
         />
       </div>
 
-      {/* Gateway list */}
       <div className="space-y-3">
         {filteredGateways.map((gw) => {
           const state = states[gw.name];
@@ -257,13 +286,12 @@ const AdminGateways = () => {
               )}
               onClick={() => {
                 if (configured && !active) {
-                  activateMutation.mutate(gw.name);
+                  requirePin(() => activateMutation.mutate(gw.name));
                 } else if (!configured) {
                   setConfigOpen(gw.name);
                 }
               }}
             >
-              {/* Radio indicator */}
               <div
                 className={cn(
                   "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
@@ -275,7 +303,6 @@ const AdminGateways = () => {
                 )}
               </div>
 
-              {/* Logo */}
               <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
                 <img
                   src={gw.logoUrl}
@@ -285,7 +312,6 @@ const AdminGateways = () => {
                 />
               </div>
 
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-bold text-foreground">{gw.label}</p>
@@ -299,7 +325,6 @@ const AdminGateways = () => {
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">{gw.description}</p>
               </div>
 
-              {/* Config button */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -364,7 +389,10 @@ const AdminGateways = () => {
 
                 <div className="flex gap-2 pt-2">
                   <Button
-                    onClick={() => saveMutation.mutate({ gatewayName: configOpen!, activate: false })}
+                    onClick={() => {
+                      const gn = configOpen!;
+                      requirePin(() => saveMutation.mutate({ gatewayName: gn, activate: false }));
+                    }}
                     variant="outline"
                     disabled={saveMutation.isPending}
                     className="flex-1"
@@ -373,7 +401,10 @@ const AdminGateways = () => {
                     Salvar
                   </Button>
                   <Button
-                    onClick={() => saveMutation.mutate({ gatewayName: configOpen!, activate: true })}
+                    onClick={() => {
+                      const gn = configOpen!;
+                      requirePin(() => saveMutation.mutate({ gatewayName: gn, activate: true }));
+                    }}
                     disabled={saveMutation.isPending}
                     className="flex-1"
                   >
@@ -383,6 +414,43 @@ const AdminGateways = () => {
                 </div>
               </div>
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PIN Verification Dialog */}
+      <Dialog open={pinDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setPinDialogOpen(false);
+          setPinValue("");
+          setPendingAction(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Lock className="w-7 h-7 text-primary" />
+              </div>
+              <div>
+                <DialogTitle>Confirme seu PIN</DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Digite seu PIN de 6 dígitos para confirmar esta ação
+                </p>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex justify-center mt-4">
+            <InputOTP maxLength={6} value={pinValue} onChange={setPinValue} autoFocus>
+              <InputOTPGroup>
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <InputOTPSlot key={i} index={i} className="w-11 h-13 text-lg" />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          {pinLoading && (
+            <p className="text-center text-sm text-muted-foreground mt-2">Verificando...</p>
           )}
         </DialogContent>
       </Dialog>
