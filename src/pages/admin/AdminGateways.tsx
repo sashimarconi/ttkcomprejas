@@ -82,18 +82,20 @@ const AdminGateways = () => {
 
   useEffect(() => {
     if (gateways) {
-      const newStates: Record<string, GatewayState> = {};
-      GATEWAYS.forEach((gw) => {
-        const existing = gateways.find((g) => g.gateway_name === gw.name);
-        newStates[gw.name] = {
-          publicKey: existing?.public_key || "",
-          secretKey: existing?.secret_key || "",
-          active: existing?.active ?? false,
-          showSecret: prev[gw.name]?.showSecret ?? false,
-          id: existing?.id,
-        };
+      setStates((prev) => {
+        const newStates: Record<string, GatewayState> = {};
+        GATEWAYS.forEach((gw) => {
+          const existing = gateways.find((g) => g.gateway_name === gw.name);
+          newStates[gw.name] = {
+            publicKey: existing?.public_key || "",
+            secretKey: existing?.secret_key || "",
+            active: existing?.active ?? false,
+            showSecret: prev[gw.name]?.showSecret ?? false,
+            id: existing?.id,
+          };
+        });
+        return newStates;
       });
-      setStates(newStates);
       setLoaded(true);
     }
   }, [gateways]);
