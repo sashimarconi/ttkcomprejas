@@ -103,13 +103,13 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
     return parts.join(" ");
   }, [rings, dims.w, dims.h, pan.x, pan.y, zoom]);
 
-  // Visitor points
+  // Visitor points — only real geolocated ones
   const points = useMemo(() => {
-    return visitors.map(v => {
-      const hasReal = v.latitude != null && v.longitude != null && v.latitude !== 0 && v.longitude !== 0;
-      const [lat, lng] = hasReal ? [v.latitude!, v.longitude!] : sessionToCoords(v.session_id);
-      const [x, y] = projectPt(lat, lng, dims.w, dims.h, pan.x, pan.y, zoom);
-      return { x, y, id: v.session_id };
+    return visitors
+      .filter(v => v.latitude != null && v.longitude != null && v.latitude !== 0 && v.longitude !== 0)
+      .map(v => {
+        const [x, y] = projectPt(v.latitude!, v.longitude!, dims.w, dims.h, pan.x, pan.y, zoom);
+        return { x, y, id: v.session_id };
     });
   }, [visitors, dims, pan.x, pan.y, zoom]);
 
