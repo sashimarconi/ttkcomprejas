@@ -177,7 +177,6 @@ const AdminGateways = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
-      setLoaded(false);
       setConfigOpen(null);
       toast.success("Gateway salvo com sucesso!");
     },
