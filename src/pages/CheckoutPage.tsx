@@ -365,9 +365,11 @@ const CheckoutPage = () => {
         }, true);
 
         // Redirect to thank you page if configured
-        const thankYouUrl = (product as any)?.thank_you_url;
+        const thankYouUrl = product?.thank_you_url;
         if (thankYouUrl) {
-          window.location.href = thankYouUrl;
+          setTimeout(() => {
+            window.location.href = thankYouUrl;
+          }, 2500);
         }
       }
     };
