@@ -167,10 +167,10 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
       style={{ width: "100%", height: "100%", overflow: "hidden", touchAction: "none" }}
     >
       <svg
+        ref={svgRef}
         width={dims.w}
         height={dims.h}
         style={{ display: "block", cursor: dragging.current ? "grabbing" : "grab" }}
-        onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
