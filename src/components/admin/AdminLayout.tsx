@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Package, Star, ShieldCheck, LogOut, Menu, CreditCard, Truck, Tag,
   BarChart3, LayoutDashboard, ClipboardList, Store, PenTool, Radio,
-  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart, Webhook, Bell
+  ChevronLeft, ExternalLink, Sun, Moon, ShoppingCart, Webhook, Bell, Lock
 } from "lucide-react";
+import PinGate from "@/components/admin/PinGate";
 import { cn } from "@/lib/utils";
 import SaleNotification from "@/components/admin/SaleNotification";
 import PushNotificationToggle from "@/components/admin/PushNotificationToggle";
