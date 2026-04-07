@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, DollarSign, Percent, ShoppingCart } from "lucide-react";
+import { Users, DollarSign, Percent, ShoppingCart, Bot } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import LiveGlobe from "@/components/admin/live-view/LiveGlobe";
