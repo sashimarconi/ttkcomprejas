@@ -1032,9 +1032,12 @@ export type Database = {
       }
       visitor_sessions: {
         Row: {
+          bot_score: number | null
           city: string | null
           country: string | null
           created_at: string
+          fingerprint_hash: string | null
+          has_interaction: boolean | null
           id: string
           ip: string | null
           is_bot: boolean | null
@@ -1047,9 +1050,12 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          bot_score?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
+          fingerprint_hash?: string | null
+          has_interaction?: boolean | null
           id?: string
           ip?: string | null
           is_bot?: boolean | null
@@ -1062,9 +1068,12 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          bot_score?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
+          fingerprint_hash?: string | null
+          has_interaction?: boolean | null
           id?: string
           ip?: string | null
           is_bot?: boolean | null
