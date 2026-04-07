@@ -19,6 +19,7 @@ interface SessionData {
   latitude?: number | null;
   longitude?: number | null;
   is_bot?: boolean | null;
+  ip?: string | null;
 }
 
 interface LiveStats {
