@@ -63,7 +63,7 @@ const AdminSecurity = () => {
         .order("created_at", { ascending: false }) as any,
       supabase.from("visitor_sessions")
         .select("id", { count: "exact", head: true })
-        .or("ip.is.null,ip.eq.") as any,
+        .eq("is_bot", true) as any,
     ]);
 
     // Aggregate by IP
