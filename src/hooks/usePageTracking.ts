@@ -139,7 +139,7 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
         sessionData.ip = geo.ip;
       }
       supabase.from("visitor_sessions").upsert(sessionData as any, { onConflict: "session_id" }).then();
-      } as any, { onConflict: "session_id" }).then();
+      
     });
   }, [eventType, metadata]);
 }
