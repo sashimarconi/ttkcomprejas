@@ -128,7 +128,8 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
         session_id: sessionId,
         last_seen_at: new Date().toISOString(),
         page_url: pageUrl,
-        is_bot: botDetected || !geo?.ip,
+        is_bot: botDetected,
+        user_agent: navigator.userAgent || null,
       };
       if (geo) {
         sessionData.city = geo.city;
