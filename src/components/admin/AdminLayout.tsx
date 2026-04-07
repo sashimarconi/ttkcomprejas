@@ -110,7 +110,7 @@ const AdminLayout = () => {
   const handleLogout = async () => {
     sessionStorage.removeItem("admin_pin_verified");
     await supabase.auth.signOut();
-    navigate("/admin/login");
+    navigate(`${ADMIN_BASE}/login`);
   };
 
   if (loading) {
