@@ -211,6 +211,47 @@ const AdminSecurity = () => {
         <p className="text-sm text-muted-foreground mt-1">Gerencie senha, PIN e bloqueio de IPs</p>
       </div>
 
+      {/* Bot Protection Card */}
+      <Card className="border-yellow-500/30 bg-yellow-500/5">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-yellow-500/10">
+                <Bot className="w-5 h-5 text-yellow-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Proteção Anti-Bot</h3>
+                <p className="text-xs text-muted-foreground">
+                  {botCount > 0
+                    ? `${botCount.toLocaleString("pt-BR")} sessões sem IP detectadas (bots/crawlers)`
+                    : "Nenhuma sessão bot detectada — tudo limpo!"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge variant={botCount > 0 ? "destructive" : "secondary"} className="text-xs">
+                {botCount > 0 ? `${botCount} bots` : "0 bots"}
+              </Badge>
+              {botCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleCleanBots}
+                  disabled={cleaningBots}
+                  className="text-xs"
+                >
+                  {cleaningBots ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
+                  Limpar bots
+                </Button>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 border-t border-border pt-2">
+            Sessões sem IP são automaticamente bloqueadas e não aparecem nas métricas. Novos bots são impedidos de acessar o site.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* IP Blocking Section */}
       <Card>
         <CardHeader>
