@@ -132,10 +132,13 @@ export function trackEvent(eventType: string, metadata?: Record<string, unknown>
 // Heartbeat to keep session alive
 export function useVisitorHeartbeat() {
   useEffect(() => {
+    // Only heartbeat if we have geo/IP cached (i.e., not a bot)
+    if (!cachedGeo?.ip) return;
+
     const sessionId = getSessionId();
     const interval = setInterval(() => {
       supabase.from("visitor_sessions").upsert(
-        { session_id: sessionId, last_seen_at: new Date().toISOString(), page_url: window.location.pathname },
+        { session_id: sessionId, last_seen_at: new Date().toISOString(), page_url: window.location.pathname } as any,
         { onConflict: "session_id" }
       ).then();
     }, 30000);
