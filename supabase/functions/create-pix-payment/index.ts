@@ -352,6 +352,12 @@ Deno.serve(async (req) => {
     }
 
     const body = parsed.data;
+    const customer = sanitizeCustomer(body);
+    // Override body fields with sanitized values
+    body.customerName = customer.name;
+    body.customerEmail = customer.email;
+    body.customerPhone = customer.phone;
+    body.customerDocument = customer.document;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
