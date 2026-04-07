@@ -10,6 +10,26 @@ function getSessionId() {
   return sid;
 }
 
+// Known bot user-agents
+const BOT_PATTERNS = [
+  /bot/i, /crawl/i, /spider/i, /slurp/i, /mediapartners/i,
+  /googlebot/i, /bingbot/i, /yandex/i, /baidu/i, /duckduckbot/i,
+  /facebookexternalhit/i, /twitterbot/i, /linkedinbot/i,
+  /whatsapp/i, /telegrambot/i, /discordbot/i,
+  /ahrefsbot/i, /semrushbot/i, /mj12bot/i, /dotbot/i,
+  /rogerbot/i, /seznambot/i, /ia_archiver/i,
+  /headlesschrome/i, /phantomjs/i, /puppeteer/i,
+  /python-requests/i, /python-urllib/i, /curl\//i, /wget\//i,
+  /httpclient/i, /java\//i, /libwww/i, /lwp-trivial/i,
+  /go-http-client/i, /node-fetch/i, /axios/i,
+];
+
+function isBot(): boolean {
+  const ua = navigator.userAgent;
+  if (!ua || ua.length < 10) return true;
+  return BOT_PATTERNS.some(p => p.test(ua));
+}
+
 interface GeoData {
   city: string;
   region: string;
@@ -48,24 +68,24 @@ async function fetchGeoOnce(): Promise<GeoData | null> {
   return geoPromise;
 }
 
-// Check if current IP is blocked
+// Check if current IP is blocked (manual block OR auto rate-limit)
 let blockedCheckDone = false;
-let isBlocked = false;
+let isBlockedResult = false;
 
 async function checkBlocked(ip: string): Promise<boolean> {
-  if (blockedCheckDone) return isBlocked;
+  if (blockedCheckDone) return isBlockedResult;
   try {
     const { data } = await supabase
       .from("blocked_ips")
       .select("id")
       .eq("ip", ip)
       .limit(1) as any;
-    isBlocked = !!(data && data.length > 0);
+    isBlockedResult = !!(data && data.length > 0);
   } catch {
-    isBlocked = false;
+    isBlockedResult = false;
   }
   blockedCheckDone = true;
-  return isBlocked;
+  return isBlockedResult;
 }
 
 export function usePageTracking(eventType: string = "page_view", metadata?: Record<string, unknown>) {
@@ -75,20 +95,24 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     if (tracked.current) return;
     tracked.current = true;
 
-    const sessionId = getSessionId();
     const pageUrl = window.location.pathname;
 
     // Skip admin pages
     if (pageUrl.startsWith("/admin")) return;
 
-    fetchGeoOnce().then(async (geo) => {
-      // No IP = bot/crawler — don't track, don't render
-      if (!geo?.ip) {
-        console.warn("[anti-bot] No IP detected, session blocked");
-        return;
-      }
+    // Block bots by user-agent immediately
+    if (isBot()) {
+      document.body.innerHTML = "";
+      return;
+    }
 
-      // Check if IP is blocked
+    const sessionId = getSessionId();
+
+    fetchGeoOnce().then(async (geo) => {
+      // No IP = suspicious — don't track
+      if (!geo?.ip) return;
+
+      // Check if IP is manually blocked
       const blocked = await checkBlocked(geo.ip);
       if (blocked) {
         document.body.innerHTML = "";
