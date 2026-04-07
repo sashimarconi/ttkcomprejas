@@ -26,15 +26,15 @@ interface LiveGlobeProps {
 
 const SERVER_LAT = -23.55;
 const SERVER_LNG = -46.63;
-const ATMOSPHERE_COLOR = "hsl(263 70% 56%)";
-const VISITOR_COLOR = "hsl(142 70% 58%)";
-const SERVER_COLOR = "hsl(263 70% 72%)";
-const POLYGON_CAP_COLOR = "hsla(263 50% 40% / 0.15)";
-const POLYGON_SIDE_COLOR = "hsla(263 50% 40% / 0.05)";
-const POLYGON_STROKE_COLOR = "hsla(263 60% 68% / 0.4)";
-const ARC_START_COLOR = "hsla(142 70% 58% / 0.6)";
-const ARC_END_COLOR = "hsla(263 70% 72% / 0.6)";
-const TRANSPARENT_BG = "hsla(0 0% 0% / 0)";
+const ATMOSPHERE_COLOR = "#6c3ce0";
+const VISITOR_COLOR = "#4ADE80";
+const SERVER_COLOR = "#a78bfa";
+const POLYGON_CAP_COLOR = "rgba(100, 60, 200, 0.15)";
+const POLYGON_SIDE_COLOR = "rgba(100, 60, 200, 0.05)";
+const POLYGON_STROKE_COLOR = "rgba(140, 100, 230, 0.4)";
+const ARC_START_COLOR = "rgba(74, 222, 128, 0.6)";
+const ARC_END_COLOR = "rgba(167, 139, 250, 0.6)";
+const TRANSPARENT_BG = "rgba(0,0,0,0)";
 
 function sessionToCoords(sessionId: string): { lat: number; lng: number } {
   let hash = 0;
