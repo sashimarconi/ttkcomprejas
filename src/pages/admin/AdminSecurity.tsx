@@ -43,6 +43,8 @@ const AdminSecurity = () => {
   const [newBlockIp, setNewBlockIp] = useState("");
   const [blockReason, setBlockReason] = useState("");
   const [loadingIps, setLoadingIps] = useState(true);
+  const [botCount, setBotCount] = useState(0);
+  const [cleaningBots, setCleaningBots] = useState(false);
 
   const fetchIpData = useCallback(async () => {
     setLoadingIps(true);
