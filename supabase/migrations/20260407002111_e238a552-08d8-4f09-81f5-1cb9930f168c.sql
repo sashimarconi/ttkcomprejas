@@ -1,1 +1,0 @@
-ALTER TABLE public.visitor_sessions ADD COLUMN IF NOT EXISTS is_bot boolean DEFAULT false;

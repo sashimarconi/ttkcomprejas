@@ -81,24 +81,22 @@ const AdminGateways = () => {
   });
 
   useEffect(() => {
-    if (gateways) {
-      setStates((prev) => {
-        const newStates: Record<string, GatewayState> = {};
-        GATEWAYS.forEach((gw) => {
-          const existing = gateways.find((g) => g.gateway_name === gw.name);
-          newStates[gw.name] = {
-            publicKey: existing?.public_key || "",
-            secretKey: existing?.secret_key || "",
-            active: existing?.active ?? false,
-            showSecret: prev[gw.name]?.showSecret ?? false,
-            id: existing?.id,
-          };
-        });
-        return newStates;
+    if (gateways && !loaded) {
+      const newStates: Record<string, GatewayState> = {};
+      GATEWAYS.forEach((gw) => {
+        const existing = gateways.find((g) => g.gateway_name === gw.name);
+        newStates[gw.name] = {
+          publicKey: existing?.public_key || "",
+          secretKey: existing?.secret_key || "",
+          active: existing?.active ?? false,
+          showSecret: false,
+          id: existing?.id,
+        };
       });
+      setStates(newStates);
       setLoaded(true);
     }
-  }, [gateways]);
+  }, [gateways, loaded]);
 
   const updateState = (name: string, partial: Partial<GatewayState>) => {
     setStates((prev) => ({ ...prev, [name]: { ...prev[name], ...partial } }));
@@ -177,6 +175,7 @@ const AdminGateways = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
+      setLoaded(false);
       setConfigOpen(null);
       toast.success("Gateway salvo com sucesso!");
     },
@@ -209,7 +208,7 @@ const AdminGateways = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
-      
+      setLoaded(false);
       toast.success("Gateway ativado!");
     },
     onError: () => toast.error("Erro ao ativar gateway"),
