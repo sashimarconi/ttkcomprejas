@@ -127,7 +127,7 @@ const AdminSecurity = () => {
 
   const handleCleanBots = async () => {
     setCleaningBots(true);
-    const { error } = await supabase.from("visitor_sessions").delete().or("ip.is.null,ip.eq.") as any;
+    const { error } = await supabase.from("visitor_sessions").delete().eq("is_bot", true) as any;
     if (error) {
       toast.error("Erro ao limpar sessões bot");
     } else {
