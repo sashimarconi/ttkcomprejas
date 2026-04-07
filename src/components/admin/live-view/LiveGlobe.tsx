@@ -125,43 +125,45 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
       style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
     >
       {polygons.length > 0 && dimensions.width > 0 && (
-        <Globe
-          ref={globeRef}
-          width={dimensions.width}
-          height={dimensions.height}
-          onGlobeReady={handleGlobeReady}
-          globeImageUrl=""
-          backgroundColor="rgba(0,0,0,0)"
-          showAtmosphere={true}
-          atmosphereColor="#6c3ce0"
-          atmosphereAltitude={0.15}
+        <GlobeErrorBoundary>
+          <Globe
+            ref={globeRef}
+            width={dimensions.width}
+            height={dimensions.height}
+            onGlobeReady={handleGlobeReady}
+            globeImageUrl=""
+            backgroundColor="rgba(0,0,0,0)"
+            showAtmosphere={true}
+            atmosphereColor="#6c3ce0"
+            atmosphereAltitude={0.15}
 
-          polygonsData={polygons}
-          polygonCapColor={() => "rgba(100, 60, 200, 0.15)"}
-          polygonSideColor={() => "rgba(100, 60, 200, 0.05)"}
-          polygonStrokeColor={() => "rgba(140, 100, 230, 0.4)"}
-          polygonAltitude={0.006}
+            polygonsData={polygons}
+            polygonCapColor={() => "rgba(100, 60, 200, 0.15)"}
+            polygonSideColor={() => "rgba(100, 60, 200, 0.05)"}
+            polygonStrokeColor={() => "rgba(140, 100, 230, 0.4)"}
+            polygonAltitude={0.006}
 
-          pointsData={allPoints}
-          pointLat="lat"
-          pointLng="lng"
-          pointColor={(d: any) => d.color || "#4ADE80"}
-          pointAltitude={0.02}
-          pointRadius="size"
-          pointsMerge={false}
+            pointsData={allPoints}
+            pointLat="lat"
+            pointLng="lng"
+            pointColor={(d: any) => d.color || "#4ADE80"}
+            pointAltitude={0.02}
+            pointRadius="size"
+            pointsMerge={false}
 
-          arcsData={arcs}
-          arcStartLat="startLat"
-          arcStartLng="startLng"
-          arcEndLat="endLat"
-          arcEndLng="endLng"
-          arcColor={() => ["rgba(74, 222, 128, 0.6)", "rgba(167, 139, 250, 0.6)"]}
-          arcAltitude={0.15}
-          arcStroke={0.5}
-          arcDashLength={0.4}
-          arcDashGap={0.2}
-          arcDashAnimateTime={2000}
-        />
+            arcsData={arcs}
+            arcStartLat="startLat"
+            arcStartLng="startLng"
+            arcEndLat="endLat"
+            arcEndLng="endLng"
+            arcColor={() => ["rgba(74, 222, 128, 0.6)", "rgba(167, 139, 250, 0.6)"]}
+            arcAltitude={0.15}
+            arcStroke={0.5}
+            arcDashLength={0.4}
+            arcDashGap={0.2}
+            arcDashAnimateTime={2000}
+          />
+        </GlobeErrorBoundary>
       )}
     </div>
   );
