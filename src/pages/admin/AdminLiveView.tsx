@@ -60,8 +60,8 @@ const AdminLiveView = () => {
       if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
     });
     const allArr = Array.from(uniqueSessions.values());
-    const realSessions = allArr.filter(s => !s.is_bot);
-    const bots = allArr.filter(s => s.is_bot);
+    const realSessions = allArr.filter(s => !s.is_bot && s.city);
+    const bots = allArr.filter(s => s.is_bot || !s.city);
     setSessions(realSessions);
     setBotCount(bots.length);
 
