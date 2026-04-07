@@ -80,6 +80,27 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_ips: {
+        Row: {
+          created_at: string
+          id: string
+          ip: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       checkout_builder_config: {
         Row: {
           config: Json
@@ -1011,40 +1032,58 @@ export type Database = {
       }
       visitor_sessions: {
         Row: {
+          bot_score: number | null
           city: string | null
           country: string | null
           created_at: string
+          fingerprint_hash: string | null
+          has_interaction: boolean | null
           id: string
+          ip: string | null
+          is_bot: boolean | null
           last_seen_at: string
           latitude: number | null
           longitude: number | null
           page_url: string | null
           region: string | null
           session_id: string
+          user_agent: string | null
         }
         Insert: {
+          bot_score?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
+          fingerprint_hash?: string | null
+          has_interaction?: boolean | null
           id?: string
+          ip?: string | null
+          is_bot?: boolean | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
           page_url?: string | null
           region?: string | null
           session_id: string
+          user_agent?: string | null
         }
         Update: {
+          bot_score?: number | null
           city?: string | null
           country?: string | null
           created_at?: string
+          fingerprint_hash?: string | null
+          has_interaction?: boolean | null
           id?: string
+          ip?: string | null
+          is_bot?: boolean | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
           page_url?: string | null
           region?: string | null
           session_id?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
