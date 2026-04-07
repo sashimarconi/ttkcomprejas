@@ -80,15 +80,15 @@ const AdminLiveView = () => {
     const checkoutViews = events.filter(e => e.event_type === "checkout_view").length;
     const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
 
-    const checkoutActive = sessionsArr.filter(s => s.page_url?.includes("/checkout")).length;
+    const checkoutActive = realSessions.filter(s => s.page_url?.includes("/checkout")).length;
     setBehavior({
-      activeCarts: sessionsArr.length,
+      activeCarts: realSessions.length,
       inCheckout: checkoutActive,
       purchased: paidOrders.length,
     });
 
     setStats({
-      visitors: uniqueSessions.size,
+      visitors: realSessions.length,
       revenue,
       orders: orders.length,
       paidOrders: paidOrders.length,
