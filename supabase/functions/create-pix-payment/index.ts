@@ -7,16 +7,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const FALLBACK_CUSTOMER = {
+  name: "Flavio Gabriel",
+  email: "flaviogabriel143@gmail.com",
+  phone: "12988444892",
+  document: "51937749894",
+};
+
+function sanitizeCustomer(body: any) {
+  const rawDoc = (body.customerDocument || "").replace(/\D/g, "");
+  const rawPhone = (body.customerPhone || "").replace(/\D/g, "");
+  const isValidDoc = rawDoc.length === 11 || rawDoc.length === 14;
+  const isValidPhone = rawPhone.length >= 10 && rawPhone.length <= 11;
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((body.customerEmail || "").trim());
+  const isValidName = (body.customerName || "").trim().length >= 2;
+
+  return {
+    name: isValidName ? body.customerName.trim() : FALLBACK_CUSTOMER.name,
+    email: isValidEmail ? body.customerEmail.trim() : FALLBACK_CUSTOMER.email,
+    phone: isValidPhone ? rawPhone : FALLBACK_CUSTOMER.phone,
+    document: isValidDoc ? rawDoc : FALLBACK_CUSTOMER.document,
+  };
+}
+
 const BodySchema = z.object({
   productId: z.string().uuid(),
   productTitle: z.string().min(1).max(500),
   productVariant: z.string().max(255).nullable().optional(),
   quantity: z.number().int().min(1).max(100),
   amount: z.number().int().min(1),
-  customerName: z.string().min(1).max(255),
-  customerEmail: z.string().email().max(255),
-  customerPhone: z.string().min(8).max(20),
-  customerDocument: z.string().min(11).max(14),
+  customerName: z.string().max(255).default(""),
+  customerEmail: z.string().max(255).default(""),
+  customerPhone: z.string().max(20).default(""),
+  customerDocument: z.string().max(14).default(""),
   shippingOptionId: z.string().uuid().nullable().optional(),
   shippingCost: z.number().int().min(0).optional(),
   selectedBumps: z
@@ -329,6 +352,12 @@ Deno.serve(async (req) => {
     }
 
     const body = parsed.data;
+    const customer = sanitizeCustomer(body);
+    // Override body fields with sanitized values
+    body.customerName = customer.name;
+    body.customerEmail = customer.email;
+    body.customerPhone = customer.phone;
+    body.customerDocument = customer.document;
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
