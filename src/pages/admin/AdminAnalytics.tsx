@@ -412,7 +412,7 @@ const AdminAnalytics = () => {
                       <div key={p.page}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-foreground truncate max-w-[180px]">{p.page}</span>
-                          <span className="text-xs font-semibold text-foreground">{p.count}</span>
+                          <span className="text-xs font-semibold text-foreground">{formatCompact(p.count)}</span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-marketplace-green transition-all duration-500" style={{ width: `${(p.count / maxPageCount) * 100}%` }} />
