@@ -156,16 +156,24 @@ const AdminGateways = () => {
       if (!state) return;
 
       const shouldActivate = activate ?? state.active;
+      const isNew = !state.id;
 
       if (shouldActivate) {
         for (const gw of gateways || []) {
           if (gw.gateway_name !== gatewayName && gw.active) {
             await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
+            await logAudit(gw.gateway_name, "deactivated", { reason: `Switched to ${gatewayName}` });
           }
         }
       }
 
       if (state.id) {
+        const oldGw = gateways?.find(g => g.id === state.id);
+        const changes: Record<string, any> = {};
+        if (oldGw?.public_key !== state.publicKey) changes.public_key_changed = true;
+        if (oldGw?.secret_key !== state.secretKey) changes.secret_key_changed = true;
+        if (oldGw?.active !== shouldActivate) changes.active = shouldActivate;
+
         const { error } = await supabase
           .from("gateway_settings")
           .update({
@@ -175,6 +183,13 @@ const AdminGateways = () => {
           })
           .eq("id", state.id);
         if (error) throw error;
+
+        if (Object.keys(changes).length > 0) {
+          await logAudit(gatewayName, "keys_updated", changes);
+        }
+        if (shouldActivate && !oldGw?.active) {
+          await logAudit(gatewayName, "activated", {});
+        }
       } else {
         const { error } = await supabase.from("gateway_settings").insert({
           gateway_name: gatewayName,
@@ -183,6 +198,7 @@ const AdminGateways = () => {
           active: shouldActivate,
         });
         if (error) throw error;
+        await logAudit(gatewayName, "created", { active: shouldActivate });
       }
     },
     onSuccess: (_data, variables) => {
