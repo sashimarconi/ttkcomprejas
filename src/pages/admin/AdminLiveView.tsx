@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, DollarSign, Percent, ShoppingCart } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -221,12 +221,10 @@ const AdminLiveView = () => {
                 <p className="text-sm text-muted-foreground">visitantes ativos</p>
               </div>
 
-              <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
-                <LiveGlobe
-                  visitors={sessions.map(s => ({ session_id: s.session_id, latitude: s.latitude, longitude: s.longitude }))}
-                  className="w-full h-full"
-                />
-              </Suspense>
+              <LiveGlobe
+                visitors={sessions.map(s => ({ session_id: s.session_id, latitude: s.latitude, longitude: s.longitude }))}
+                className="w-full h-full"
+              />
             </CardContent>
           </Card>
 
