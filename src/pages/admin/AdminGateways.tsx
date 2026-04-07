@@ -225,7 +225,6 @@ const AdminGateways = () => {
         return updated;
       });
       queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
-      setLoaded(false);
       toast.success("Gateway ativado!");
     },
     onError: () => toast.error("Erro ao ativar gateway"),
