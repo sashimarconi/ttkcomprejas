@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               title: `💰 Venda confirmada!`,
               body: `Sua comissão: ${totalFormatted}`,
-              url: "/admin/orders",
+              url: "/ctrl9k/orders",
               event_type: "order_paid",
             }),
           });

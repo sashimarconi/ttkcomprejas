@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     const payload: any = {
       title: title || customTitle || (isPaid ? "Nova venda!" : "Novo pedido pendente"),
       body: notifBody || (isPaid ? "Você recebeu um novo pagamento." : "Um novo PIX foi gerado."),
-      url: notifUrl || "/admin/orders",
+      url: notifUrl || "/ctrl9k/orders",
       tag: tag || "sale-" + Date.now(),
       silent: !isPaid,
     };

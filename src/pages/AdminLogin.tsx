@@ -22,7 +22,7 @@ const AdminLogin = () => {
     if (error) {
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
     } else {
-      navigate("/admin");
+      navigate("/ctrl9k");
     }
     setLoading(false);
   };
