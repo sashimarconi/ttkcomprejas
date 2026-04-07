@@ -125,6 +125,18 @@ const AdminSecurity = () => {
     fetchIpData();
   };
 
+  const handleCleanBots = async () => {
+    setCleaningBots(true);
+    const { error } = await supabase.from("visitor_sessions").delete().or("ip.is.null,ip.eq.") as any;
+    if (error) {
+      toast.error("Erro ao limpar sessões bot");
+    } else {
+      toast.success(`Sessões bot removidas!`);
+    }
+    setCleaningBots(false);
+    fetchIpData();
+  };
+
   const isIpBlocked = (ip: string) => blockedIps.some(b => b.ip === ip);
 
   const handleChangePin = async () => {
