@@ -1,14 +1,7 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Globe, { GlobeMethods } from "react-globe.gl";
 import * as topojson from "topojson-client";
 import type { Topology } from "topojson-specification";
-
-// Patch: suppress react-globe.gl destructor crash on unmount
-const _origConsoleError = console.error;
-console.error = (...args: any[]) => {
-  if (typeof args[0] === "string" && args[0].includes("_destructor is not a function")) return;
-  _origConsoleError(...args);
-};
 
 interface VisitorPoint {
   lat: number;
