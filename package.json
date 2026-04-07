@@ -95,6 +95,6 @@
     "vitest": "^3.2.4"
   },
   "overrides": {
-    "three-render-objects": "1.39.3"
+    "three-render-objects": "1.41.1"
   }
 }
