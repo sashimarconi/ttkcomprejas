@@ -1044,6 +1044,7 @@ export type Database = {
           page_url: string | null
           region: string | null
           session_id: string
+          user_agent: string | null
         }
         Insert: {
           city?: string | null
@@ -1058,6 +1059,7 @@ export type Database = {
           page_url?: string | null
           region?: string | null
           session_id: string
+          user_agent?: string | null
         }
         Update: {
           city?: string | null
@@ -1072,6 +1074,7 @@ export type Database = {
           page_url?: string | null
           region?: string | null
           session_id?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
