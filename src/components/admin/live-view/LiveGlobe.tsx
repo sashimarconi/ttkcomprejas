@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback, Component, type ErrorInfo, type ReactNode } from "react";
 import Globe, { GlobeMethods } from "react-globe.gl";
 import * as topojson from "topojson-client";
 import type { Topology } from "topojson-specification";
 
-// Patch: react-globe.gl destructor crash on unmount with pinned three-render-objects
-const origError = console.error;
-console.error = (...args: any[]) => {
-  if (typeof args[0] === "string" && args[0].includes("_destructor is not a function")) return;
-  origError.apply(console, args);
-};
+// Error boundary to catch react-globe.gl destructor crash on unmount
+class GlobeErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, _info: ErrorInfo) {
+    if (error.message?.includes("_destructor is not a function")) return;
+    console.error("Globe error:", error);
+  }
+  render() { return this.state.hasError ? null : this.props.children; }
+}
 
 interface VisitorPoint {
   lat: number;
