@@ -221,10 +221,12 @@ const AdminLiveView = () => {
                 <p className="text-sm text-muted-foreground">visitantes ativos</p>
               </div>
 
-              <InteractiveGlobe
-                visitors={sessions.map(s => ({ session_id: s.session_id }))}
-                className="w-full h-full"
-              />
+              <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-muted-foreground">Carregando globo...</div>}>
+                <LiveGlobe
+                  visitors={sessions.map(s => ({ session_id: s.session_id, latitude: s.latitude, longitude: s.longitude }))}
+                  className="w-full h-full"
+                />
+              </Suspense>
             </CardContent>
           </Card>
 
