@@ -173,7 +173,17 @@ const AdminGateways = () => {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      // Optimistically update local state
+      if (variables.activate) {
+        setStates((prev) => {
+          const updated = { ...prev };
+          for (const key of Object.keys(updated)) {
+            updated[key] = { ...updated[key], active: key === variables.gatewayName };
+          }
+          return updated;
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
       setLoaded(false);
       setConfigOpen(null);
