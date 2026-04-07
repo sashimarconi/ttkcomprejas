@@ -132,7 +132,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
       style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
     >
       {polygons.length > 0 && dimensions.width > 0 && (
-        <GlobeErrorBoundary>
           <Globe
             ref={globeRef}
             width={dimensions.width}
@@ -170,7 +169,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
             arcDashGap={0.2}
             arcDashAnimateTime={2000}
           />
-        </GlobeErrorBoundary>
       )}
     </div>
   );
