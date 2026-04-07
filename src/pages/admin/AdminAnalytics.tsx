@@ -58,6 +58,29 @@ const CHART_COLORS = [
   "hsl(38, 92%, 50%)", "hsl(346, 77%, 50%)", "hsl(180, 65%, 45%)",
 ];
 
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
+  return String(n);
+}
+
+async function fetchAllRows<T>(
+  query: () => ReturnType<ReturnType<typeof supabase.from>["select"]>,
+  pageSize = 1000,
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await (query() as any).range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 const AdminAnalytics = () => {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(new Date().setHours(0, 0, 0, 0)),
@@ -80,19 +103,25 @@ const AdminAnalytics = () => {
     const from = dateRange.from.toISOString();
     const to = dateRange.to.toISOString();
 
-    const [sessionsRes, eventsRes, ordersRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", from).lte("created_at", to),
-      supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", from).lte("created_at", to),
-      supabase.from("orders").select("total, payment_status, created_at").gte("created_at", from).lte("created_at", to),
+    const [sessionsData, eventsData, ordersData] = await Promise.all([
+      fetchAllRows<{ session_id: string; created_at: string }>(
+        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", from).lte("created_at", to)
+      ),
+      fetchAllRows<{ event_type: string; page_url: string | null; created_at: string }>(
+        () => supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", from).lte("created_at", to)
+      ),
+      fetchAllRows<{ total: number; payment_status: string; created_at: string }>(
+        () => supabase.from("orders").select("total, payment_status, created_at").gte("created_at", from).lte("created_at", to)
+      ),
     ]);
 
     const uniqueSessions = new Map<string, { session_id: string; created_at: string }>();
-    (sessionsRes.data || []).forEach(s => {
+    sessionsData.forEach(s => {
       if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
     });
     setSessions(Array.from(uniqueSessions.values()));
-    setEvents((eventsRes.data || []) as any);
-    setOrders((ordersRes.data || []) as any);
+    setEvents(eventsData);
+    setOrders(ordersData);
     setLoading(false);
   }, [dateRange]);
 
@@ -218,10 +247,10 @@ const AdminAnalytics = () => {
   const maxPageCount = pageData[0]?.count || 1;
 
   const kpiCards = [
-    { label: "Visitantes únicos", value: String(sessions.length), icon: Users },
-    { label: "Visualizações", value: String(pageViews), icon: Eye },
-    { label: "Pedidos", value: String(orders.length), icon: ShoppingCart },
-    { label: "Vendas aprovadas", value: String(paidOrders.length), icon: CreditCard },
+    { label: "Visitantes únicos", value: formatCompact(sessions.length), icon: Users },
+    { label: "Visualizações", value: formatCompact(pageViews), icon: Eye },
+    { label: "Pedidos", value: formatCompact(orders.length), icon: ShoppingCart },
+    { label: "Vendas aprovadas", value: formatCompact(paidOrders.length), icon: CreditCard },
     { label: "Receita total", value: formatCurrency(totalRevenue), icon: DollarSign },
     { label: "Conversão", value: `${conversionRate.toFixed(1)}%`, icon: TrendingUp },
   ];
@@ -354,7 +383,7 @@ const AdminAnalytics = () => {
                       <div key={s.state}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-foreground">{s.state}</span>
-                          <span className="text-xs font-semibold text-foreground">{s.count}</span>
+                          <span className="text-xs font-semibold text-foreground">{formatCompact(s.count)}</span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${(s.count / maxStateCount) * 100}%` }} />
@@ -383,7 +412,7 @@ const AdminAnalytics = () => {
                       <div key={p.page}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-foreground truncate max-w-[180px]">{p.page}</span>
-                          <span className="text-xs font-semibold text-foreground">{p.count}</span>
+                          <span className="text-xs font-semibold text-foreground">{formatCompact(p.count)}</span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-marketplace-green transition-all duration-500" style={{ width: `${(p.count / maxPageCount) * 100}%` }} />
