@@ -51,15 +51,19 @@ const AdminSecurity = () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const [sessionsRes, blockedRes] = await Promise.all([
+    const [sessionsRes, blockedRes, botRes] = await Promise.all([
       supabase.from("visitor_sessions")
         .select("ip, last_seen_at, city, region, country")
         .not("ip", "is", null)
+        .neq("ip", "")
         .gte("last_seen_at", todayStart.toISOString())
         .order("last_seen_at", { ascending: false }) as any,
       supabase.from("blocked_ips")
         .select("*")
         .order("created_at", { ascending: false }) as any,
+      supabase.from("visitor_sessions")
+        .select("id", { count: "exact", head: true })
+        .or("ip.is.null,ip.eq.") as any,
     ]);
 
     // Aggregate by IP
