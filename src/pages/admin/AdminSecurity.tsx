@@ -247,7 +247,7 @@ const AdminSecurity = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 border-t border-border pt-2">
-            Sessões sem IP são automaticamente bloqueadas e não aparecem nas métricas. Novos bots são impedidos de acessar o site.
+            Bots são identificados pelo user-agent (Googlebot, AhrefsBot, scrapers, etc). Apenas bots confirmados são contados aqui — visitantes reais nunca são afetados.
           </p>
         </CardContent>
       </Card>
