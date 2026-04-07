@@ -19,6 +19,7 @@ interface SessionData {
   latitude?: number | null;
   longitude?: number | null;
   is_bot?: boolean | null;
+  ip?: string | null;
 }
 
 interface LiveStats {
@@ -60,8 +61,9 @@ const AdminLiveView = () => {
       if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
     });
     const allArr = Array.from(uniqueSessions.values());
-    const realSessions = allArr.filter(s => !s.is_bot);
-    const bots = allArr.filter(s => s.is_bot);
+    // Sessions without IP are ghost/bot sessions - exclude from real visitors
+    const realSessions = allArr.filter(s => !s.is_bot && s.ip);
+    const bots = allArr.filter(s => s.is_bot || !s.ip);
     setSessions(realSessions);
     setBotCount(bots.length);
 
