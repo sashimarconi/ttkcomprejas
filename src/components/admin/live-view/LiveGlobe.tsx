@@ -3,6 +3,13 @@ import Globe, { GlobeMethods } from "react-globe.gl";
 import * as topojson from "topojson-client";
 import type { Topology } from "topojson-specification";
 
+// Patch: react-globe.gl destructor crash on unmount with pinned three-render-objects
+const origError = console.error;
+console.error = (...args: any[]) => {
+  if (typeof args[0] === "string" && args[0].includes("_destructor is not a function")) return;
+  origError.apply(console, args);
+};
+
 interface VisitorPoint {
   lat: number;
   lng: number;
