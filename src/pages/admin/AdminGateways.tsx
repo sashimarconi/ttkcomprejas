@@ -231,9 +231,11 @@ const AdminGateways = () => {
         return;
       }
 
+      const previousActive = gateways?.find(gw => gw.active);
       for (const gw of gateways || []) {
         if (gw.active) {
           await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
+          await logAudit(gw.gateway_name, "deactivated", { reason: `Switched to ${gatewayName}` });
         }
       }
 
@@ -242,6 +244,7 @@ const AdminGateways = () => {
         .update({ active: true })
         .eq("id", state.id);
       if (error) throw error;
+      await logAudit(gatewayName, "activated", { previous: previousActive?.gateway_name || null });
     },
     onSuccess: (_data, gatewayName) => {
       // Optimistically update local state immediately
