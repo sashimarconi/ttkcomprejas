@@ -100,16 +100,12 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     // Skip admin pages
     if (pageUrl.startsWith("/admin")) return;
 
-    // Block bots by user-agent — don't track, but site stays visible
-    if (isBot()) {
-      return;
-    }
+    // Detect bot by user-agent
+    const botDetected = isBot();
 
     const sessionId = getSessionId();
 
     fetchGeoOnce().then(async (geo) => {
-      // No IP = suspicious — don't track
-      if (!geo?.ip) return;
 
       // Check if IP is manually blocked
       const blocked = await checkBlocked(geo.ip);
