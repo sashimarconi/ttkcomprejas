@@ -501,6 +501,79 @@ const AdminGateways = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Audit Log Section */}
+      <div className="mt-8">
+        <button
+          onClick={() => setShowAuditLog(!showAuditLog)}
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <History className="w-4 h-4" />
+          {showAuditLog ? "Ocultar" : "Ver"} Log de Alterações
+        </button>
+
+        {showAuditLog && <AuditLogViewer />}
+      </div>
+    </div>
+  );
+};
+
+const ACTION_LABELS: Record<string, { label: string; icon: typeof KeyRound; color: string }> = {
+  keys_updated: { label: "Chaves alteradas", icon: KeyRound, color: "text-yellow-500" },
+  activated: { label: "Ativado", icon: Power, color: "text-emerald-500" },
+  deactivated: { label: "Desativado", icon: Power, color: "text-red-500" },
+  created: { label: "Criado", icon: Plus, color: "text-blue-500" },
+};
+
+const AuditLogViewer = () => {
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["gateway-audit-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gateway_audit_log" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  if (isLoading) return <p className="text-sm text-muted-foreground mt-3">Carregando...</p>;
+  if (!logs?.length) return <p className="text-sm text-muted-foreground mt-3">Nenhuma alteração registrada.</p>;
+
+  return (
+    <div className="mt-3 space-y-2">
+      {logs.map((log: any) => {
+        const actionInfo = ACTION_LABELS[log.action] || { label: log.action, icon: History, color: "text-muted-foreground" };
+        const Icon = actionInfo.icon;
+        const date = new Date(log.created_at);
+
+        return (
+          <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-card border border-border">
+            <div className={cn("mt-0.5", actionInfo.color)}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">{log.gateway_name}</span>
+                <span className={cn("text-xs font-medium", actionInfo.color)}>{actionInfo.label}</span>
+              </div>
+              {log.details && Object.keys(log.details).length > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {log.details.reason || ""}
+                  {log.details.public_key_changed && " • Chave pública alterada"}
+                  {log.details.secret_key_changed && " • Chave secreta alterada"}
+                  {log.details.previous && ` • Anterior: ${log.details.previous}`}
+                </p>
+              )}
+            </div>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {date.toLocaleDateString("pt-BR")} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
