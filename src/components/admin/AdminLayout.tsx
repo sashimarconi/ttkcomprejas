@@ -95,12 +95,12 @@ const AdminLayout = () => {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) navigate("/admin/login");
+      if (!session) navigate(`${ADMIN_BASE}/login`);
       setLoading(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) navigate("/admin/login");
+      if (!session) navigate(`${ADMIN_BASE}/login`);
     });
 
     checkAuth();
