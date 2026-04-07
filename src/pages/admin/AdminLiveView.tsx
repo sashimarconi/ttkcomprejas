@@ -18,6 +18,7 @@ interface SessionData {
   country?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  is_bot?: boolean | null;
 }
 
 interface LiveStats {
