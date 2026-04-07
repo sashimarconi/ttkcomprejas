@@ -223,8 +223,8 @@ const AdminSecurity = () => {
                 <h3 className="text-sm font-semibold text-foreground">Proteção Anti-Bot</h3>
                 <p className="text-xs text-muted-foreground">
                   {botCount > 0
-                    ? `${botCount.toLocaleString("pt-BR")} sessões sem IP detectadas (bots/crawlers)`
-                    : "Nenhuma sessão bot detectada — tudo limpo!"}
+                    ? `${botCount.toLocaleString("pt-BR")} bots confirmados por user-agent (crawlers/scrapers)`
+                    : "Nenhum bot confirmado — tudo limpo!"}
                 </p>
               </div>
             </div>
