@@ -156,7 +156,7 @@ const AdminGateways = () => {
       if (!state) return;
 
       const shouldActivate = activate ?? state.active;
-      const isNew = !state.id;
+      
 
       if (shouldActivate) {
         for (const gw of gateways || []) {
