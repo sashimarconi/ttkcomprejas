@@ -149,9 +149,9 @@ const AdminLiveView = () => {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Visitantes", value: String(stats.visitors), icon: Users },
+              { label: "Bots", value: String(botCount), icon: Bot },
               { label: "Vendas (hoje)", value: formatCurrency(stats.revenue), icon: DollarSign },
               { label: "Pedidos", value: String(stats.orders), icon: ShoppingCart },
-              { label: "Pagos", value: String(stats.paidOrders), icon: ShoppingCart },
               { label: "Conversão", value: `${stats.conversionRate.toFixed(1)}%`, icon: Percent },
               { label: "Ticket médio", value: formatCurrency(stats.avgTicket), icon: DollarSign },
             ].map((card) => (
