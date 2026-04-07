@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getFingerprint, getBotScore, useHumanInteractionTracker } from "./useBotDetection";
 
 function getSessionId() {
   let sid = sessionStorage.getItem("visitor_session_id");
@@ -24,9 +25,9 @@ const BOT_PATTERNS = [
   /go-http-client/i, /node-fetch/i, /axios/i,
 ];
 
-function isBot(): boolean {
+function isBotByUA(): boolean {
   const ua = navigator.userAgent;
-  if (!ua || ua.length < 10) return false; // Unknown UA ≠ bot
+  if (!ua || ua.length < 10) return false;
   return BOT_PATTERNS.some(p => p.test(ua));
 }
 
@@ -68,7 +69,7 @@ async function fetchGeoOnce(): Promise<GeoData | null> {
   return geoPromise;
 }
 
-// Check if current IP is blocked (manual block OR auto rate-limit)
+// Check if current IP is blocked
 let blockedCheckDone = false;
 let isBlockedResult = false;
 
@@ -90,6 +91,10 @@ async function checkBlocked(ip: string): Promise<boolean> {
 
 export function usePageTracking(eventType: string = "page_view", metadata?: Record<string, unknown>) {
   const tracked = useRef(false);
+  const sessionId = getSessionId();
+
+  // Track human interactions (mouse, touch, scroll, click, keyboard)
+  useHumanInteractionTracker(sessionId);
 
   useEffect(() => {
     if (tracked.current) return;
@@ -101,9 +106,12 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     if (pageUrl.startsWith("/admin")) return;
 
     // Detect bot by user-agent
-    const botDetected = isBot();
+    const botByUA = isBotByUA();
+    const fingerprint = getFingerprint();
+    const botScore = getBotScore();
 
-    const sessionId = getSessionId();
+    // Final bot determination: UA match OR high bot score
+    const isBot = botByUA || botScore >= 50;
 
     fetchGeoOnce().then(async (geo) => {
       // Check if IP is manually blocked
@@ -123,13 +131,15 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
         metadata: metadata || {},
       } as any).then();
 
-      // Upsert visitor session with geo + IP + bot flag
+      // Upsert visitor session with all detection data
       const sessionData: Record<string, unknown> = {
         session_id: sessionId,
         last_seen_at: new Date().toISOString(),
         page_url: pageUrl,
-        is_bot: botDetected,
+        is_bot: isBot,
         user_agent: navigator.userAgent || null,
+        fingerprint_hash: fingerprint,
+        bot_score: botScore,
       };
       if (geo) {
         sessionData.city = geo.city;
@@ -140,9 +150,8 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
         sessionData.ip = geo.ip;
       }
       supabase.from("visitor_sessions").upsert(sessionData as any, { onConflict: "session_id" }).then();
-      
     });
-  }, [eventType, metadata]);
+  }, [eventType, metadata, sessionId]);
 }
 
 export function trackEvent(eventType: string, metadata?: Record<string, unknown>) {
@@ -158,7 +167,6 @@ export function trackEvent(eventType: string, metadata?: Record<string, unknown>
 // Heartbeat to keep session alive
 export function useVisitorHeartbeat() {
   useEffect(() => {
-    // Only heartbeat if we have geo/IP cached (i.e., not a bot)
     if (!cachedGeo?.ip) return;
 
     const sessionId = getSessionId();
