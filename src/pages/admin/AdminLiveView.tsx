@@ -48,19 +48,22 @@ const AdminLiveView = () => {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
     const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude").gte("last_seen_at", fiveMinAgo).not("ip", "is", null).neq("ip", ""),
+      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude, is_bot").gte("last_seen_at", fiveMinAgo),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
       supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", todayStart),
       supabase.from("visitor_sessions").select("session_id, city, region, country").gte("last_seen_at", todayStart).not("ip", "is", null).neq("ip", ""),
     ]);
 
-    const activeSessions = sessionsRes.data || [];
+    const activeSessions = (sessionsRes.data || []) as SessionData[];
     const uniqueSessions = new Map<string, SessionData>();
     activeSessions.forEach(s => {
       if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
     });
-    const sessionsArr = Array.from(uniqueSessions.values());
-    setSessions(sessionsArr);
+    const allArr = Array.from(uniqueSessions.values());
+    const realSessions = allArr.filter(s => !s.is_bot);
+    const bots = allArr.filter(s => s.is_bot);
+    setSessions(realSessions);
+    setBotCount(bots.length);
 
     const todayAll = todaySessionsRes.data || [];
     const uniqueToday = new Map<string, { session_id: string; city?: string | null; region?: string | null; country?: string | null }>();
