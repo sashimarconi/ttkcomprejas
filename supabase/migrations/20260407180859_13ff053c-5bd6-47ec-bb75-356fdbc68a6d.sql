@@ -1,0 +1,1 @@
+DELETE FROM gateway_settings WHERE id = '836b7bd2-1046-439b-ba4a-bf62e255e47f';
