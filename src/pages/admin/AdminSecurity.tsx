@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, Key, Loader2, Ban, Trash2, Plus, Globe, AlertTriangle } from "lucide-react";
+import { Shield, Key, Loader2, Ban, Trash2, Plus, Globe, AlertTriangle, Bot } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
