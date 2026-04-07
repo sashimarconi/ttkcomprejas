@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Save, CheckCircle, Search, Zap, Shield, Settings2, Lock } from "lucide-react";
+import { Eye, EyeOff, Save, CheckCircle, Search, Zap, Shield, Settings2, Lock, History, KeyRound, Power, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,17 @@ const AdminGateways = () => {
   const [states, setStates] = useState<Record<string, GatewayState>>({});
   const [loaded, setLoaded] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAuditLog, setShowAuditLog] = useState(false);
+
+  const logAudit = async (gatewayName: string, action: string, details: Record<string, any> = {}) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("gateway_audit_log" as any).insert({
+      gateway_name: gatewayName,
+      action,
+      details,
+      performed_by: user?.id || null,
+    });
+  };
   const [configOpen, setConfigOpen] = useState<string | null>(null);
 
   // PIN verification state
@@ -145,16 +156,24 @@ const AdminGateways = () => {
       if (!state) return;
 
       const shouldActivate = activate ?? state.active;
+      
 
       if (shouldActivate) {
         for (const gw of gateways || []) {
           if (gw.gateway_name !== gatewayName && gw.active) {
             await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
+            await logAudit(gw.gateway_name, "deactivated", { reason: `Switched to ${gatewayName}` });
           }
         }
       }
 
       if (state.id) {
+        const oldGw = gateways?.find(g => g.id === state.id);
+        const changes: Record<string, any> = {};
+        if (oldGw?.public_key !== state.publicKey) changes.public_key_changed = true;
+        if (oldGw?.secret_key !== state.secretKey) changes.secret_key_changed = true;
+        if (oldGw?.active !== shouldActivate) changes.active = shouldActivate;
+
         const { error } = await supabase
           .from("gateway_settings")
           .update({
@@ -164,6 +183,13 @@ const AdminGateways = () => {
           })
           .eq("id", state.id);
         if (error) throw error;
+
+        if (Object.keys(changes).length > 0) {
+          await logAudit(gatewayName, "keys_updated", changes);
+        }
+        if (shouldActivate && !oldGw?.active) {
+          await logAudit(gatewayName, "activated", {});
+        }
       } else {
         const { error } = await supabase.from("gateway_settings").insert({
           gateway_name: gatewayName,
@@ -172,6 +198,7 @@ const AdminGateways = () => {
           active: shouldActivate,
         });
         if (error) throw error;
+        await logAudit(gatewayName, "created", { active: shouldActivate });
       }
     },
     onSuccess: (_data, variables) => {
@@ -204,9 +231,11 @@ const AdminGateways = () => {
         return;
       }
 
+      const previousActive = gateways?.find(gw => gw.active);
       for (const gw of gateways || []) {
         if (gw.active) {
           await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
+          await logAudit(gw.gateway_name, "deactivated", { reason: `Switched to ${gatewayName}` });
         }
       }
 
@@ -215,6 +244,7 @@ const AdminGateways = () => {
         .update({ active: true })
         .eq("id", state.id);
       if (error) throw error;
+      await logAudit(gatewayName, "activated", { previous: previousActive?.gateway_name || null });
     },
     onSuccess: (_data, gatewayName) => {
       // Optimistically update local state immediately
@@ -471,6 +501,79 @@ const AdminGateways = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Audit Log Section */}
+      <div className="mt-8">
+        <button
+          onClick={() => setShowAuditLog(!showAuditLog)}
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <History className="w-4 h-4" />
+          {showAuditLog ? "Ocultar" : "Ver"} Log de Alterações
+        </button>
+
+        {showAuditLog && <AuditLogViewer />}
+      </div>
+    </div>
+  );
+};
+
+const ACTION_LABELS: Record<string, { label: string; icon: typeof KeyRound; color: string }> = {
+  keys_updated: { label: "Chaves alteradas", icon: KeyRound, color: "text-yellow-500" },
+  activated: { label: "Ativado", icon: Power, color: "text-emerald-500" },
+  deactivated: { label: "Desativado", icon: Power, color: "text-red-500" },
+  created: { label: "Criado", icon: Plus, color: "text-blue-500" },
+};
+
+const AuditLogViewer = () => {
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["gateway-audit-log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("gateway_audit_log" as any)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  if (isLoading) return <p className="text-sm text-muted-foreground mt-3">Carregando...</p>;
+  if (!logs?.length) return <p className="text-sm text-muted-foreground mt-3">Nenhuma alteração registrada.</p>;
+
+  return (
+    <div className="mt-3 space-y-2">
+      {logs.map((log: any) => {
+        const actionInfo = ACTION_LABELS[log.action] || { label: log.action, icon: History, color: "text-muted-foreground" };
+        const Icon = actionInfo.icon;
+        const date = new Date(log.created_at);
+
+        return (
+          <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-card border border-border">
+            <div className={cn("mt-0.5", actionInfo.color)}>
+              <Icon className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">{log.gateway_name}</span>
+                <span className={cn("text-xs font-medium", actionInfo.color)}>{actionInfo.label}</span>
+              </div>
+              {log.details && Object.keys(log.details).length > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {log.details.reason || ""}
+                  {log.details.public_key_changed && " • Chave pública alterada"}
+                  {log.details.secret_key_changed && " • Chave secreta alterada"}
+                  {log.details.previous && ` • Anterior: ${log.details.previous}`}
+                </p>
+              )}
+            </div>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {date.toLocaleDateString("pt-BR")} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };

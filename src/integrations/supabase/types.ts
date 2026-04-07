@@ -158,6 +158,36 @@ export type Database = {
         }
         Relationships: []
       }
+      gateway_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          gateway_name: string
+          id: string
+          ip_address: string | null
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          gateway_name: string
+          id?: string
+          ip_address?: string | null
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          gateway_name?: string
+          id?: string
+          ip_address?: string | null
+          performed_by?: string | null
+        }
+        Relationships: []
+      }
       gateway_settings: {
         Row: {
           active: boolean | null
