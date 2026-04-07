@@ -1,18 +1,14 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback, Component, type ErrorInfo, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Globe, { GlobeMethods } from "react-globe.gl";
 import * as topojson from "topojson-client";
 import type { Topology } from "topojson-specification";
 
-// Error boundary to catch react-globe.gl destructor crash on unmount
-class GlobeErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-  static getDerivedStateFromError() { return { hasError: true }; }
-  componentDidCatch(error: Error, _info: ErrorInfo) {
-    if (error.message?.includes("_destructor is not a function")) return;
-    console.error("Globe error:", error);
-  }
-  render() { return this.state.hasError ? null : this.props.children; }
-}
+// Patch: suppress react-globe.gl destructor crash on unmount
+const _origConsoleError = console.error;
+console.error = (...args: any[]) => {
+  if (typeof args[0] === "string" && args[0].includes("_destructor is not a function")) return;
+  _origConsoleError(...args);
+};
 
 interface VisitorPoint {
   lat: number;
@@ -136,7 +132,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
       style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
     >
       {polygons.length > 0 && dimensions.width > 0 && (
-        <GlobeErrorBoundary>
           <Globe
             ref={globeRef}
             width={dimensions.width}
@@ -174,7 +169,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
             arcDashGap={0.2}
             arcDashAnimateTime={2000}
           />
-        </GlobeErrorBoundary>
       )}
     </div>
   );
