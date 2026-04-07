@@ -1037,6 +1037,7 @@ export type Database = {
           created_at: string
           id: string
           ip: string | null
+          is_bot: boolean | null
           last_seen_at: string
           latitude: number | null
           longitude: number | null
@@ -1050,6 +1051,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip?: string | null
+          is_bot?: boolean | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null
@@ -1063,6 +1065,7 @@ export type Database = {
           created_at?: string
           id?: string
           ip?: string | null
+          is_bot?: boolean | null
           last_seen_at?: string
           latitude?: number | null
           longitude?: number | null

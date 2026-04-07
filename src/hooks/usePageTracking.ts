@@ -100,22 +100,19 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     // Skip admin pages
     if (pageUrl.startsWith("/admin")) return;
 
-    // Block bots by user-agent — don't track, but site stays visible
-    if (isBot()) {
-      return;
-    }
+    // Detect bot by user-agent
+    const botDetected = isBot();
 
     const sessionId = getSessionId();
 
     fetchGeoOnce().then(async (geo) => {
-      // No IP = suspicious — don't track
-      if (!geo?.ip) return;
-
       // Check if IP is manually blocked
-      const blocked = await checkBlocked(geo.ip);
-      if (blocked) {
-        document.body.innerHTML = "";
-        return;
+      if (geo?.ip) {
+        const blocked = await checkBlocked(geo.ip);
+        if (blocked) {
+          document.body.innerHTML = "";
+          return;
+        }
       }
 
       // Track event
@@ -126,18 +123,23 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
         metadata: metadata || {},
       } as any).then();
 
-      // Upsert visitor session with geo + IP
-      supabase.from("visitor_sessions").upsert({
+      // Upsert visitor session with geo + IP + bot flag
+      const sessionData: Record<string, unknown> = {
         session_id: sessionId,
         last_seen_at: new Date().toISOString(),
         page_url: pageUrl,
-        city: geo.city,
-        region: geo.region,
-        country: geo.country,
-        latitude: geo.latitude,
-        longitude: geo.longitude,
-        ip: geo.ip,
-      } as any, { onConflict: "session_id" }).then();
+        is_bot: botDetected || !geo?.ip,
+      };
+      if (geo) {
+        sessionData.city = geo.city;
+        sessionData.region = geo.region;
+        sessionData.country = geo.country;
+        sessionData.latitude = geo.latitude;
+        sessionData.longitude = geo.longitude;
+        sessionData.ip = geo.ip;
+      }
+      supabase.from("visitor_sessions").upsert(sessionData as any, { onConflict: "session_id" }).then();
+      
     });
   }, [eventType, metadata]);
 }

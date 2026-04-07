@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, DollarSign, Percent, ShoppingCart } from "lucide-react";
+import { Users, DollarSign, Percent, ShoppingCart, Bot } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent } from "@/components/ui/card";
 import LiveGlobe from "@/components/admin/live-view/LiveGlobe";
@@ -18,6 +18,7 @@ interface SessionData {
   country?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  is_bot?: boolean | null;
 }
 
 interface LiveStats {
@@ -34,6 +35,7 @@ const AdminLiveView = () => {
     visitors: 0, revenue: 0, orders: 0, paidOrders: 0, conversionRate: 0, avgTicket: 0,
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
+  const [botCount, setBotCount] = useState(0);
   const [todaySessions, setTodaySessions] = useState<{ session_id: string; city?: string | null; region?: string | null; country?: string | null }[]>([]);
   const [todayEvents, setTodayEvents] = useState<{ event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
@@ -46,19 +48,22 @@ const AdminLiveView = () => {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
     const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude").gte("last_seen_at", fiveMinAgo).not("ip", "is", null).neq("ip", ""),
+      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude, is_bot").gte("last_seen_at", fiveMinAgo),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
       supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", todayStart),
       supabase.from("visitor_sessions").select("session_id, city, region, country").gte("last_seen_at", todayStart).not("ip", "is", null).neq("ip", ""),
     ]);
 
-    const activeSessions = sessionsRes.data || [];
+    const activeSessions = (sessionsRes.data || []) as SessionData[];
     const uniqueSessions = new Map<string, SessionData>();
     activeSessions.forEach(s => {
       if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
     });
-    const sessionsArr = Array.from(uniqueSessions.values());
-    setSessions(sessionsArr);
+    const allArr = Array.from(uniqueSessions.values());
+    const realSessions = allArr.filter(s => !s.is_bot);
+    const bots = allArr.filter(s => s.is_bot);
+    setSessions(realSessions);
+    setBotCount(bots.length);
 
     const todayAll = todaySessionsRes.data || [];
     const uniqueToday = new Map<string, { session_id: string; city?: string | null; region?: string | null; country?: string | null }>();
@@ -75,15 +80,15 @@ const AdminLiveView = () => {
     const checkoutViews = events.filter(e => e.event_type === "checkout_view").length;
     const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
 
-    const checkoutActive = sessionsArr.filter(s => s.page_url?.includes("/checkout")).length;
+    const checkoutActive = realSessions.filter(s => s.page_url?.includes("/checkout")).length;
     setBehavior({
-      activeCarts: sessionsArr.length,
+      activeCarts: realSessions.length,
       inCheckout: checkoutActive,
       purchased: paidOrders.length,
     });
 
     setStats({
-      visitors: uniqueSessions.size,
+      visitors: realSessions.length,
       revenue,
       orders: orders.length,
       paidOrders: paidOrders.length,
@@ -144,9 +149,9 @@ const AdminLiveView = () => {
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: "Visitantes", value: String(stats.visitors), icon: Users },
+              { label: "Bots", value: String(botCount), icon: Bot },
               { label: "Vendas (hoje)", value: formatCurrency(stats.revenue), icon: DollarSign },
               { label: "Pedidos", value: String(stats.orders), icon: ShoppingCart },
-              { label: "Pagos", value: String(stats.paidOrders), icon: ShoppingCart },
               { label: "Conversão", value: `${stats.conversionRate.toFixed(1)}%`, icon: Percent },
               { label: "Ticket médio", value: formatCurrency(stats.avgTicket), icon: DollarSign },
             ].map((card) => (
