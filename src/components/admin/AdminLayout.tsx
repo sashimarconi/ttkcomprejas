@@ -11,53 +11,55 @@ import { cn } from "@/lib/utils";
 import SaleNotification from "@/components/admin/SaleNotification";
 import PushNotificationToggle from "@/components/admin/PushNotificationToggle";
 
+const ADMIN_BASE = "/ctrl9k";
+
 const navSections = [
   {
     title: "Análises",
     items: [
-      { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
-      { label: "Live View", path: "/admin/live-view", icon: Radio },
-      { label: "Análises", path: "/admin/analytics", icon: BarChart3 },
+      { label: "Dashboard", path: `${ADMIN_BASE}`, icon: LayoutDashboard },
+      { label: "Live View", path: `${ADMIN_BASE}/live-view`, icon: Radio },
+      { label: "Análises", path: `${ADMIN_BASE}/analytics`, icon: BarChart3 },
     ],
   },
   {
     title: "Vendas",
     items: [
-      { label: "Pedidos", path: "/admin/orders", icon: ClipboardList },
-      { label: "Carrinhos Abandonados", path: "/admin/abandoned-carts", icon: ShoppingCart },
+      { label: "Pedidos", path: `${ADMIN_BASE}/orders`, icon: ClipboardList },
+      { label: "Carrinhos Abandonados", path: `${ADMIN_BASE}/abandoned-carts`, icon: ShoppingCart },
     ],
   },
   {
     title: "Catálogo",
     items: [
-      { label: "Produtos", path: "/admin/products", icon: Package },
-      { label: "Editor de Produto", path: "/admin/product-builder", icon: PenTool },
-      { label: "Avaliações", path: "/admin/reviews", icon: Star },
-      { label: "Badges", path: "/admin/badges", icon: ShieldCheck },
-      { label: "Lojas", path: "/admin/stores", icon: Store },
+      { label: "Produtos", path: `${ADMIN_BASE}/products`, icon: Package },
+      { label: "Editor de Produto", path: `${ADMIN_BASE}/product-builder`, icon: PenTool },
+      { label: "Avaliações", path: `${ADMIN_BASE}/reviews`, icon: Star },
+      { label: "Badges", path: `${ADMIN_BASE}/badges`, icon: ShieldCheck },
+      { label: "Lojas", path: `${ADMIN_BASE}/stores`, icon: Store },
     ],
   },
   {
     title: "Checkout",
     items: [
-      { label: "Builder", path: "/admin/checkout-builder", icon: PenTool },
-      { label: "Gateways", path: "/admin/gateways", icon: CreditCard },
-      { label: "Fretes", path: "/admin/shipping", icon: Truck },
-      { label: "Order Bumps", path: "/admin/order-bumps", icon: Tag },
+      { label: "Builder", path: `${ADMIN_BASE}/checkout-builder`, icon: PenTool },
+      { label: "Gateways", path: `${ADMIN_BASE}/gateways`, icon: CreditCard },
+      { label: "Fretes", path: `${ADMIN_BASE}/shipping`, icon: Truck },
+      { label: "Order Bumps", path: `${ADMIN_BASE}/order-bumps`, icon: Tag },
     ],
   },
   {
     title: "Marketing",
     items: [
-      { label: "Pixels", path: "/admin/pixels", icon: BarChart3 },
-      { label: "Webhooks", path: "/admin/webhooks", icon: Webhook },
+      { label: "Pixels", path: `${ADMIN_BASE}/pixels`, icon: BarChart3 },
+      { label: "Webhooks", path: `${ADMIN_BASE}/webhooks`, icon: Webhook },
     ],
   },
   {
     title: "Configurações",
     items: [
-      { label: "Notificações", path: "/admin/notifications", icon: Bell },
-      { label: "Segurança", path: "/admin/security", icon: Lock },
+      { label: "Notificações", path: `${ADMIN_BASE}/notifications`, icon: Bell },
+      { label: "Segurança", path: `${ADMIN_BASE}/security`, icon: Lock },
     ],
   },
 ];
@@ -93,12 +95,12 @@ const AdminLayout = () => {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) navigate("/admin/login");
+      if (!session) navigate(`${ADMIN_BASE}/login`);
       setLoading(false);
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) navigate("/admin/login");
+      if (!session) navigate(`${ADMIN_BASE}/login`);
     });
 
     checkAuth();
@@ -108,7 +110,7 @@ const AdminLayout = () => {
   const handleLogout = async () => {
     sessionStorage.removeItem("admin_pin_verified");
     await supabase.auth.signOut();
-    navigate("/admin/login");
+    navigate(`${ADMIN_BASE}/login`);
   };
 
   if (loading) {
@@ -124,14 +126,14 @@ const AdminLayout = () => {
   }
 
   const isActive = (path: string) => {
-    if (path === "/admin") return location.pathname === "/admin";
+    if (path === ADMIN_BASE) return location.pathname === ADMIN_BASE;
     return location.pathname.startsWith(path);
   };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-4 flex items-center justify-between border-b border-border">
-        <Link to="/admin" className="flex items-center gap-2">
+        <Link to={ADMIN_BASE} className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">A</span>
           </div>
