@@ -383,7 +383,7 @@ const AdminAnalytics = () => {
                       <div key={s.state}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-foreground">{s.state}</span>
-                          <span className="text-xs font-semibold text-foreground">{s.count}</span>
+                          <span className="text-xs font-semibold text-foreground">{formatCompact(s.count)}</span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                           <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${(s.count / maxStateCount) * 100}%` }} />
