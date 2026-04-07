@@ -113,6 +113,16 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
     value: item.unitPrice / 100,
   }));
 
+  const payload = {
+    client_name: body.customerName,
+    client_email: body.customerEmail,
+    client_document: body.customerDocument.replace(/\D/g, ""),
+    client_mobile_phone: body.customerPhone.replace(/\D/g, ""),
+    products,
+    ...webhookFields,
+  };
+  console.log("GhostsPay request payload:", JSON.stringify(payload));
+
   const res = await fetch("https://api.ghostspaysv1.com/api/generate-transaction", {
     method: "POST",
     headers: {
@@ -120,16 +130,10 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
       "X-Secret-Key": gateway.secret_key,
       "X-Public-Key": gateway.public_key,
     },
-    body: JSON.stringify({
-      client_name: body.customerName,
-      client_email: body.customerEmail,
-      client_document: body.customerDocument.replace(/\D/g, ""),
-      client_mobile_phone: body.customerPhone.replace(/\D/g, ""),
-      products,
-      ...webhookFields,
-    }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
+  console.log("GhostsPay response:", JSON.stringify(data), "status:", res.status);
   if (!res.ok) throw { status: res.status, data };
 
   const pix = data.pix ?? data.data?.pix ?? {};
