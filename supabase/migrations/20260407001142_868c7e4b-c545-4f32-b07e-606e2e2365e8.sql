@@ -1,0 +1,1 @@
+DELETE FROM public.visitor_sessions WHERE ip IS NULL OR ip = '';
