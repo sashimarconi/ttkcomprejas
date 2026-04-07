@@ -26,7 +26,7 @@ const BOT_PATTERNS = [
 
 function isBot(): boolean {
   const ua = navigator.userAgent;
-  if (!ua || ua.length < 10) return true;
+  if (!ua || ua.length < 10) return false; // Unknown UA ≠ bot
   return BOT_PATTERNS.some(p => p.test(ua));
 }
 
