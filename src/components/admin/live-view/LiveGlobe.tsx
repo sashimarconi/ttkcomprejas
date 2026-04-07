@@ -1,14 +1,7 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Globe, { GlobeMethods } from "react-globe.gl";
 import * as topojson from "topojson-client";
 import type { Topology } from "topojson-specification";
-
-// Patch: suppress react-globe.gl destructor crash on unmount
-const _origConsoleError = console.error;
-console.error = (...args: any[]) => {
-  if (typeof args[0] === "string" && args[0].includes("_destructor is not a function")) return;
-  _origConsoleError(...args);
-};
 
 interface VisitorPoint {
   lat: number;
@@ -49,16 +42,6 @@ export default function LiveGlobe({ visitors, className }: LiveGlobeProps) {
   const [polygons, setPolygons] = useState<any[]>([]);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
 
-  // Suppress destructor crash from three-render-objects on unmount
-  useEffect(() => {
-    const handler = (e: ErrorEvent) => {
-      if (e.message?.includes("_destructor is not a function")) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener("error", handler);
-    return () => window.removeEventListener("error", handler);
-  }, []);
 
   useEffect(() => {
     fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json")
