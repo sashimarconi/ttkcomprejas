@@ -63,6 +63,17 @@ const AdminGateways = () => {
   const [states, setStates] = useState<Record<string, GatewayState>>({});
   const [loaded, setLoaded] = useState(false);
   const [search, setSearch] = useState("");
+  const [showAuditLog, setShowAuditLog] = useState(false);
+
+  const logAudit = async (gatewayName: string, action: string, details: Record<string, any> = {}) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    await supabase.from("gateway_audit_log" as any).insert({
+      gateway_name: gatewayName,
+      action,
+      details,
+      performed_by: user?.id || null,
+    });
+  };
   const [configOpen, setConfigOpen] = useState<string | null>(null);
 
   // PIN verification state
