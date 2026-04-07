@@ -63,7 +63,7 @@ const AdminSecurity = () => {
         .order("created_at", { ascending: false }) as any,
       supabase.from("visitor_sessions")
         .select("id", { count: "exact", head: true })
-        .or("ip.is.null,ip.eq.") as any,
+        .eq("is_bot", true) as any,
     ]);
 
     // Aggregate by IP
@@ -127,7 +127,7 @@ const AdminSecurity = () => {
 
   const handleCleanBots = async () => {
     setCleaningBots(true);
-    const { error } = await supabase.from("visitor_sessions").delete().or("ip.is.null,ip.eq.") as any;
+    const { error } = await supabase.from("visitor_sessions").delete().eq("is_bot", true) as any;
     if (error) {
       toast.error("Erro ao limpar sessões bot");
     } else {
@@ -223,8 +223,8 @@ const AdminSecurity = () => {
                 <h3 className="text-sm font-semibold text-foreground">Proteção Anti-Bot</h3>
                 <p className="text-xs text-muted-foreground">
                   {botCount > 0
-                    ? `${botCount.toLocaleString("pt-BR")} sessões sem IP detectadas (bots/crawlers)`
-                    : "Nenhuma sessão bot detectada — tudo limpo!"}
+                    ? `${botCount.toLocaleString("pt-BR")} bots confirmados por user-agent (crawlers/scrapers)`
+                    : "Nenhum bot confirmado — tudo limpo!"}
                 </p>
               </div>
             </div>
@@ -247,7 +247,7 @@ const AdminSecurity = () => {
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 border-t border-border pt-2">
-            Sessões sem IP são automaticamente bloqueadas e não aparecem nas métricas. Novos bots são impedidos de acessar o site.
+            Bots são identificados pelo user-agent (Googlebot, AhrefsBot, scrapers, etc). Apenas bots confirmados são contados aqui — visitantes reais nunca são afetados.
           </p>
         </CardContent>
       </Card>
