@@ -82,13 +82,17 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     if (pageUrl.startsWith("/admin")) return;
 
     fetchGeoOnce().then(async (geo) => {
+      // No IP = bot/crawler — don't track, don't render
+      if (!geo?.ip) {
+        console.warn("[anti-bot] No IP detected, session blocked");
+        return;
+      }
+
       // Check if IP is blocked
-      if (geo?.ip) {
-        const blocked = await checkBlocked(geo.ip);
-        if (blocked) {
-          document.body.innerHTML = "";
-          return;
-        }
+      const blocked = await checkBlocked(geo.ip);
+      if (blocked) {
+        document.body.innerHTML = "";
+        return;
       }
 
       // Track event
@@ -100,20 +104,17 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
       } as any).then();
 
       // Upsert visitor session with geo + IP
-      const sessionData: any = {
+      supabase.from("visitor_sessions").upsert({
         session_id: sessionId,
         last_seen_at: new Date().toISOString(),
         page_url: pageUrl,
-      };
-      if (geo) {
-        sessionData.city = geo.city;
-        sessionData.region = geo.region;
-        sessionData.country = geo.country;
-        sessionData.latitude = geo.latitude;
-        sessionData.longitude = geo.longitude;
-        sessionData.ip = geo.ip;
-      }
-      supabase.from("visitor_sessions").upsert(sessionData, { onConflict: "session_id" }).then();
+        city: geo.city,
+        region: geo.region,
+        country: geo.country,
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        ip: geo.ip,
+      } as any, { onConflict: "session_id" }).then();
     });
   }, [eventType, metadata]);
 }
