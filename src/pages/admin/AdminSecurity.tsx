@@ -88,6 +88,7 @@ const AdminSecurity = () => {
     const sorted = Array.from(ipMap.values()).sort((a, b) => b.count - a.count);
     setIpStats(sorted);
     setBlockedIps(blockedRes.data || []);
+    setBotCount(botRes.count || 0);
     setLoadingIps(false);
   }, []);
 
