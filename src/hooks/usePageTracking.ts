@@ -100,9 +100,8 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     // Skip admin pages
     if (pageUrl.startsWith("/admin")) return;
 
-    // Block bots by user-agent immediately
+    // Block bots by user-agent — don't track, but site stays visible
     if (isBot()) {
-      document.body.innerHTML = "";
       return;
     }
 
