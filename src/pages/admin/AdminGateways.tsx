@@ -265,7 +265,7 @@ const AdminGateways = () => {
               )}
               onClick={() => {
                 if (configured && !active) {
-                  requirePin(() => activateMutation.mutate(gw.name));
+                  requirePin({ action: "activate", gatewayName: gw.name });
                 } else if (!configured) {
                   setConfigOpen(gw.name);
                 }
