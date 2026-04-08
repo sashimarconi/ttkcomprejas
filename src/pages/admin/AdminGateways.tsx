@@ -499,6 +499,9 @@ const AuditLogViewer = () => {
                   {log.details.previous && ` • Anterior: ${log.details.previous}`}
                 </p>
               )}
+              {log.ip_address && (
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">IP: {log.ip_address}</p>
+              )}
             </div>
             <span className="text-[10px] text-muted-foreground shrink-0">
               {date.toLocaleDateString("pt-BR")} {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
