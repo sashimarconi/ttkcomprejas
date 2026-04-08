@@ -86,17 +86,31 @@ const AdminSecurity = () => {
     }
   };
 
-  const unenrollMfa = async () => {
+  const handleUnenrollMfa = async () => {
+    if (unenrollPin.length !== 6) {
+      toast.error("Digite o PIN de 6 dígitos");
+      return;
+    }
+    setUnenrolling(true);
+    const { data: valid } = await supabase.rpc("verify_admin_pin", { p_pin: unenrollPin });
+    if (!valid) {
+      toast.error("PIN incorreto");
+      setUnenrolling(false);
+      return;
+    }
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const factor = factors?.totp?.[0];
-    if (!factor) return;
+    if (!factor) { setUnenrolling(false); return; }
     const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
     if (error) {
       toast.error("Erro ao desativar 2FA: " + error.message);
     } else {
       toast.success("2FA desativado");
       setMfaStatus("not-enrolled");
+      setShowUnenrollConfirm(false);
+      setUnenrollPin("");
     }
+    setUnenrolling(false);
   };
 
   const copySecret = () => {
