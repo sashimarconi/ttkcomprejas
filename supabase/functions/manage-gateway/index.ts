@@ -184,6 +184,8 @@ Deno.serve(async (req: Request) => {
         .eq("gateway_name", gateway_name);
       if (activateErr) throw activateErr;
 
+      await notifyGatewayChange(supabaseUrl, supabaseServiceKey, "activate", gateway_name, clientIp);
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
