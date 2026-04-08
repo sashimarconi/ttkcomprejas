@@ -136,6 +136,8 @@ Deno.serve(async (req: Request) => {
         if (insertErr) throw insertErr;
       }
 
+      await notifyGatewayChange(supabaseUrl, supabaseServiceKey, "save_keys", gateway_name, clientIp);
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
