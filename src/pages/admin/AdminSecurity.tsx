@@ -25,6 +25,9 @@ const AdminSecurity = () => {
   const [enrolling, setEnrolling] = useState(false);
   const [qrCode, setQrCode] = useState("");
   const [secret, setSecret] = useState("");
+  const [unenrollPin, setUnenrollPin] = useState("");
+  const [showUnenrollConfirm, setShowUnenrollConfirm] = useState(false);
+  const [unenrolling, setUnenrolling] = useState(false);
   const [factorId, setFactorId] = useState("");
   const [mfaCode, setMfaCode] = useState("");
   const [verifyingMfa, setVerifyingMfa] = useState(false);
