@@ -370,10 +370,10 @@ const AdminGateways = () => {
                   <Button
                     onClick={() => {
                       const gn = configOpen!;
-                      requirePin(() => saveMutation.mutate({ gatewayName: gn, activate: false }));
+                      requirePin({ action: "save_keys", gatewayName: gn });
                     }}
                     variant="outline"
-                    disabled={saveMutation.isPending}
+                    disabled={pinLoading}
                     className="flex-1"
                   >
                     <Save className="w-4 h-4 mr-2" />
@@ -382,9 +382,9 @@ const AdminGateways = () => {
                   <Button
                     onClick={() => {
                       const gn = configOpen!;
-                      requirePin(() => saveMutation.mutate({ gatewayName: gn, activate: true }));
+                      requirePin({ action: "save_and_activate", gatewayName: gn });
                     }}
-                    disabled={saveMutation.isPending}
+                    disabled={pinLoading}
                     className="flex-1"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
