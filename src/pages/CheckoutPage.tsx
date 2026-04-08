@@ -504,7 +504,12 @@ const CheckoutPage = () => {
         phone: customerPhone,
       }, false);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao processar pagamento");
+      const msg = err.message || "Erro ao processar pagamento";
+      if (msg.includes("validação") || msg.includes("gateway")) {
+        toast.error("Erro nos dados informados. Verifique CPF, e-mail e telefone e tente novamente.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSubmitting(false);
     }
