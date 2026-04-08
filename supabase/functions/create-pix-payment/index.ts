@@ -133,7 +133,7 @@ async function callGhostsPay(gateway: any, body: any, items: any[], webhookUrl: 
   const products = items.map((item) => ({
     product_name: item.title,
     quantity: item.quantity,
-    value: item.unitPrice / 100,
+    value: Math.round(item.unitPrice) / 100,
   }));
 
   const payload = {
