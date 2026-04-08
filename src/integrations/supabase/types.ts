@@ -1160,6 +1160,10 @@ export type Database = {
     Functions: {
       set_admin_pin: { Args: { p_pin: string }; Returns: undefined }
       verify_admin_pin: { Args: { p_pin: string }; Returns: boolean }
+      verify_admin_pin_for_user: {
+        Args: { p_pin: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

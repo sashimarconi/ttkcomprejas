@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,22 +65,13 @@ const AdminGateways = () => {
   const [search, setSearch] = useState("");
   const [showAuditLog, setShowAuditLog] = useState(false);
 
-  const logAudit = async (gatewayName: string, action: string, details: Record<string, any> = {}) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("gateway_audit_log" as any).insert({
-      gateway_name: gatewayName,
-      action,
-      details,
-      performed_by: user?.id || null,
-    });
-  };
   const [configOpen, setConfigOpen] = useState<string | null>(null);
 
   // PIN verification state
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [pinValue, setPinValue] = useState("");
   const [pinLoading, setPinLoading] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ action: string; gatewayName: string; activate?: boolean } | null>(null);
 
   const { data: gateways } = useQuery({
     queryKey: ["gateway-settings"],
@@ -120,146 +111,87 @@ const AdminGateways = () => {
   };
 
   // Request PIN before executing action
-  const requirePin = (action: () => void) => {
+  const requirePin = (actionPayload: { action: string; gatewayName: string; activate?: boolean }) => {
     setPinValue("");
-    setPendingAction(() => action);
+    setPendingAction(actionPayload);
     setPinDialogOpen(true);
   };
 
-  const verifyPin = async () => {
-    if (pinValue.length !== 6) return;
+  const executeWithPin = async (pin: string) => {
+    if (!pendingAction) return;
     setPinLoading(true);
-    const { data, error } = await supabase.rpc("verify_admin_pin", { p_pin: pinValue });
-    setPinLoading(false);
-    if (error || !data) {
-      toast.error("PIN incorreto");
-      setPinValue("");
-      return;
+
+    const state = states[pendingAction.gatewayName];
+    let edgeAction = pendingAction.action;
+
+    const payload: any = {
+      action: edgeAction,
+      pin,
+      gateway_name: pendingAction.gatewayName,
+    };
+
+    if (edgeAction === "save_keys" || edgeAction === "save_and_activate") {
+      payload.public_key = state?.publicKey || "";
+      payload.secret_key = state?.secretKey || "";
     }
-    setPinDialogOpen(false);
-    setPinValue("");
-    if (pendingAction) {
-      pendingAction();
+
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-gateway", {
+        body: payload,
+      });
+
+      if (error) {
+        const msg = typeof error === "object" && "message" in error ? error.message : String(error);
+        toast.error(msg || "Erro ao processar");
+        setPinValue("");
+        setPinLoading(false);
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        setPinValue("");
+        setPinLoading(false);
+        return;
+      }
+
+      // Success - optimistic update
+      if (edgeAction === "activate" || edgeAction === "save_and_activate") {
+        setStates((prev) => {
+          const updated = { ...prev };
+          for (const key of Object.keys(updated)) {
+            updated[key] = { ...updated[key], active: key === pendingAction.gatewayName };
+          }
+          return updated;
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["gateway-audit-log"] });
+      setConfigOpen(null);
+      setPinDialogOpen(false);
+      setPinValue("");
       setPendingAction(null);
+      toast.success(
+        edgeAction === "activate"
+          ? "Gateway ativado!"
+          : edgeAction === "save_and_activate"
+          ? "Gateway salvo e ativado!"
+          : "Gateway salvo com sucesso!"
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Erro inesperado");
+      setPinValue("");
+    } finally {
+      setPinLoading(false);
     }
   };
 
   useEffect(() => {
     if (pinDialogOpen && pinValue.length === 6) {
-      verifyPin();
+      executeWithPin(pinValue);
     }
   }, [pinValue, pinDialogOpen]);
-
-  const saveMutation = useMutation({
-    mutationFn: async ({ gatewayName, activate }: { gatewayName: string; activate?: boolean }) => {
-      const state = states[gatewayName];
-      if (!state) return;
-
-      const shouldActivate = activate ?? state.active;
-      
-
-      if (shouldActivate) {
-        for (const gw of gateways || []) {
-          if (gw.gateway_name !== gatewayName && gw.active) {
-            await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
-            await logAudit(gw.gateway_name, "deactivated", { reason: `Switched to ${gatewayName}` });
-          }
-        }
-      }
-
-      if (state.id) {
-        const oldGw = gateways?.find(g => g.id === state.id);
-        const changes: Record<string, any> = {};
-        if (oldGw?.public_key !== state.publicKey) changes.public_key_changed = true;
-        if (oldGw?.secret_key !== state.secretKey) changes.secret_key_changed = true;
-        if (oldGw?.active !== shouldActivate) changes.active = shouldActivate;
-
-        const { error } = await supabase
-          .from("gateway_settings")
-          .update({
-            public_key: state.publicKey,
-            secret_key: state.secretKey,
-            active: shouldActivate,
-          })
-          .eq("id", state.id);
-        if (error) throw error;
-
-        if (Object.keys(changes).length > 0) {
-          await logAudit(gatewayName, "keys_updated", changes);
-        }
-        if (shouldActivate && !oldGw?.active) {
-          await logAudit(gatewayName, "activated", {});
-        }
-      } else {
-        const { error } = await supabase.from("gateway_settings").insert({
-          gateway_name: gatewayName,
-          public_key: state.publicKey,
-          secret_key: state.secretKey,
-          active: shouldActivate,
-        });
-        if (error) throw error;
-        await logAudit(gatewayName, "created", { active: shouldActivate });
-      }
-    },
-    onSuccess: (_data, variables) => {
-      // Optimistically update local state
-      setStates((prev) => {
-        const updated = { ...prev };
-        if (variables.activate) {
-          for (const key of Object.keys(updated)) {
-            updated[key] = { ...updated[key], active: key === variables.gatewayName };
-          }
-        }
-        return updated;
-      });
-      queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
-      setConfigOpen(null);
-      toast.success("Gateway salvo com sucesso!");
-    },
-    onError: () => toast.error("Erro ao salvar gateway"),
-  });
-
-  const activateMutation = useMutation({
-    mutationFn: async (gatewayName: string) => {
-      const state = states[gatewayName];
-      if (!state || !state.id) {
-        toast.error("Configure as chaves antes de ativar");
-        return;
-      }
-      if (!state.publicKey && !state.secretKey) {
-        toast.error("Configure as chaves antes de ativar");
-        return;
-      }
-
-      const previousActive = gateways?.find(gw => gw.active);
-      for (const gw of gateways || []) {
-        if (gw.active) {
-          await supabase.from("gateway_settings").update({ active: false }).eq("id", gw.id);
-          await logAudit(gw.gateway_name, "deactivated", { reason: `Switched to ${gatewayName}` });
-        }
-      }
-
-      const { error } = await supabase
-        .from("gateway_settings")
-        .update({ active: true })
-        .eq("id", state.id);
-      if (error) throw error;
-      await logAudit(gatewayName, "activated", { previous: previousActive?.gateway_name || null });
-    },
-    onSuccess: (_data, gatewayName) => {
-      // Optimistically update local state immediately
-      setStates((prev) => {
-        const updated = { ...prev };
-        for (const key of Object.keys(updated)) {
-          updated[key] = { ...updated[key], active: key === gatewayName };
-        }
-        return updated;
-      });
-      queryClient.invalidateQueries({ queryKey: ["gateway-settings"] });
-      toast.success("Gateway ativado!");
-    },
-    onError: () => toast.error("Erro ao ativar gateway"),
-  });
 
   const filteredGateways = GATEWAYS.filter(
     (gw) =>
@@ -333,7 +265,7 @@ const AdminGateways = () => {
               )}
               onClick={() => {
                 if (configured && !active) {
-                  requirePin(() => activateMutation.mutate(gw.name));
+                  requirePin({ action: "activate", gatewayName: gw.name });
                 } else if (!configured) {
                   setConfigOpen(gw.name);
                 }
@@ -438,10 +370,10 @@ const AdminGateways = () => {
                   <Button
                     onClick={() => {
                       const gn = configOpen!;
-                      requirePin(() => saveMutation.mutate({ gatewayName: gn, activate: false }));
+                      requirePin({ action: "save_keys", gatewayName: gn });
                     }}
                     variant="outline"
-                    disabled={saveMutation.isPending}
+                    disabled={pinLoading}
                     className="flex-1"
                   >
                     <Save className="w-4 h-4 mr-2" />
@@ -450,9 +382,9 @@ const AdminGateways = () => {
                   <Button
                     onClick={() => {
                       const gn = configOpen!;
-                      requirePin(() => saveMutation.mutate({ gatewayName: gn, activate: true }));
+                      requirePin({ action: "save_and_activate", gatewayName: gn });
                     }}
-                    disabled={saveMutation.isPending}
+                    disabled={pinLoading}
                     className="flex-1"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -566,6 +498,9 @@ const AuditLogViewer = () => {
                   {log.details.secret_key_changed && " • Chave secreta alterada"}
                   {log.details.previous && ` • Anterior: ${log.details.previous}`}
                 </p>
+              )}
+              {log.ip_address && (
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">IP: {log.ip_address}</p>
               )}
             </div>
             <span className="text-[10px] text-muted-foreground shrink-0">
