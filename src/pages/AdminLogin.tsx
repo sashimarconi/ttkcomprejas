@@ -5,11 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import MfaEnroll from "@/components/admin/MfaEnroll";
+import MfaVerify from "@/components/admin/MfaVerify";
+
+type Step = "login" | "mfa-enroll" | "mfa-verify";
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<Step>("login");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -17,15 +22,40 @@ const AdminLogin = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
-    } else {
-      navigate("/ctrl9k");
+      setLoading(false);
+      return;
     }
+
+    // Check MFA factors
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verifiedTotpFactors = factors?.totp?.filter(f => f.status === "verified") ?? [];
+
+    if (verifiedTotpFactors.length > 0) {
+      // Has 2FA enrolled - need to verify
+      setStep("mfa-verify");
+    } else {
+      // No 2FA - prompt enrollment
+      setStep("mfa-enroll");
+    }
+
     setLoading(false);
   };
+
+  const handleMfaSuccess = () => {
+    navigate("/ctrl9k");
+  };
+
+  if (step === "mfa-enroll") {
+    return <MfaEnroll onSuccess={handleMfaSuccess} />;
+  }
+
+  if (step === "mfa-verify") {
+    return <MfaVerify onSuccess={handleMfaSuccess} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
