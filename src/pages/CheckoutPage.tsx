@@ -419,6 +419,32 @@ const CheckoutPage = () => {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
+
+    // Validate individual fields with specific messages
+    const docDigits = customerDocument.replace(/\D/g, "");
+    const phoneDigits = customerPhone.replace(/\D/g, "");
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim());
+
+    if (customerName.trim().length < 2) {
+      setShowForm(true);
+      toast.error("Nome inválido. Informe seu nome completo.");
+      return;
+    }
+    if (docDigits.length !== 11 && docDigits.length !== 14) {
+      setShowForm(true);
+      toast.error(docDigits.length < 11 ? `CPF incompleto (${docDigits.length}/11 dígitos). Verifique e tente novamente.` : "CPF/CNPJ inválido. Verifique o número digitado.");
+      return;
+    }
+    if (!emailValid) {
+      setShowForm(true);
+      toast.error("E-mail inválido. Verifique o endereço digitado.");
+      return;
+    }
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setShowForm(true);
+      toast.error(`Telefone inválido (${phoneDigits.length} dígitos). Informe DDD + número.`);
+      return;
+    }
     if (!product) return;
 
     setSubmitting(true);
@@ -478,7 +504,12 @@ const CheckoutPage = () => {
         phone: customerPhone,
       }, false);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao processar pagamento");
+      const msg = err.message || "Erro ao processar pagamento";
+      if (msg.includes("validação") || msg.includes("gateway")) {
+        toast.error("Erro nos dados informados. Verifique CPF, e-mail e telefone e tente novamente.");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setSubmitting(false);
     }
