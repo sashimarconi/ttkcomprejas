@@ -25,6 +25,9 @@ const AdminSecurity = () => {
   const [enrolling, setEnrolling] = useState(false);
   const [qrCode, setQrCode] = useState("");
   const [secret, setSecret] = useState("");
+  const [unenrollPin, setUnenrollPin] = useState("");
+  const [showUnenrollConfirm, setShowUnenrollConfirm] = useState(false);
+  const [unenrolling, setUnenrolling] = useState(false);
   const [factorId, setFactorId] = useState("");
   const [mfaCode, setMfaCode] = useState("");
   const [verifyingMfa, setVerifyingMfa] = useState(false);
@@ -83,17 +86,31 @@ const AdminSecurity = () => {
     }
   };
 
-  const unenrollMfa = async () => {
+  const handleUnenrollMfa = async () => {
+    if (unenrollPin.length !== 6) {
+      toast.error("Digite o PIN de 6 dígitos");
+      return;
+    }
+    setUnenrolling(true);
+    const { data: valid } = await supabase.rpc("verify_admin_pin", { p_pin: unenrollPin });
+    if (!valid) {
+      toast.error("PIN incorreto");
+      setUnenrolling(false);
+      return;
+    }
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const factor = factors?.totp?.[0];
-    if (!factor) return;
+    if (!factor) { setUnenrolling(false); return; }
     const { error } = await supabase.auth.mfa.unenroll({ factorId: factor.id });
     if (error) {
       toast.error("Erro ao desativar 2FA: " + error.message);
     } else {
       toast.success("2FA desativado");
       setMfaStatus("not-enrolled");
+      setShowUnenrollConfirm(false);
+      setUnenrollPin("");
     }
+    setUnenrolling(false);
   };
 
   const copySecret = () => {
@@ -246,12 +263,38 @@ const AdminSecurity = () => {
             </div>
           )}
 
-          {mfaStatus === "enrolled" && (
+          {mfaStatus === "enrolled" && !showUnenrollConfirm && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">2FA está ativo. Será solicitado a cada login.</p>
-              <Button variant="destructive" size="sm" onClick={unenrollMfa}>
+              <Button variant="destructive" size="sm" onClick={() => setShowUnenrollConfirm(true)}>
                 Desativar 2FA
               </Button>
+            </div>
+          )}
+
+          {mfaStatus === "enrolled" && showUnenrollConfirm && (
+            <div className="space-y-3 p-4 border border-destructive/30 rounded-lg bg-destructive/5">
+              <p className="text-sm font-medium text-destructive">
+                ⚠️ Para desativar o 2FA, digite seu PIN de segurança:
+              </p>
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={unenrollPin} onChange={setUnenrollPin}>
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <InputOTPSlot key={i} index={i} className="w-10 h-11" />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={() => { setShowUnenrollConfirm(false); setUnenrollPin(""); }}>
+                  Cancelar
+                </Button>
+                <Button variant="destructive" size="sm" onClick={handleUnenrollMfa} disabled={unenrolling || unenrollPin.length !== 6}>
+                  {unenrolling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Confirmar Desativação
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
