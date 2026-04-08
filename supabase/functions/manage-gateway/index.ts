@@ -6,6 +6,33 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  save_keys: "🔑 Chaves alteradas",
+  activate: "✅ Gateway ativado",
+  save_and_activate: "🔑✅ Chaves salvas e gateway ativado",
+};
+
+async function notifyGatewayChange(supabaseUrl: string, serviceKey: string, action: string, gatewayName: string, ip: string) {
+  try {
+    const label = ACTION_LABELS[action] || `⚙️ ${action}`;
+    await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify({
+        title: "⚠️ Alerta de Segurança",
+        body: `${label} — ${gatewayName.toUpperCase()} (IP: ${ip})`,
+        url: "/ctrl9k/gateways",
+        event_type: "order_paid",
+      }),
+    });
+  } catch (e) {
+    console.error("Gateway push notification error:", e);
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -109,6 +136,8 @@ Deno.serve(async (req: Request) => {
         if (insertErr) throw insertErr;
       }
 
+      await notifyGatewayChange(supabaseUrl, supabaseServiceKey, "save_keys", gateway_name, clientIp);
+
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -154,6 +183,8 @@ Deno.serve(async (req: Request) => {
         .update({ active: true })
         .eq("gateway_name", gateway_name);
       if (activateErr) throw activateErr;
+
+      await notifyGatewayChange(supabaseUrl, supabaseServiceKey, "activate", gateway_name, clientIp);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -204,6 +235,8 @@ Deno.serve(async (req: Request) => {
           });
         if (insertErr) throw insertErr;
       }
+
+      await notifyGatewayChange(supabaseUrl, supabaseServiceKey, "save_and_activate", gateway_name, clientIp);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
