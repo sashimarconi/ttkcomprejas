@@ -371,6 +371,7 @@ const AdminPixels = () => {
                   name: (editingPixel.name || "").trim(),
                   active: editingPixel.active,
                   fire_on_paid_only: editingPixel.fire_on_paid_only || false,
+                  access_token: (editingPixel.access_token || "").trim() || null,
                 })}
                 disabled={!editingPixel.pixel_id.trim() || updateMutation.isPending}
                 className="bg-primary hover:bg-primary/90"
