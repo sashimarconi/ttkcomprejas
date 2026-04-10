@@ -108,6 +108,7 @@ const AdminPixels = () => {
       setNewPixelName("");
       setNewPixelActive(true);
       setFireOnPaidOnly(false);
+      setNewAccessToken("");
       setView("list");
       toast({ title: "Pixel adicionado com sucesso!" });
     },
