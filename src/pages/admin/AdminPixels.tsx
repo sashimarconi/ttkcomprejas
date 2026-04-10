@@ -141,10 +141,10 @@ const AdminPixels = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, pixel_id, name, active, fire_on_paid_only }: { id: string; pixel_id: string; name: string; active: boolean; fire_on_paid_only: boolean }) => {
+    mutationFn: async ({ id, pixel_id, name, active, fire_on_paid_only, access_token }: { id: string; pixel_id: string; name: string; active: boolean; fire_on_paid_only: boolean; access_token: string | null }) => {
       const { error } = await supabase
         .from("tracking_pixels" as any)
-        .update({ pixel_id, name, active, fire_on_paid_only })
+        .update({ pixel_id, name, active, fire_on_paid_only, access_token })
         .eq("id", id);
       if (error) throw error;
     },
