@@ -231,17 +231,17 @@ Deno.serve(async (req) => {
             const timestamp = Math.floor(Date.now() / 1000).toString();
             for (const pixel of tiktokPixels) {
               try {
-                const eventPayload = {
-                  pixel_code: pixel.pixel_id,
+                const eventPayload: Record<string, unknown> = {
+                  event_source: "web",
+                  event_source_id: pixel.pixel_id,
                   partner_name: "Lovable",
-                  test_event_code: undefined,
                   data: [{
                     event: "CompletePayment",
-                    event_time: timestamp,
+                    event_time: Number(timestamp),
                     event_id: order.id,
                     user: {
-                      ...(order.customer_email ? { email: order.customer_email } : {}),
-                      ...(order.customer_phone ? { phone: order.customer_phone } : {}),
+                      ...(order.customer_email ? { email: [order.customer_email] } : {}),
+                      ...(order.customer_phone ? { phone: [order.customer_phone] } : {}),
                     },
                     properties: {
                       content_type: "product",
