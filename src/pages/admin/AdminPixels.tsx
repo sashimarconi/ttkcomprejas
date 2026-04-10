@@ -98,6 +98,7 @@ const AdminPixels = () => {
           platform: activePlatform,
           active: newPixelActive,
           fire_on_paid_only: fireOnPaidOnly,
+          access_token: newAccessToken.trim() || null,
         });
       if (error) throw error;
     },
