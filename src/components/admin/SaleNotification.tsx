@@ -147,7 +147,7 @@ export default function SaleNotification() {
       if (document.hidden) return;
 
       const { data } = await supabase
-      .from("notification_settings")
+        .from("orders")
         .select("id, total, payment_status, updated_at")
         .eq("payment_status", "paid")
         .gt("updated_at", paidPollingCursorRef.current)
