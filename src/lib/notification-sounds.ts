@@ -20,16 +20,70 @@ export const RINGTONE_PRESETS: RingtonePreset[] = [
 // Singleton AudioContext — created on first user gesture and reused
 let sharedCtx: AudioContext | null = null;
 let gestureListenerAdded = false;
+let audioPrimed = false;
+let resumePromise: Promise<void> | null = null;
 
 function ensureAudioContext(): AudioContext {
   if (!sharedCtx) {
     sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
-  // Resume if browser suspended it (autoplay policy)
-  if (sharedCtx.state === 'suspended') {
-    sharedCtx.resume().catch(() => {});
-  }
   return sharedCtx;
+}
+
+function primeAudioContext(ctx: AudioContext) {
+  if (audioPrimed) return;
+
+  const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const source = ctx.createBufferSource();
+  const gain = ctx.createGain();
+
+  source.buffer = buffer;
+  gain.gain.value = 0.0001;
+
+  source.connect(gain);
+  gain.connect(ctx.destination);
+  source.start();
+
+  audioPrimed = true;
+}
+
+function resumeAudioContext(ctx: AudioContext): Promise<void> {
+  if (ctx.state === 'running') {
+    primeAudioContext(ctx);
+    return Promise.resolve();
+  }
+
+  if (!resumePromise) {
+    resumePromise = ctx
+      .resume()
+      .then(() => {
+        if (ctx.state === 'running') {
+          primeAudioContext(ctx);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        resumePromise = null;
+      });
+  }
+
+  return resumePromise;
+}
+
+function withRunningAudioContext(callback: (ctx: AudioContext) => void) {
+  const ctx = ensureAudioContext();
+
+  if (ctx.state === 'running') {
+    primeAudioContext(ctx);
+    callback(ctx);
+    return;
+  }
+
+  void resumeAudioContext(ctx).then(() => {
+    if (ctx.state === 'running') {
+      callback(ctx);
+    }
+  });
 }
 
 // Warm up AudioContext on first user click/keydown so it's ready for async events
@@ -38,17 +92,28 @@ function warmUpOnGesture() {
   gestureListenerAdded = true;
 
   const handler = () => {
-    ensureAudioContext();
+    const ctx = ensureAudioContext();
+    void resumeAudioContext(ctx);
     window.removeEventListener('click', handler);
     window.removeEventListener('keydown', handler);
+    window.removeEventListener('pointerdown', handler);
   };
   window.addEventListener('click', handler, { once: false });
   window.addEventListener('keydown', handler, { once: false });
+  window.addEventListener('pointerdown', handler, { once: false });
+}
+
+function resumeWhenVisible() {
+  if (document.visibilityState === 'hidden') return;
+  const ctx = ensureAudioContext();
+  void resumeAudioContext(ctx);
 }
 
 // Call this early (e.g. on mount of admin layout)
 if (typeof window !== 'undefined') {
   warmUpOnGesture();
+  document.addEventListener('visibilitychange', resumeWhenVisible);
+  window.addEventListener('focus', resumeWhenVisible);
 }
 
 function playTone(ctx: AudioContext, freq: number, start: number, duration: number, gain: number, type: OscillatorType = 'sine') {
@@ -65,39 +130,44 @@ function playTone(ctx: AudioContext, freq: number, start: number, duration: numb
 }
 
 function playCashRegister() {
-  const ctx = ensureAudioContext();
-  playTone(ctx, 2200, 0, 0.08, 0.3);
-  playTone(ctx, 2800, 0.1, 0.08, 0.3);
-  playTone(ctx, 3400, 0.2, 0.15, 0.25);
+  withRunningAudioContext((ctx) => {
+    playTone(ctx, 2200, 0, 0.08, 0.3);
+    playTone(ctx, 2800, 0.1, 0.08, 0.3);
+    playTone(ctx, 3400, 0.2, 0.15, 0.25);
+  });
 }
 
 function playCoins() {
-  const ctx = ensureAudioContext();
-  for (let i = 0; i < 6; i++) {
-    playTone(ctx, 3000 + Math.random() * 2000, i * 0.06, 0.05, 0.15 + Math.random() * 0.1);
-  }
-  playTone(ctx, 4500, 0.4, 0.3, 0.2);
+  withRunningAudioContext((ctx) => {
+    for (let i = 0; i < 6; i++) {
+      playTone(ctx, 3000 + Math.random() * 2000, i * 0.06, 0.05, 0.15 + Math.random() * 0.1);
+    }
+    playTone(ctx, 4500, 0.4, 0.3, 0.2);
+  });
 }
 
 function playKaching() {
-  const ctx = ensureAudioContext();
-  playTone(ctx, 1800, 0, 0.05, 0.25);
-  playTone(ctx, 3200, 0.06, 0.05, 0.3);
-  playTone(ctx, 4000, 0.12, 0.25, 0.35);
+  withRunningAudioContext((ctx) => {
+    playTone(ctx, 1800, 0, 0.05, 0.25);
+    playTone(ctx, 3200, 0.06, 0.05, 0.3);
+    playTone(ctx, 4000, 0.12, 0.25, 0.35);
+  });
 }
 
 function playSoftChime() {
-  const ctx = ensureAudioContext();
-  playTone(ctx, 800, 0, 0.4, 0.15, 'sine');
-  playTone(ctx, 1200, 0.15, 0.4, 0.12, 'sine');
-  playTone(ctx, 1600, 0.3, 0.5, 0.1, 'sine');
+  withRunningAudioContext((ctx) => {
+    playTone(ctx, 800, 0, 0.4, 0.15, 'sine');
+    playTone(ctx, 1200, 0.15, 0.4, 0.12, 'sine');
+    playTone(ctx, 1600, 0.3, 0.5, 0.1, 'sine');
+  });
 }
 
 function playBell() {
-  const ctx = ensureAudioContext();
-  playTone(ctx, 2000, 0, 0.6, 0.3, 'sine');
-  playTone(ctx, 4000, 0, 0.4, 0.1, 'sine');
-  playTone(ctx, 6000, 0, 0.2, 0.05, 'sine');
+  withRunningAudioContext((ctx) => {
+    playTone(ctx, 2000, 0, 0.6, 0.3, 'sine');
+    playTone(ctx, 4000, 0, 0.4, 0.1, 'sine');
+    playTone(ctx, 6000, 0, 0.2, 0.05, 'sine');
+  });
 }
 
 export function playRingtone(id: RingtoneId, customUrl?: string | null) {
