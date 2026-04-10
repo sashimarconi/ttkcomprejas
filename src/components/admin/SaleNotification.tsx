@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,11 +18,21 @@ interface TypeSettings {
 }
 
 const NOTIFICATION_SETTINGS_UPDATED_EVENT = "notification-settings-updated";
+const GATEWAY_NAMES: Record<string, string> = {
+  blackcatpay: "BlackCatPay",
+  ghostspay: "GhostsPay",
+  duck: "Duck",
+  hisounique: "Hiso Unique",
+  paradise: "Paradise",
+};
+const PAID_ORDERS_POLL_INTERVAL_MS = 15000;
 
 export default function SaleNotification() {
   const processedIds = useRef(new Set<string>());
   const notifyPaidRef = useRef(true);
   const notifyPendingRef = useRef(false);
+  const gatewayNameRef = useRef("Gateway");
+  const paidPollingCursorRef = useRef(new Date().toISOString());
   const paidSettingsRef = useRef<TypeSettings>({
     ringtone: 'cash_register',
     custom_ringtone_url: null,
@@ -39,11 +49,40 @@ export default function SaleNotification() {
   const loadSettings = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase
-      .from("notification_settings")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+
+    const [settingsResult, gatewayResult, latestPaidResult] = await Promise.all([
+      supabase
+        .from("notification_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("gateway_settings")
+        .select("gateway_name")
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("orders")
+        .select("updated_at")
+        .eq("payment_status", "paid")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const data = settingsResult.data;
+    const activeGateway = gatewayResult.data;
+    const latestPaid = latestPaidResult.data;
+
+    if (activeGateway?.gateway_name) {
+      gatewayNameRef.current = GATEWAY_NAMES[activeGateway.gateway_name] || activeGateway.gateway_name;
+    }
+
+    if (latestPaid?.updated_at && latestPaid.updated_at > paidPollingCursorRef.current) {
+      paidPollingCursorRef.current = latestPaid.updated_at;
+    }
+
     if (data) {
       const d = data as any;
       notifyPaidRef.current = d.notify_paid !== false;
@@ -78,6 +117,16 @@ export default function SaleNotification() {
     }
   }, []);
 
+  function handlePaidOrder(order: any) {
+    if (!notifyPaidRef.current) return;
+    if (processedIds.current.has(order.id)) return;
+    processedIds.current.add(order.id);
+    if (order.updated_at && order.updated_at > paidPollingCursorRef.current) {
+      paidPollingCursorRef.current = order.updated_at;
+    }
+    showToast(paidSettingsRef.current, order, 'paid');
+  }
+
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
@@ -94,6 +143,45 @@ export default function SaleNotification() {
   }, [loadSettings]);
 
   useEffect(() => {
+    const pollPaidOrders = async () => {
+      if (document.hidden) return;
+
+      const { data } = await supabase
+      .from("notification_settings")
+        .select("id, total, payment_status, updated_at")
+        .eq("payment_status", "paid")
+        .gt("updated_at", paidPollingCursorRef.current)
+        .order("updated_at", { ascending: true })
+        .limit(10);
+
+      if (!data?.length) return;
+
+      for (const order of data as any[]) {
+        handlePaidOrder(order);
+      }
+    };
+
+    const handleVisibilityGain = () => {
+      if (!document.hidden) {
+        void pollPaidOrders();
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void pollPaidOrders();
+    }, PAID_ORDERS_POLL_INTERVAL_MS);
+
+    document.addEventListener("visibilitychange", handleVisibilityGain);
+    window.addEventListener("focus", handleVisibilityGain);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibilityGain);
+      window.removeEventListener("focus", handleVisibilityGain);
+    };
+  }, []);
+
+  useEffect(() => {
     const channel = supabase
       .channel("admin-sale-notifications")
       .on(
@@ -102,10 +190,7 @@ export default function SaleNotification() {
         async (payload) => {
           const order = payload.new as any;
           if (order.payment_status === 'paid') {
-            if (!notifyPaidRef.current) return;
-            if (processedIds.current.has(order.id)) return;
-            processedIds.current.add(order.id);
-            showToast(paidSettingsRef.current, order, 'paid');
+            handlePaidOrder(order);
           }
         }
       )
@@ -127,28 +212,12 @@ export default function SaleNotification() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  async function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending', playSound = true) {
-    let gatewayName = "Gateway";
-    try {
-      const { data } = await supabase
-        .from("gateway_settings")
-        .select("gateway_name")
-        .eq("active", true)
-        .limit(1)
-        .maybeSingle();
-      if (data?.gateway_name) {
-        const names: Record<string, string> = {
-          blackcatpay: "BlackCatPay", ghostspay: "GhostsPay",
-          duck: "Duck", hisounique: "Hiso Unique", paradise: "Paradise",
-        };
-        gatewayName = names[data.gateway_name] || data.gateway_name;
-      }
-    } catch {}
-
+  function showToast(s: TypeSettings, order: any, type: 'paid' | 'pending', playSound = true) {
     if (playSound) {
       playRingtone(s.ringtone, s.custom_ringtone_url);
     }
 
+    const gatewayName = gatewayNameRef.current;
     const iconUrl = s.notification_icon_url || defaultIcon;
     const title = s.notification_title || (type === 'paid' ? 'Venda Realizada' : 'Novo Pedido Pendente');
     const valueColor = type === 'paid' ? 'text-emerald-400' : 'text-amber-400';
