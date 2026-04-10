@@ -234,7 +234,6 @@ Deno.serve(async (req) => {
                 const eventPayload: Record<string, unknown> = {
                   event_source: "web",
                   event_source_id: pixel.pixel_id,
-                  partner_name: "Lovable",
                   data: [{
                     event: "CompletePayment",
                     event_time: Number(timestamp),
