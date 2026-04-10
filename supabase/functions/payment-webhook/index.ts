@@ -216,6 +216,66 @@ Deno.serve(async (req) => {
         } catch (pushErr) {
           console.error("Push notification error:", pushErr);
         }
+
+        // Fire TikTok S2S events for pixels with fire_on_paid_only + access_token
+        try {
+          const { data: tiktokPixels } = await supabase
+            .from("tracking_pixels")
+            .select("pixel_id, access_token")
+            .eq("active", true)
+            .eq("platform", "tiktok")
+            .eq("fire_on_paid_only", true)
+            .not("access_token", "is", null);
+
+          if (tiktokPixels && tiktokPixels.length > 0) {
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            for (const pixel of tiktokPixels) {
+              try {
+                const eventPayload = {
+                  pixel_code: pixel.pixel_id,
+                  partner_name: "Lovable",
+                  test_event_code: undefined,
+                  data: [{
+                    event: "CompletePayment",
+                    event_time: timestamp,
+                    event_id: order.id,
+                    user: {
+                      ...(order.customer_email ? { email: order.customer_email } : {}),
+                      ...(order.customer_phone ? { phone: order.customer_phone } : {}),
+                    },
+                    properties: {
+                      content_type: "product",
+                      currency: "BRL",
+                      value: Number(order.total),
+                      order_id: order.id,
+                      contents: [{
+                        content_type: "product",
+                        content_id: order.product_id || order.id,
+                        quantity: 1,
+                        price: Number(order.total),
+                      }],
+                    },
+                  }],
+                };
+
+                const resp = await fetch("https://business-api.tiktok.com/open_api/v1.3/event/track/", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Access-Token": pixel.access_token!,
+                  },
+                  body: JSON.stringify(eventPayload),
+                });
+                const result = await resp.json();
+                console.log(`TikTok S2S for pixel ${pixel.pixel_id}:`, JSON.stringify(result));
+              } catch (pixelErr) {
+                console.error(`TikTok S2S error for pixel ${pixel.pixel_id}:`, pixelErr);
+              }
+            }
+          }
+        } catch (ttErr) {
+          console.error("TikTok S2S lookup error:", ttErr);
+        }
       } else {
         console.warn(`No order matched transaction ${transactionId}`);
       }
