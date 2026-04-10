@@ -1,0 +1,1 @@
+ALTER TABLE public.tracking_pixels ADD COLUMN access_token text DEFAULT NULL;
