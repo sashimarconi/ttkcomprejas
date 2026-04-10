@@ -71,6 +71,7 @@ const AdminPixels = () => {
   const [newPixelId, setNewPixelId] = useState("");
   const [newPixelActive, setNewPixelActive] = useState(true);
   const [fireOnPaidOnly, setFireOnPaidOnly] = useState(false);
+  const [newAccessToken, setNewAccessToken] = useState("");
   const [editingPixel, setEditingPixel] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
