@@ -8,6 +8,10 @@ export interface RingtonePreset {
   description: string;
 }
 
+interface PlayRingtoneOptions {
+  userGesture?: boolean;
+}
+
 export const RINGTONE_PRESETS: RingtonePreset[] = [
   { id: 'none', label: 'Nenhum', description: 'Sem som de notificação' },
   { id: 'cash_register', label: 'Caixa Registradora', description: 'Som clássico de caixa registradora' },
@@ -24,8 +28,9 @@ let audioPrimed = false;
 let resumePromise: Promise<void> | null = null;
 
 function ensureAudioContext(): AudioContext {
-  if (!sharedCtx) {
+  if (!sharedCtx || sharedCtx.state === 'closed') {
     sharedCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioPrimed = false;
   }
   return sharedCtx;
 }
@@ -70,12 +75,18 @@ function resumeAudioContext(ctx: AudioContext): Promise<void> {
   return resumePromise;
 }
 
-function withRunningAudioContext(callback: (ctx: AudioContext) => void) {
+function withRunningAudioContext(callback: (ctx: AudioContext) => void, options?: PlayRingtoneOptions) {
   const ctx = ensureAudioContext();
 
   if (ctx.state === 'running') {
     primeAudioContext(ctx);
     callback(ctx);
+    return;
+  }
+
+  if (options?.userGesture) {
+    callback(ctx);
+    void resumeAudioContext(ctx);
     return;
   }
 
@@ -129,61 +140,62 @@ function playTone(ctx: AudioContext, freq: number, start: number, duration: numb
   osc.stop(ctx.currentTime + start + duration);
 }
 
-function playCashRegister() {
+function playCashRegister(options?: PlayRingtoneOptions) {
   withRunningAudioContext((ctx) => {
     playTone(ctx, 2200, 0, 0.08, 0.3);
     playTone(ctx, 2800, 0.1, 0.08, 0.3);
     playTone(ctx, 3400, 0.2, 0.15, 0.25);
-  });
+  }, options);
 }
 
-function playCoins() {
+function playCoins(options?: PlayRingtoneOptions) {
   withRunningAudioContext((ctx) => {
     for (let i = 0; i < 6; i++) {
       playTone(ctx, 3000 + Math.random() * 2000, i * 0.06, 0.05, 0.15 + Math.random() * 0.1);
     }
     playTone(ctx, 4500, 0.4, 0.3, 0.2);
-  });
+  }, options);
 }
 
-function playKaching() {
+function playKaching(options?: PlayRingtoneOptions) {
   withRunningAudioContext((ctx) => {
     playTone(ctx, 1800, 0, 0.05, 0.25);
     playTone(ctx, 3200, 0.06, 0.05, 0.3);
     playTone(ctx, 4000, 0.12, 0.25, 0.35);
-  });
+  }, options);
 }
 
-function playSoftChime() {
+function playSoftChime(options?: PlayRingtoneOptions) {
   withRunningAudioContext((ctx) => {
     playTone(ctx, 800, 0, 0.4, 0.15, 'sine');
     playTone(ctx, 1200, 0.15, 0.4, 0.12, 'sine');
     playTone(ctx, 1600, 0.3, 0.5, 0.1, 'sine');
-  });
+  }, options);
 }
 
-function playBell() {
+function playBell(options?: PlayRingtoneOptions) {
   withRunningAudioContext((ctx) => {
     playTone(ctx, 2000, 0, 0.6, 0.3, 'sine');
     playTone(ctx, 4000, 0, 0.4, 0.1, 'sine');
     playTone(ctx, 6000, 0, 0.2, 0.05, 'sine');
-  });
+  }, options);
 }
 
-export function playRingtone(id: RingtoneId, customUrl?: string | null) {
+export function playRingtone(id: RingtoneId, customUrl?: string | null, options?: PlayRingtoneOptions) {
   if (id === 'none') return;
   if (id === 'custom' && customUrl) {
     const audio = new Audio(customUrl);
     audio.volume = 0.7;
+    audio.preload = 'auto';
     audio.play().catch(() => {});
     return;
   }
 
   switch (id) {
-    case 'cash_register': playCashRegister(); break;
-    case 'coins': playCoins(); break;
-    case 'kaching': playKaching(); break;
-    case 'soft_chime': playSoftChime(); break;
-    case 'bell': playBell(); break;
+    case 'cash_register': playCashRegister(options); break;
+    case 'coins': playCoins(options); break;
+    case 'kaching': playKaching(options); break;
+    case 'soft_chime': playSoftChime(options); break;
+    case 'bell': playBell(options); break;
   }
 }
