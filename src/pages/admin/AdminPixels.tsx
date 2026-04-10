@@ -254,6 +254,17 @@ const AdminPixels = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-primary">Access Token (Events API)</Label>
+              <Input
+                value={newAccessToken}
+                onChange={(e) => setNewAccessToken(e.target.value)}
+                placeholder="Token da API de Eventos do TikTok"
+                type="password"
+              />
+              <p className="text-xs text-muted-foreground">Necessário para disparar conversões pelo servidor quando o cliente sai da página</p>
+            </div>
+
             <div className="flex items-center justify-between py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">Disparar apenas quando a venda estiver paga</p>
