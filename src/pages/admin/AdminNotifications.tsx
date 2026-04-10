@@ -214,7 +214,7 @@ export default function AdminNotifications() {
 
   function handlePlayPreset(id: RingtoneId, customUrl?: string | null) {
     setPlayingId(id);
-    playRingtone(id, customUrl);
+    playRingtone(id, customUrl, { userGesture: true });
     setTimeout(() => setPlayingId(null), 1000);
   }
 
@@ -280,9 +280,7 @@ export default function AdminNotifications() {
 
     const body = isPaid ? '🎉 Teste — Sua comissão: R$ 199,90' : '⏳ Teste — Novo PIX gerado: R$ 199,90';
 
-    if (isPaid) {
-      playRingtone(ringtone, customUrl);
-    }
+    playRingtone(ringtone, customUrl, { userGesture: true });
     toast(title, {
       description: body,
       icon: <img src={iconUrl} alt="icon" className="w-6 h-6 rounded" />,
