@@ -967,6 +967,7 @@ export type Database = {
       }
       tracking_pixels: {
         Row: {
+          access_token: string | null
           active: boolean | null
           created_at: string
           fire_on_paid_only: boolean
@@ -976,6 +977,7 @@ export type Database = {
           platform: string
         }
         Insert: {
+          access_token?: string | null
           active?: boolean | null
           created_at?: string
           fire_on_paid_only?: boolean
@@ -985,6 +987,7 @@ export type Database = {
           platform?: string
         }
         Update: {
+          access_token?: string | null
           active?: boolean | null
           created_at?: string
           fire_on_paid_only?: boolean

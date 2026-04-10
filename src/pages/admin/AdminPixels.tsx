@@ -71,6 +71,7 @@ const AdminPixels = () => {
   const [newPixelId, setNewPixelId] = useState("");
   const [newPixelActive, setNewPixelActive] = useState(true);
   const [fireOnPaidOnly, setFireOnPaidOnly] = useState(false);
+  const [newAccessToken, setNewAccessToken] = useState("");
   const [editingPixel, setEditingPixel] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -97,6 +98,7 @@ const AdminPixels = () => {
           platform: activePlatform,
           active: newPixelActive,
           fire_on_paid_only: fireOnPaidOnly,
+          access_token: newAccessToken.trim() || null,
         });
       if (error) throw error;
     },
@@ -106,6 +108,7 @@ const AdminPixels = () => {
       setNewPixelName("");
       setNewPixelActive(true);
       setFireOnPaidOnly(false);
+      setNewAccessToken("");
       setView("list");
       toast({ title: "Pixel adicionado com sucesso!" });
     },
@@ -138,10 +141,10 @@ const AdminPixels = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, pixel_id, name, active, fire_on_paid_only }: { id: string; pixel_id: string; name: string; active: boolean; fire_on_paid_only: boolean }) => {
+    mutationFn: async ({ id, pixel_id, name, active, fire_on_paid_only, access_token }: { id: string; pixel_id: string; name: string; active: boolean; fire_on_paid_only: boolean; access_token: string | null }) => {
       const { error } = await supabase
         .from("tracking_pixels" as any)
-        .update({ pixel_id, name, active, fire_on_paid_only })
+        .update({ pixel_id, name, active, fire_on_paid_only, access_token })
         .eq("id", id);
       if (error) throw error;
     },
@@ -251,6 +254,17 @@ const AdminPixels = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-primary">Access Token (Events API)</Label>
+              <Input
+                value={newAccessToken}
+                onChange={(e) => setNewAccessToken(e.target.value)}
+                placeholder="Token da API de Eventos do TikTok"
+                type="password"
+              />
+              <p className="text-xs text-muted-foreground">Necessário para disparar conversões pelo servidor quando o cliente sai da página</p>
+            </div>
+
             <div className="flex items-center justify-between py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">Disparar apenas quando a venda estiver paga</p>
@@ -313,6 +327,17 @@ const AdminPixels = () => {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-primary">Access Token (Events API)</Label>
+              <Input
+                value={editingPixel.access_token || ""}
+                onChange={(e) => setEditingPixel({ ...editingPixel, access_token: e.target.value })}
+                placeholder="Token da API de Eventos do TikTok"
+                type="password"
+              />
+              <p className="text-xs text-muted-foreground">Necessário para disparar conversões pelo servidor quando o cliente sai da página</p>
+            </div>
+
             <div className="flex items-center justify-between py-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">Disparar apenas quando a venda estiver paga</p>
@@ -346,6 +371,7 @@ const AdminPixels = () => {
                   name: (editingPixel.name || "").trim(),
                   active: editingPixel.active,
                   fire_on_paid_only: editingPixel.fire_on_paid_only || false,
+                  access_token: (editingPixel.access_token || "").trim() || null,
                 })}
                 disabled={!editingPixel.pixel_id.trim() || updateMutation.isPending}
                 className="bg-primary hover:bg-primary/90"
