@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import QRCode from "qrcode";
 import { useTikTokPixel, trackTikTokPurchase } from "@/hooks/useTikTokPixel";
-import { usePageTracking, trackEvent } from "@/hooks/usePageTracking";
+import { usePageTracking, useVisitorHeartbeat, trackEvent } from "@/hooks/usePageTracking";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -113,6 +113,7 @@ const CheckoutPage = () => {
   const selectedVariant = searchParams.get("variant");
   useTikTokPixel();
   usePageTracking("checkout_view");
+  useVisitorHeartbeat();
   const [quantity, setQuantity] = useState(1);
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);

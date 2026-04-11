@@ -3,8 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { useVisitorHeartbeat } from "@/hooks/usePageTracking";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 
 const ProductPage = lazy(() => import("./pages/ProductPage"));
@@ -40,22 +39,12 @@ const RouteLoader = () => (
   </div>
 );
 
-/** Runs the visitor heartbeat on all public (non-admin) routes */
-function GlobalHeartbeat() {
-  const location = useLocation();
-  const isPublic = !location.pathname.startsWith("/ctrl9k");
-  // Hook is always called but internally no-ops for bots
-  useVisitorHeartbeat();
-  return null;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <GlobalHeartbeat />
         <Suspense fallback={<RouteLoader />}>
           <Routes>
             <Route path="/" element={<Index />} />
