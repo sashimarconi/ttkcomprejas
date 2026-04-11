@@ -93,6 +93,7 @@ const AdminAnalytics = () => {
   const [sessions, setSessions] = useState<{ session_id: string; created_at: string }[]>([]);
   const [events, setEvents] = useState<{ session_id: string; event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [orders, setOrders] = useState<{ total: number; payment_status: string; created_at: string }[]>([]);
+  const [summaryStats, setSummaryStats] = useState({ pageViews: 0, checkoutViews: 0, visitors: 0, paidOrders: 0, revenue: 0, pixGenerated: 0 });
 
   // Expandable sections
   const [statesExpanded, setStatesExpanded] = useState(false);
