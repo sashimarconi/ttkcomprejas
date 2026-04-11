@@ -1,10 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { usePageTracking, useVisitorHeartbeat } from "@/hooks/usePageTracking";
 import { fetchProducts } from "@/lib/supabase-queries";
 import { formatCurrency } from "@/data/mockData";
 
 const Index = () => {
   const navigate = useNavigate();
+  usePageTracking("page_view");
+  useVisitorHeartbeat();
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products-list"],
