@@ -1,6 +1,15 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const BOT_UA_PATTERN = /bot|crawl|spider|slurp|baidu|yandex|bing|google|facebook|twitter|linkedin|pinterest|whatsapp|telegram|semrush|ahrefs|mj12bot|dotbot|petalbot|bytespider|gptbot|claudebot|anthropic|headless|phantom|selenium|puppeteer|playwright|wget|curl|httpie|python-requests|java\/|go-http|node-fetch|axios/i;
+
+function isBot(): boolean {
+  const ua = navigator.userAgent;
+  if (!ua || ua.length < 10) return true;
+  if (BOT_UA_PATTERN.test(ua)) return true;
+  return false;
+}
+
 function getSessionId() {
   let sid = sessionStorage.getItem("visitor_session_id");
   if (!sid) {
@@ -53,6 +62,9 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
     if (tracked.current) return;
     tracked.current = true;
 
+    // Skip tracking for bots
+    if (isBot()) return;
+
     const sessionId = getSessionId();
     const pageUrl = window.location.pathname;
 
@@ -64,12 +76,14 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
       metadata: metadata || {},
     } as any).then();
 
-    // Upsert visitor session with geo data
+    // Upsert visitor session with geo data + user_agent
     fetchGeoOnce().then(geo => {
       const sessionData: any = {
         session_id: sessionId,
         last_seen_at: new Date().toISOString(),
         page_url: pageUrl,
+        user_agent: navigator.userAgent,
+        is_bot: false,
       };
       if (geo) {
         sessionData.city = geo.city;
@@ -84,6 +98,7 @@ export function usePageTracking(eventType: string = "page_view", metadata?: Reco
 }
 
 export function trackEvent(eventType: string, metadata?: Record<string, unknown>) {
+  if (isBot()) return Promise.resolve();
   const sessionId = getSessionId();
   return supabase.from("page_events").insert({
     event_type: eventType,
@@ -96,10 +111,16 @@ export function trackEvent(eventType: string, metadata?: Record<string, unknown>
 // Heartbeat to keep session alive
 export function useVisitorHeartbeat() {
   useEffect(() => {
+    if (isBot()) return;
     const sessionId = getSessionId();
     const interval = setInterval(() => {
       supabase.from("visitor_sessions").upsert(
-        { session_id: sessionId, last_seen_at: new Date().toISOString(), page_url: window.location.pathname },
+        {
+          session_id: sessionId,
+          last_seen_at: new Date().toISOString(),
+          page_url: window.location.pathname,
+          user_agent: navigator.userAgent,
+        },
         { onConflict: "session_id" }
       ).then();
     }, 30000);
