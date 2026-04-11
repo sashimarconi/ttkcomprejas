@@ -191,12 +191,14 @@ const AdminAnalytics = () => {
   }, [dateRange]);
 
   // Computed stats
-  const paidOrders = orders.filter(o => o.payment_status === "paid");
-  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-  const pageViews = events.filter(e => e.event_type === "page_view").length;
-  const checkoutViews = events.filter(e => e.event_type === "checkout_view").length;
-  const pixGenerated = orders.length; // All orders = PIX generated
-  const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
+  const paidOrders = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
+  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total), 0) + summaryStats.revenue;
+  const pageViews = events.filter(e => e.event_type === "page_view").length + summaryStats.pageViews;
+  const checkoutViews = events.filter(e => e.event_type === "checkout_view").length + summaryStats.checkoutViews;
+  const pixGenerated = orders.length + summaryStats.pixGenerated;
+  const totalPaidOrders = paidOrders.length + summaryStats.paidOrders;
+  const totalVisitors = sessions.length + summaryStats.visitors;
+  const conversionRate = checkoutViews > 0 ? (totalPaidOrders / checkoutViews) * 100 : 0;
 
   const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
