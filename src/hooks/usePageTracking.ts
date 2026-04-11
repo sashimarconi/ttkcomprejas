@@ -73,22 +73,13 @@ async function upsertVerifiedSession(pageUrl: string) {
     sessionData.longitude = geo.longitude;
   }
 
-  const { error: insertError } = await supabase.from("visitor_sessions").insert(sessionData);
-  if (!insertError) return sessionId;
+  const { error } = await supabase
+    .from("visitor_sessions")
+    .upsert(sessionData, { onConflict: "session_id" });
 
-  if (isDuplicateSessionWriteError(insertError)) {
-    const { session_id: _sessionId, ...sessionUpdateData } = sessionData;
-    const { error: updateError } = await supabase
-      .from("visitor_sessions")
-      .update(sessionUpdateData)
-      .eq("session_id", sessionId);
-
-    if (!updateError) return sessionId;
-    console.error("Failed to update visitor session", updateError);
-    return sessionId;
+  if (error) {
+    console.error("Failed to upsert visitor session", error);
   }
-
-  console.error("Failed to insert visitor session", insertError);
   return sessionId;
 }
 
