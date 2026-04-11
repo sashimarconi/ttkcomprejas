@@ -51,21 +51,24 @@ const AdminDashboard = () => {
     const startISO = rangeStart.toISOString();
     const endISO = rangeEnd.toISOString();
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
 
-    const [onlineRes, eventsRes, ordersRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).or("is_bot.is.null,is_bot.eq.false"),
-      supabase.from("page_events").select("event_type, created_at").gte("created_at", startISO).lte("created_at", endISO),
+    const [onlineRes, periodSessionsRes, eventsRes, ordersRes] = await Promise.all([
+      supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
+      supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", startISO).lte("created_at", endISO).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
+      supabase.from("page_events").select("session_id, event_type, created_at").gte("created_at", startISO).lte("created_at", endISO),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", startISO).lte("created_at", endISO),
     ]);
 
-    const events = eventsRes.data || [];
+    const verifiedSessionIds = new Set((periodSessionsRes.data || []).map((session) => session.session_id));
+    const events = (eventsRes.data || []).filter((event) => verifiedSessionIds.has(event.session_id));
     const orders = ordersRes.data || [];
-    const paid = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
-    const pending = orders.filter(o => o.payment_status === "pending");
-    const paidRevenue = paid.reduce((s, o) => s + Number(o.total), 0);
-    const totalRevenue = orders.reduce((s, o) => s + Number(o.total), 0);
-    const checkouts = events.filter(e => e.event_type === "checkout_view").length;
-    const visits = events.filter(e => e.event_type === "page_view").length;
+    const paid = orders.filter((order) => order.payment_status === "paid" || order.payment_status === "approved");
+    const pending = orders.filter((order) => order.payment_status === "pending");
+    const paidRevenue = paid.reduce((sum, order) => sum + Number(order.total), 0);
+    const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total), 0);
+    const checkouts = events.filter((event) => event.event_type === "checkout_view").length;
+    const visits = events.filter((event) => event.event_type === "page_view").length;
 
     setStats({
       onlineNow: onlineRes.count || 0,
@@ -79,7 +82,6 @@ const AdminDashboard = () => {
       conversionRate: checkouts > 0 ? (paid.length / checkouts) * 100 : 0,
     });
 
-    // Build hourly revenue chart for today range
     const isToday = dateRange?.from?.toDateString() === new Date().toDateString() && (!dateRange.to || dateRange.to.toDateString() === new Date().toDateString());
     const hours = Array.from({ length: 24 }, (_, i) => ({
       hour: `${String(i).padStart(2, "0")}h`,
@@ -87,16 +89,15 @@ const AdminDashboard = () => {
     }));
 
     if (isToday) {
-      paid.forEach(o => {
-        const h = new Date(o.created_at).getHours();
-        hours[h].value += Number(o.total);
+      paid.forEach((order) => {
+        const hour = new Date(order.created_at).getHours();
+        hours[hour].value += Number(order.total);
       });
     } else {
-      // Group by day instead
       const dayMap = new Map<string, number>();
-      paid.forEach(o => {
-        const key = new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-        dayMap.set(key, (dayMap.get(key) || 0) + Number(o.total));
+      paid.forEach((order) => {
+        const key = new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        dayMap.set(key, (dayMap.get(key) || 0) + Number(order.total));
       });
       const dayEntries = Array.from(dayMap.entries()).sort();
       setRevenueData(dayEntries.map(([day, value]) => ({ hour: day, value })));
@@ -112,7 +113,7 @@ const AdminDashboard = () => {
     fetchAll();
     const interval = setInterval(async () => {
       const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count } = await supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo);
+      const { count } = await supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or("is_bot.is.null,is_bot.eq.false");
       setStats(prev => ({ ...prev, onlineNow: count || 0 }));
     }, 15000);
     return () => clearInterval(interval);

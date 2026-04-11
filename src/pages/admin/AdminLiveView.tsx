@@ -35,7 +35,7 @@ const AdminLiveView = () => {
   });
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [todaySessions, setTodaySessions] = useState<{ session_id: string; city?: string | null; region?: string | null; country?: string | null }[]>([]);
-  const [todayEvents, setTodayEvents] = useState<{ event_type: string; page_url: string | null; created_at: string }[]>([]);
+  const [todayEvents, setTodayEvents] = useState<{ session_id: string; event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [hourlyData, setHourlyData] = useState<{ hour: string; value: number }[]>([]);
   const [funnelData, setFunnelData] = useState<{ label: string; value: number; pct: number }[]>([]);
   const [behavior, setBehavior] = useState({ activeCarts: 0, inCheckout: 0, purchased: 0 });
@@ -45,37 +45,43 @@ const AdminLiveView = () => {
     const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
+    const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
     const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude").gte("last_seen_at", fiveMinAgo).or("is_bot.is.null,is_bot.eq.false"),
+      supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude").gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
-      supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", todayStart),
-      supabase.from("visitor_sessions").select("session_id, city, region, country").gte("last_seen_at", todayStart).or("is_bot.is.null,is_bot.eq.false"),
+      supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", todayStart),
+      supabase.from("visitor_sessions").select("session_id, city, region, country").gte("last_seen_at", todayStart).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
     ]);
 
     const activeSessions = sessionsRes.data || [];
     const uniqueSessions = new Map<string, SessionData>();
-    activeSessions.forEach(s => {
-      if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
+    activeSessions.forEach((session) => {
+      if (!uniqueSessions.has(session.session_id)) uniqueSessions.set(session.session_id, session);
     });
     const sessionsArr = Array.from(uniqueSessions.values());
     setSessions(sessionsArr);
 
     const todayAll = todaySessionsRes.data || [];
     const uniqueToday = new Map<string, { session_id: string; city?: string | null; region?: string | null; country?: string | null }>();
-    todayAll.forEach(s => { if (!uniqueToday.has(s.session_id)) uniqueToday.set(s.session_id, s); });
-    setTodaySessions(Array.from(uniqueToday.values()));
+    todayAll.forEach((session) => {
+      if (!uniqueToday.has(session.session_id)) uniqueToday.set(session.session_id, session);
+    });
+    const todaySessionsArr = Array.from(uniqueToday.values());
+    setTodaySessions(todaySessionsArr);
 
-    const events = (eventsRes.data || []) as { event_type: string; page_url: string | null; created_at: string }[];
+    const verifiedTodaySessionIds = new Set(todaySessionsArr.map((session) => session.session_id));
+    const events = ((eventsRes.data || []) as { session_id: string; event_type: string; page_url: string | null; created_at: string }[])
+      .filter((event) => verifiedTodaySessionIds.has(event.session_id));
     setTodayEvents(events);
 
     const orders = ordersRes.data || [];
-    const paidOrders = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
-    const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const paidOrders = orders.filter((order) => order.payment_status === "paid" || order.payment_status === "approved");
+    const revenue = paidOrders.reduce((sum, order) => sum + Number(order.total), 0);
 
-    const checkoutViews = events.filter(e => e.event_type === "checkout_view").length;
+    const checkoutViews = events.filter((event) => event.event_type === "checkout_view").length;
     const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
 
-    const checkoutActive = sessionsArr.filter(s => s.page_url?.includes("/checkout")).length;
+    const checkoutActive = sessionsArr.filter((session) => session.page_url?.includes("/checkout")).length;
     setBehavior({
       activeCarts: sessionsArr.length,
       inCheckout: checkoutActive,
@@ -95,13 +101,13 @@ const AdminLiveView = () => {
       hour: `${String(i).padStart(2, "0")}h`,
       value: 0,
     }));
-    paidOrders.forEach(o => {
-      const h = new Date(o.created_at).getHours();
-      hours[h].value += Number(o.total);
+    paidOrders.forEach((order) => {
+      const hour = new Date(order.created_at).getHours();
+      hours[hour].value += Number(order.total);
     });
     setHourlyData(hours);
 
-    const pageViews = events.filter(e => e.event_type === "page_view").length;
+    const pageViews = events.filter((event) => event.event_type === "page_view").length;
     const pixGenerated = orders.length;
     const total = pageViews || 1;
     setFunnelData([

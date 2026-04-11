@@ -91,7 +91,7 @@ const AdminAnalytics = () => {
 
   // Data
   const [sessions, setSessions] = useState<{ session_id: string; created_at: string }[]>([]);
-  const [events, setEvents] = useState<{ event_type: string; page_url: string | null; created_at: string }[]>([]);
+  const [events, setEvents] = useState<{ session_id: string; event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [orders, setOrders] = useState<{ total: number; payment_status: string; created_at: string }[]>([]);
 
   // Expandable sections
@@ -102,13 +102,14 @@ const AdminAnalytics = () => {
     setLoading(true);
     const from = dateRange.from.toISOString();
     const to = dateRange.to.toISOString();
+    const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
 
     const [sessionsData, eventsData, ordersData] = await Promise.all([
       fetchAllRows<{ session_id: string; created_at: string }>(
-        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", from).lte("created_at", to)
+        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", from).lte("created_at", to).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter)
       ),
-      fetchAllRows<{ event_type: string; page_url: string | null; created_at: string }>(
-        () => supabase.from("page_events").select("event_type, page_url, created_at").gte("created_at", from).lte("created_at", to)
+      fetchAllRows<{ session_id: string; event_type: string; page_url: string | null; created_at: string }>(
+        () => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", from).lte("created_at", to)
       ),
       fetchAllRows<{ total: number; payment_status: string; created_at: string }>(
         () => supabase.from("orders").select("total, payment_status, created_at").gte("created_at", from).lte("created_at", to)
@@ -116,11 +117,13 @@ const AdminAnalytics = () => {
     ]);
 
     const uniqueSessions = new Map<string, { session_id: string; created_at: string }>();
-    sessionsData.forEach(s => {
-      if (!uniqueSessions.has(s.session_id)) uniqueSessions.set(s.session_id, s);
+    sessionsData.forEach((session) => {
+      if (!uniqueSessions.has(session.session_id)) uniqueSessions.set(session.session_id, session);
     });
-    setSessions(Array.from(uniqueSessions.values()));
-    setEvents(eventsData);
+    const verifiedSessions = Array.from(uniqueSessions.values());
+    const verifiedSessionIds = new Set(verifiedSessions.map((session) => session.session_id));
+    setSessions(verifiedSessions);
+    setEvents(eventsData.filter((event) => verifiedSessionIds.has(event.session_id)));
     setOrders(ordersData);
     setLoading(false);
   }, [dateRange]);
