@@ -69,9 +69,8 @@ const AdminDashboard = () => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
 
-    const [onlineRes, periodSessionsRes, ordersRes] = await Promise.all([
+    const [onlineRes, ordersRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
-      supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", startISO).lte("created_at", endISO).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", startISO).lte("created_at", endISO),
     ]);
 
@@ -79,8 +78,12 @@ const AdminDashboard = () => {
       (from, to) => supabase.from("page_events").select("session_id, event_type, created_at").gte("created_at", startISO).lte("created_at", endISO).range(from, to)
     );
 
-    const verifiedSessionIds = new Set((periodSessionsRes.data || []).map((session) => session.session_id));
-    const events = allEvents.filter((event) => verifiedSessionIds.has(event.session_id));
+    const liveEventSessionIds = new Set(
+      allEvents
+        .filter((event) => new Date(event.created_at).getTime() >= new Date(fiveMinAgo).getTime())
+        .map((event) => event.session_id)
+    );
+    const events = allEvents;
     const orders = ordersRes.data || [];
     const paid = orders.filter((order) => order.payment_status === "paid" || order.payment_status === "approved");
     const pending = orders.filter((order) => order.payment_status === "pending");
@@ -90,7 +93,7 @@ const AdminDashboard = () => {
     const visits = events.filter((event) => event.event_type === "page_view").length;
 
     setStats({
-      onlineNow: onlineRes.count || 0,
+      onlineNow: Math.max(onlineRes.count || 0, liveEventSessionIds.size),
       visits,
       checkouts,
       pendingOrders: pending.length,
@@ -132,8 +135,14 @@ const AdminDashboard = () => {
     fetchAll();
     const interval = setInterval(async () => {
       const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-      const { count } = await supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or("is_bot.is.null,is_bot.eq.false");
-      setStats(prev => ({ ...prev, onlineNow: count || 0 }));
+      const [{ count }, liveEvents] = await Promise.all([
+        supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or("is_bot.is.null,is_bot.eq.false"),
+        fetchAllRows<{ session_id: string }>(
+          (from, to) => supabase.from("page_events").select("session_id").gte("created_at", fiveMinAgo).range(from, to)
+        ),
+      ]);
+      const liveEventSessionIds = new Set(liveEvents.map((event) => event.session_id));
+      setStats(prev => ({ ...prev, onlineNow: Math.max(count || 0, liveEventSessionIds.size) }));
     }, 15000);
     return () => clearInterval(interval);
   }, [dateRange]);

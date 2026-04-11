@@ -157,12 +157,19 @@ const AdminAnalytics = () => {
     sessionsData.forEach((session) => {
       if (!uniqueSessions.has(session.session_id)) uniqueSessions.set(session.session_id, session);
     });
-    const verifiedSessions = Array.from(uniqueSessions.values());
-    const verifiedSessionIds = new Set(verifiedSessions.map((session) => session.session_id));
+    eventsData.forEach((event) => {
+      const existing = uniqueSessions.get(event.session_id);
+      if (!existing || new Date(event.created_at).getTime() < new Date(existing.created_at).getTime()) {
+        uniqueSessions.set(event.session_id, {
+          session_id: event.session_id,
+          created_at: existing?.created_at ?? event.created_at,
+        });
+      }
+    });
+    const resolvedSessions = Array.from(uniqueSessions.values());
 
-
-    setSessions(verifiedSessions);
-    setEvents(eventsData.filter((event) => verifiedSessionIds.has(event.session_id)));
+    setSessions(resolvedSessions);
+    setEvents(eventsData);
     setOrders(ordersData);
     setSummaryStats({ pageViews: summaryPageViews, checkoutViews: summaryCheckoutViews, visitors: summaryVisitors, paidOrders: summaryPaidOrders, revenue: summaryRevenue, pixGenerated: summaryPixGenerated });
     setLoading(false);
