@@ -160,8 +160,6 @@ const AdminAnalytics = () => {
     const verifiedSessions = Array.from(uniqueSessions.values());
     const verifiedSessionIds = new Set(verifiedSessions.map((session) => session.session_id));
 
-    // Add summary visitors as synthetic count
-    const totalVisitors = verifiedSessions.length + summaryVisitors;
 
     setSessions(verifiedSessions);
     setEvents(eventsData.filter((event) => verifiedSessionIds.has(event.session_id)));
