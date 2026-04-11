@@ -81,10 +81,34 @@ const AdminLiveView = () => {
     const checkoutViews = events.filter((event) => event.event_type === "checkout_view").length;
     const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
 
-    const checkoutActive = sessionsArr.filter((session) => session.page_url?.includes("/checkout")).length;
+    const activeSessionIds = new Set(sessionsArr.map((session) => session.session_id));
+    const latestEventBySession = new Map<string, { page_url: string | null; created_at: string }>();
+
+    events.forEach((event) => {
+      if (!activeSessionIds.has(event.session_id) || !event.page_url) return;
+
+      const current = latestEventBySession.get(event.session_id);
+      if (!current || new Date(event.created_at).getTime() > new Date(current.created_at).getTime()) {
+        latestEventBySession.set(event.session_id, {
+          page_url: event.page_url,
+          created_at: event.created_at,
+        });
+      }
+    });
+
+    const checkoutSessionIds = new Set(
+      sessionsArr
+        .filter((session) => {
+          const latestEvent = latestEventBySession.get(session.session_id);
+          const currentPage = latestEvent?.page_url ?? session.page_url;
+          return currentPage?.includes("/checkout");
+        })
+        .map((session) => session.session_id)
+    );
+
     setBehavior({
-      activeCarts: sessionsArr.length,
-      inCheckout: checkoutActive,
+      activeCarts: Math.max(sessionsArr.length - checkoutSessionIds.size, 0),
+      inCheckout: checkoutSessionIds.size,
       purchased: paidOrders.length,
     });
 
