@@ -268,34 +268,23 @@ async function callHisoUnique(gateway: any, body: any, items: any[], webhookUrl:
   console.log("HiSo response:", JSON.stringify(data));
   if (!res.ok) throw { status: res.status, data };
 
-  // HiSo returns fields with capital letters: Id, Status, Pix, etc.
+  // HiSo wraps response in data.data and uses lowercase pix
+  const inner = data?.data ?? data;
+  const pix = inner?.pix ?? inner?.Pix ?? data?.pix ?? data?.Pix ?? {};
+
+  // pix.qr_code is the EMV string (copy-paste), NOT an image URL
+  const emvCode = pickString(
+    pix?.qr_code, pix?.qrCode, pix?.QrCode,
+    pix?.code, pix?.Code, pix?.EmvCode, pix?.emvCode,
+    pix?.copyPaste, pix?.CopyPaste, pix?.copy_paste,
+  );
+
   return {
-    transactionId: pickString(
-      data?.Id, data?.id, data?.transactionId, data?.transaction_id,
-      data?.data?.Id, data?.data?.id,
-    ),
-    qrCode: pickString(
-      data?.Pix?.QrCode, data?.Pix?.qr_code,
-      data?.pix?.qrCode, data?.pix?.qr_code,
-      data?.pix?.QrCode,
-      data?.QrCodeUrl, data?.qr_code_url,
-    ),
-    copyPaste: pickString(
-      data?.Pix?.CopyPaste, data?.Pix?.Code, data?.Pix?.EmvCode,
-      data?.pix?.copyPaste, data?.pix?.copy_paste, data?.pix?.code, data?.pix?.emvCode,
-      data?.Pix?.QrCode, data?.pix?.qrCode, data?.pix?.qr_code,
-      data?.CopyPaste, data?.copy_paste, data?.emv_code,
-    ),
-    qrCodeBase64: pickString(
-      data?.Pix?.QrCodeBase64, data?.Pix?.qr_code_base64,
-      data?.pix?.qrCodeBase64, data?.pix?.qr_code_base64,
-      data?.QrCodeBase64, data?.qr_code_base64,
-    ),
-    expiresAt: pickString(
-      data?.Pix?.ExpiresAt, data?.Pix?.expires_at,
-      data?.pix?.expiresAt, data?.pix?.expires_at,
-      data?.ExpiresAt, data?.expires_at, data?.expiration_date,
-    ),
+    transactionId: pickString(inner?.id, inner?.Id, data?.id, data?.Id),
+    qrCode: null, // HiSo does not return a QR image URL
+    copyPaste: emvCode,
+    qrCodeBase64: pickString(pix?.qrCodeBase64, pix?.qr_code_base64, pix?.QrCodeBase64),
+    expiresAt: pickString(pix?.expiration_date, pix?.expiresAt, pix?.expires_at, pix?.ExpiresAt),
   };
 }
 
