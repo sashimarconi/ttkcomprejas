@@ -9,6 +9,22 @@ import ClientBehavior from "@/components/admin/live-view/ClientBehavior";
 import SessionsByLocation from "@/components/admin/live-view/SessionsByLocation";
 import PagesVisited from "@/components/admin/live-view/PagesVisited";
 
+async function fetchAllRows<T>(
+  queryFn: (from: number, to: number) => ReturnType<ReturnType<typeof supabase.from>["select"]>,
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let page = 0;
+  while (true) {
+    const { data, error } = await queryFn(page * pageSize, (page + 1) * pageSize - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < pageSize) break;
+    page++;
+  }
+  return all;
+}
+
 interface SessionData {
   session_id: string;
   page_url: string | null;
@@ -46,12 +62,15 @@ const AdminLiveView = () => {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
     const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
-    const [sessionsRes, ordersRes, eventsRes, todaySessionsRes] = await Promise.all([
+    const [sessionsRes, ordersRes, todaySessionsRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id, page_url, last_seen_at, city, region, country, latitude, longitude").gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", todayStart),
-      supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", todayStart),
       supabase.from("visitor_sessions").select("session_id, city, region, country").gte("last_seen_at", todayStart).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
     ]);
+
+    const allEvents = await fetchAllRows<{ session_id: string; event_type: string; page_url: string | null; created_at: string }>(
+      (from, to) => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", todayStart).range(from, to)
+    );
 
     const activeSessions = sessionsRes.data || [];
     const uniqueSessions = new Map<string, SessionData>();
@@ -70,8 +89,7 @@ const AdminLiveView = () => {
     setTodaySessions(todaySessionsArr);
 
     const verifiedTodaySessionIds = new Set(todaySessionsArr.map((session) => session.session_id));
-    const events = ((eventsRes.data || []) as { session_id: string; event_type: string; page_url: string | null; created_at: string }[])
-      .filter((event) => verifiedTodaySessionIds.has(event.session_id));
+    const events = allEvents.filter((event) => verifiedTodaySessionIds.has(event.session_id));
     setTodayEvents(events);
 
     const orders = ordersRes.data || [];
