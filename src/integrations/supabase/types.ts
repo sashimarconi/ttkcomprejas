@@ -158,6 +158,51 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_analytics_summary: {
+        Row: {
+          checkout_views: number
+          created_at: string
+          id: string
+          page_views: number
+          pages_visited: Json
+          paid_orders: number
+          pending_orders: number
+          pix_generated: number
+          revenue: number
+          sessions_by_location: Json
+          summary_date: string
+          unique_visitors: number
+        }
+        Insert: {
+          checkout_views?: number
+          created_at?: string
+          id?: string
+          page_views?: number
+          pages_visited?: Json
+          paid_orders?: number
+          pending_orders?: number
+          pix_generated?: number
+          revenue?: number
+          sessions_by_location?: Json
+          summary_date: string
+          unique_visitors?: number
+        }
+        Update: {
+          checkout_views?: number
+          created_at?: string
+          id?: string
+          page_views?: number
+          pages_visited?: Json
+          paid_orders?: number
+          pending_orders?: number
+          pix_generated?: number
+          revenue?: number
+          sessions_by_location?: Json
+          summary_date?: string
+          unique_visitors?: number
+        }
+        Relationships: []
+      }
       gateway_audit_log: {
         Row: {
           action: string

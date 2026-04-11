@@ -93,6 +93,7 @@ const AdminAnalytics = () => {
   const [sessions, setSessions] = useState<{ session_id: string; created_at: string }[]>([]);
   const [events, setEvents] = useState<{ session_id: string; event_type: string; page_url: string | null; created_at: string }[]>([]);
   const [orders, setOrders] = useState<{ total: number; payment_status: string; created_at: string }[]>([]);
+  const [summaryStats, setSummaryStats] = useState({ pageViews: 0, checkoutViews: 0, visitors: 0, paidOrders: 0, revenue: 0, pixGenerated: 0 });
 
   // Expandable sections
   const [statesExpanded, setStatesExpanded] = useState(false);
@@ -104,17 +105,53 @@ const AdminAnalytics = () => {
     const to = dateRange.to.toISOString();
     const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
 
+    // Determine cutoff: raw data exists for last 2 days, summary for older
+    const retentionCutoff = new Date();
+    retentionCutoff.setDate(retentionCutoff.getDate() - 2);
+    retentionCutoff.setHours(0, 0, 0, 0);
+
+    const needsSummary = dateRange.from < retentionCutoff;
+    const rawFrom = needsSummary ? retentionCutoff.toISOString() : from;
+
+    // Fetch raw data for recent days
     const [sessionsData, eventsData, ordersData] = await Promise.all([
       fetchAllRows<{ session_id: string; created_at: string }>(
-        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", from).lte("created_at", to).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter)
+        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", rawFrom).lte("created_at", to).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter)
       ),
       fetchAllRows<{ session_id: string; event_type: string; page_url: string | null; created_at: string }>(
-        () => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", from).lte("created_at", to)
+        () => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", rawFrom).lte("created_at", to)
       ),
       fetchAllRows<{ total: number; payment_status: string; created_at: string }>(
         () => supabase.from("orders").select("total, payment_status, created_at").gte("created_at", from).lte("created_at", to)
       ),
     ]);
+
+    // If range extends beyond retention, fetch summary data
+    let summaryPageViews = 0;
+    let summaryCheckoutViews = 0;
+    let summaryVisitors = 0;
+    let summaryPaidOrders = 0;
+    let summaryRevenue = 0;
+    let summaryPixGenerated = 0;
+
+    if (needsSummary) {
+      const summaryFrom = dateRange.from.toISOString().split("T")[0];
+      const summaryTo = new Date(retentionCutoff.getTime() - 86400000).toISOString().split("T")[0];
+      const { data: summaries } = await supabase
+        .from("daily_analytics_summary")
+        .select("*")
+        .gte("summary_date", summaryFrom)
+        .lte("summary_date", summaryTo);
+
+      (summaries || []).forEach((s: any) => {
+        summaryPageViews += s.page_views || 0;
+        summaryCheckoutViews += s.checkout_views || 0;
+        summaryVisitors += s.unique_visitors || 0;
+        summaryPaidOrders += s.paid_orders || 0;
+        summaryRevenue += s.revenue || 0;
+        summaryPixGenerated += s.pix_generated || 0;
+      });
+    }
 
     const uniqueSessions = new Map<string, { session_id: string; created_at: string }>();
     sessionsData.forEach((session) => {
@@ -122,9 +159,12 @@ const AdminAnalytics = () => {
     });
     const verifiedSessions = Array.from(uniqueSessions.values());
     const verifiedSessionIds = new Set(verifiedSessions.map((session) => session.session_id));
+
+
     setSessions(verifiedSessions);
     setEvents(eventsData.filter((event) => verifiedSessionIds.has(event.session_id)));
     setOrders(ordersData);
+    setSummaryStats({ pageViews: summaryPageViews, checkoutViews: summaryCheckoutViews, visitors: summaryVisitors, paidOrders: summaryPaidOrders, revenue: summaryRevenue, pixGenerated: summaryPixGenerated });
     setLoading(false);
   }, [dateRange]);
 
@@ -149,12 +189,14 @@ const AdminAnalytics = () => {
   }, [dateRange]);
 
   // Computed stats
-  const paidOrders = orders.filter(o => o.payment_status === "paid");
-  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-  const pageViews = events.filter(e => e.event_type === "page_view").length;
-  const checkoutViews = events.filter(e => e.event_type === "checkout_view").length;
-  const pixGenerated = orders.length; // All orders = PIX generated
-  const conversionRate = checkoutViews > 0 ? (paidOrders.length / checkoutViews) * 100 : 0;
+  const paidOrders = orders.filter(o => o.payment_status === "paid" || o.payment_status === "approved");
+  const totalRevenue = paidOrders.reduce((s, o) => s + Number(o.total), 0) + summaryStats.revenue;
+  const pageViews = events.filter(e => e.event_type === "page_view").length + summaryStats.pageViews;
+  const checkoutViews = events.filter(e => e.event_type === "checkout_view").length + summaryStats.checkoutViews;
+  const pixGenerated = orders.length + summaryStats.pixGenerated;
+  const totalPaidOrders = paidOrders.length + summaryStats.paidOrders;
+  const totalVisitors = sessions.length + summaryStats.visitors;
+  const conversionRate = checkoutViews > 0 ? (totalPaidOrders / checkoutViews) * 100 : 0;
 
   const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
@@ -165,9 +207,9 @@ const AdminAnalytics = () => {
       { label: "Acessos", value: pageViews, pct: 100 },
       { label: "Checkout", value: checkoutViews, pct: Math.round((checkoutViews / total) * 100) },
       { label: "PIX Gerado", value: pixGenerated, pct: Math.round((pixGenerated / total) * 100) },
-      { label: "Pagos", value: paidOrders.length, pct: Math.round((paidOrders.length / total) * 100) },
+      { label: "Pagos", value: totalPaidOrders, pct: Math.round((totalPaidOrders / total) * 100) },
     ];
-  }, [pageViews, checkoutViews, pixGenerated, paidOrders.length]);
+  }, [pageViews, checkoutViews, pixGenerated, totalPaidOrders]);
 
   // Revenue by day/hour
   const revenueChart = useMemo(() => {
@@ -250,10 +292,10 @@ const AdminAnalytics = () => {
   const maxPageCount = pageData[0]?.count || 1;
 
   const kpiCards = [
-    { label: "Visitantes únicos", value: formatCompact(sessions.length), icon: Users },
+    { label: "Visitantes únicos", value: formatCompact(totalVisitors), icon: Users },
     { label: "Visualizações", value: formatCompact(pageViews), icon: Eye },
-    { label: "Pedidos", value: formatCompact(orders.length), icon: ShoppingCart },
-    { label: "Vendas aprovadas", value: formatCompact(paidOrders.length), icon: CreditCard },
+    { label: "Pedidos", value: formatCompact(orders.length + summaryStats.pixGenerated), icon: ShoppingCart },
+    { label: "Vendas aprovadas", value: formatCompact(totalPaidOrders), icon: CreditCard },
     { label: "Receita total", value: formatCurrency(totalRevenue), icon: DollarSign },
     { label: "Conversão", value: `${conversionRate.toFixed(1)}%`, icon: TrendingUp },
   ];
