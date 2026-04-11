@@ -72,12 +72,44 @@ const AdminLiveView = () => {
       (from, to) => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", todayStart).range(from, to)
     );
 
+    const activeCutoffMs = new Date(fiveMinAgo).getTime();
     const activeSessions = sessionsRes.data || [];
+    const recentEvents = allEvents.filter((event) => new Date(event.created_at).getTime() >= activeCutoffMs);
     const uniqueSessions = new Map<string, SessionData>();
+
     activeSessions.forEach((session) => {
       if (!uniqueSessions.has(session.session_id)) uniqueSessions.set(session.session_id, session);
     });
-    const sessionsArr = Array.from(uniqueSessions.values());
+
+    recentEvents.forEach((event) => {
+      const existing = uniqueSessions.get(event.session_id);
+
+      if (!existing) {
+        uniqueSessions.set(event.session_id, {
+          session_id: event.session_id,
+          page_url: event.page_url,
+          last_seen_at: event.created_at,
+          city: null,
+          region: null,
+          country: null,
+          latitude: null,
+          longitude: null,
+        });
+        return;
+      }
+
+      if (new Date(event.created_at).getTime() > new Date(existing.last_seen_at).getTime()) {
+        uniqueSessions.set(event.session_id, {
+          ...existing,
+          page_url: event.page_url ?? existing.page_url,
+          last_seen_at: event.created_at,
+        });
+      }
+    });
+
+    const sessionsArr = Array.from(uniqueSessions.values()).sort(
+      (a, b) => new Date(b.last_seen_at).getTime() - new Date(a.last_seen_at).getTime()
+    );
     setSessions(sessionsArr);
 
     const todayAll = todaySessionsRes.data || [];
@@ -88,8 +120,7 @@ const AdminLiveView = () => {
     const todaySessionsArr = Array.from(uniqueToday.values());
     setTodaySessions(todaySessionsArr);
 
-    const verifiedTodaySessionIds = new Set(todaySessionsArr.map((session) => session.session_id));
-    const events = allEvents.filter((event) => verifiedTodaySessionIds.has(event.session_id));
+    const events = allEvents;
     setTodayEvents(events);
 
     const orders = ordersRes.data || [];
