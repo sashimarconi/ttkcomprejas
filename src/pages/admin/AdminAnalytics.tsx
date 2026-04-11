@@ -209,9 +209,9 @@ const AdminAnalytics = () => {
       { label: "Acessos", value: pageViews, pct: 100 },
       { label: "Checkout", value: checkoutViews, pct: Math.round((checkoutViews / total) * 100) },
       { label: "PIX Gerado", value: pixGenerated, pct: Math.round((pixGenerated / total) * 100) },
-      { label: "Pagos", value: paidOrders.length, pct: Math.round((paidOrders.length / total) * 100) },
+      { label: "Pagos", value: totalPaidOrders, pct: Math.round((totalPaidOrders / total) * 100) },
     ];
-  }, [pageViews, checkoutViews, pixGenerated, paidOrders.length]);
+  }, [pageViews, checkoutViews, pixGenerated, totalPaidOrders]);
 
   // Revenue by day/hour
   const revenueChart = useMemo(() => {
