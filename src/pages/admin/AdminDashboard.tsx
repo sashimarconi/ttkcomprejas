@@ -53,7 +53,7 @@ const AdminDashboard = () => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
     const [onlineRes, eventsRes, ordersRes] = await Promise.all([
-      supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo),
+      supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).or("is_bot.is.null,is_bot.eq.false"),
       supabase.from("page_events").select("event_type, created_at").gte("created_at", startISO).lte("created_at", endISO),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", startISO).lte("created_at", endISO),
     ]);
