@@ -11,6 +11,22 @@ import { format, subDays, startOfDay, endOfDay, eachHourOfInterval, startOfHour,
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 
+async function fetchAllRows<T>(
+  queryFn: (from: number, to: number) => ReturnType<ReturnType<typeof supabase.from>["select"]>,
+  pageSize = 1000
+): Promise<T[]> {
+  const all: T[] = [];
+  let page = 0;
+  while (true) {
+    const { data, error } = await queryFn(page * pageSize, (page + 1) * pageSize - 1);
+    if (error || !data || data.length === 0) break;
+    all.push(...(data as T[]));
+    if (data.length < pageSize) break;
+    page++;
+  }
+  return all;
+}
+
 interface Stats {
   onlineNow: number;
   visits: number;
@@ -53,15 +69,18 @@ const AdminDashboard = () => {
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
 
-    const [onlineRes, periodSessionsRes, eventsRes, ordersRes] = await Promise.all([
+    const [onlineRes, periodSessionsRes, ordersRes] = await Promise.all([
       supabase.from("visitor_sessions").select("session_id", { count: "exact", head: true }).gte("last_seen_at", fiveMinAgo).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
       supabase.from("visitor_sessions").select("session_id").gte("last_seen_at", startISO).lte("created_at", endISO).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter),
-      supabase.from("page_events").select("session_id, event_type, created_at").gte("created_at", startISO).lte("created_at", endISO),
       supabase.from("orders").select("id, total, payment_status, created_at").gte("created_at", startISO).lte("created_at", endISO),
     ]);
 
+    const allEvents = await fetchAllRows<{ session_id: string; event_type: string; created_at: string }>(
+      (from, to) => supabase.from("page_events").select("session_id, event_type, created_at").gte("created_at", startISO).lte("created_at", endISO).range(from, to)
+    );
+
     const verifiedSessionIds = new Set((periodSessionsRes.data || []).map((session) => session.session_id));
-    const events = (eventsRes.data || []).filter((event) => verifiedSessionIds.has(event.session_id));
+    const events = allEvents.filter((event) => verifiedSessionIds.has(event.session_id));
     const orders = ordersRes.data || [];
     const paid = orders.filter((order) => order.payment_status === "paid" || order.payment_status === "approved");
     const pending = orders.filter((order) => order.payment_status === "pending");
