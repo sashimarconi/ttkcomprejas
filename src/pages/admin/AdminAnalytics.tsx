@@ -104,17 +104,53 @@ const AdminAnalytics = () => {
     const to = dateRange.to.toISOString();
     const verifiedFilter = "is_bot.is.null,is_bot.eq.false";
 
+    // Determine cutoff: raw data exists for last 2 days, summary for older
+    const retentionCutoff = new Date();
+    retentionCutoff.setDate(retentionCutoff.getDate() - 2);
+    retentionCutoff.setHours(0, 0, 0, 0);
+
+    const needsSummary = dateRange.from < retentionCutoff;
+    const rawFrom = needsSummary ? retentionCutoff.toISOString() : from;
+
+    // Fetch raw data for recent days
     const [sessionsData, eventsData, ordersData] = await Promise.all([
       fetchAllRows<{ session_id: string; created_at: string }>(
-        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", from).lte("created_at", to).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter)
+        () => supabase.from("visitor_sessions").select("session_id, created_at").gte("last_seen_at", rawFrom).lte("created_at", to).eq("has_interaction", true).not("user_agent", "is", null).or(verifiedFilter)
       ),
       fetchAllRows<{ session_id: string; event_type: string; page_url: string | null; created_at: string }>(
-        () => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", from).lte("created_at", to)
+        () => supabase.from("page_events").select("session_id, event_type, page_url, created_at").gte("created_at", rawFrom).lte("created_at", to)
       ),
       fetchAllRows<{ total: number; payment_status: string; created_at: string }>(
         () => supabase.from("orders").select("total, payment_status, created_at").gte("created_at", from).lte("created_at", to)
       ),
     ]);
+
+    // If range extends beyond retention, fetch summary data
+    let summaryPageViews = 0;
+    let summaryCheckoutViews = 0;
+    let summaryVisitors = 0;
+    let summaryPaidOrders = 0;
+    let summaryRevenue = 0;
+    let summaryPixGenerated = 0;
+
+    if (needsSummary) {
+      const summaryFrom = dateRange.from.toISOString().split("T")[0];
+      const summaryTo = new Date(retentionCutoff.getTime() - 86400000).toISOString().split("T")[0];
+      const { data: summaries } = await supabase
+        .from("daily_analytics_summary")
+        .select("*")
+        .gte("summary_date", summaryFrom)
+        .lte("summary_date", summaryTo);
+
+      (summaries || []).forEach((s: any) => {
+        summaryPageViews += s.page_views || 0;
+        summaryCheckoutViews += s.checkout_views || 0;
+        summaryVisitors += s.unique_visitors || 0;
+        summaryPaidOrders += s.paid_orders || 0;
+        summaryRevenue += s.revenue || 0;
+        summaryPixGenerated += s.pix_generated || 0;
+      });
+    }
 
     const uniqueSessions = new Map<string, { session_id: string; created_at: string }>();
     sessionsData.forEach((session) => {
@@ -122,9 +158,14 @@ const AdminAnalytics = () => {
     });
     const verifiedSessions = Array.from(uniqueSessions.values());
     const verifiedSessionIds = new Set(verifiedSessions.map((session) => session.session_id));
+
+    // Add summary visitors as synthetic count
+    const totalVisitors = verifiedSessions.length + summaryVisitors;
+
     setSessions(verifiedSessions);
     setEvents(eventsData.filter((event) => verifiedSessionIds.has(event.session_id)));
     setOrders(ordersData);
+    setSummaryStats({ pageViews: summaryPageViews, checkoutViews: summaryCheckoutViews, visitors: summaryVisitors, paidOrders: summaryPaidOrders, revenue: summaryRevenue, pixGenerated: summaryPixGenerated });
     setLoading(false);
   }, [dateRange]);
 
