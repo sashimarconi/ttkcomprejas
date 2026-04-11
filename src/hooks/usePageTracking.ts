@@ -45,6 +45,12 @@ async function fetchGeoOnce(): Promise<GeoData | null> {
   return geoPromise;
 }
 
+function isDuplicateSessionWriteError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() || "";
+  return error.code === "23505" || message.includes("duplicate key");
+}
+
 async function upsertVerifiedSession(pageUrl: string) {
   const geo = await fetchGeoOnce();
   const sessionId = getVisitorSessionId();
@@ -67,7 +73,22 @@ async function upsertVerifiedSession(pageUrl: string) {
     sessionData.longitude = geo.longitude;
   }
 
-  await supabase.from("visitor_sessions").upsert(sessionData, { onConflict: "session_id" });
+  const { error: insertError } = await supabase.from("visitor_sessions").insert(sessionData);
+  if (!insertError) return sessionId;
+
+  if (isDuplicateSessionWriteError(insertError)) {
+    const { session_id: _sessionId, ...sessionUpdateData } = sessionData;
+    const { error: updateError } = await supabase
+      .from("visitor_sessions")
+      .update(sessionUpdateData)
+      .eq("session_id", sessionId);
+
+    if (!updateError) return sessionId;
+    console.error("Failed to update visitor session", updateError);
+    return sessionId;
+  }
+
+  console.error("Failed to insert visitor session", insertError);
   return sessionId;
 }
 
