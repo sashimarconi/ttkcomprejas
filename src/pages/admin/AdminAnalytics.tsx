@@ -294,10 +294,10 @@ const AdminAnalytics = () => {
   const maxPageCount = pageData[0]?.count || 1;
 
   const kpiCards = [
-    { label: "Visitantes únicos", value: formatCompact(sessions.length), icon: Users },
+    { label: "Visitantes únicos", value: formatCompact(totalVisitors), icon: Users },
     { label: "Visualizações", value: formatCompact(pageViews), icon: Eye },
-    { label: "Pedidos", value: formatCompact(orders.length), icon: ShoppingCart },
-    { label: "Vendas aprovadas", value: formatCompact(paidOrders.length), icon: CreditCard },
+    { label: "Pedidos", value: formatCompact(orders.length + summaryStats.pixGenerated), icon: ShoppingCart },
+    { label: "Vendas aprovadas", value: formatCompact(totalPaidOrders), icon: CreditCard },
     { label: "Receita total", value: formatCurrency(totalRevenue), icon: DollarSign },
     { label: "Conversão", value: `${conversionRate.toFixed(1)}%`, icon: TrendingUp },
   ];
