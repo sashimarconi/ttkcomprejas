@@ -344,6 +344,36 @@ const CheckoutPage = () => {
     thankYouUrlRef.current = product?.thank_you_url;
   }, [product?.thank_you_url]);
 
+  // Ref to prevent double-redirect
+  const redirectingRef = React.useRef(false);
+
+  const handlePaymentConfirmed = React.useCallback(() => {
+    if (redirectingRef.current) return;
+    setPaymentConfirmed(true);
+
+    // Fire TikTok CompletePayment
+    trackTikTokPurchase(total, "BRL", {
+      orderId: pixData?.orderId,
+      contentId: product?.id,
+      contentName: selectedVariant ? `${product?.title} - ${selectedVariant}` : product?.title,
+      quantity,
+      email: customerEmail,
+      phone: customerPhone,
+    }, true);
+
+    // Redirect immediately to thank you page if configured
+    const thankYouUrl = thankYouUrlRef.current;
+    if (thankYouUrl) {
+      redirectingRef.current = true;
+      console.log("Redirecting to thank you page:", thankYouUrl);
+      // Small delay so user sees "Pagamento confirmado" flash
+      setTimeout(() => {
+        window.location.href = thankYouUrl;
+      }, 1500);
+    }
+  }, [total, pixData?.orderId, product?.id, product?.title, selectedVariant, quantity, customerEmail, customerPhone]);
+
+  // Poll every 3s + realtime subscription for instant detection
   useEffect(() => {
     if (!pixData?.orderId || paymentConfirmed) return;
 
@@ -359,37 +389,39 @@ const CheckoutPage = () => {
       if (cancelled || error || !data) return;
 
       if (data.payment_status === "paid") {
-        setPaymentConfirmed(true);
-
-        // Fire TikTok CompletePayment for pixels with fire_on_paid_only=true
-        trackTikTokPurchase(total, "BRL", {
-          orderId: pixData.orderId,
-          contentId: product?.id,
-          contentName: selectedVariant ? `${product?.title} - ${selectedVariant}` : product?.title,
-          quantity,
-          email: customerEmail,
-          phone: customerPhone,
-        }, true);
-
-        // Redirect to thank you page if configured
-        const thankYouUrl = thankYouUrlRef.current;
-        if (thankYouUrl) {
-          console.log("Redirecting to thank you page:", thankYouUrl);
-          setTimeout(() => {
-            window.location.href = thankYouUrl;
-          }, 2500);
-        }
+        handlePaymentConfirmed();
       }
     };
 
+    // Poll every 3 seconds
     checkPaymentStatus();
-    const interval = window.setInterval(checkPaymentStatus, 5000);
+    const interval = window.setInterval(checkPaymentStatus, 3000);
+
+    // Also subscribe to realtime updates for instant detection
+    const channel = supabase
+      .channel(`order-payment-${pixData.orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${pixData.orderId}`,
+        },
+        (payload: any) => {
+          if (payload.new?.payment_status === "paid") {
+            handlePaymentConfirmed();
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
       cancelled = true;
       window.clearInterval(interval);
+      supabase.removeChannel(channel);
     };
-  }, [paymentConfirmed, pixData?.orderId]);
+  }, [paymentConfirmed, pixData?.orderId, handlePaymentConfirmed]);
 
   const toggleBump = (id: string) => {
     setSelectedBumps((prev) =>
