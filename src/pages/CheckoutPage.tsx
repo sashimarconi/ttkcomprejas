@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import QRCode from "qrcode";
 import { useTikTokPixel, trackTikTokPurchase } from "@/hooks/useTikTokPixel";
 import { usePageTracking, useVisitorHeartbeat, trackEvent } from "@/hooks/usePageTracking";
@@ -338,6 +338,12 @@ const CheckoutPage = () => {
   const discount = originalSubtotal - productSubtotal;
   const total = productSubtotal + shippingCost + bumpsTotal;
 
+  // Store thank_you_url in a ref so it's always fresh in the polling closure
+  const thankYouUrlRef = React.useRef(product?.thank_you_url);
+  useEffect(() => {
+    thankYouUrlRef.current = product?.thank_you_url;
+  }, [product?.thank_you_url]);
+
   useEffect(() => {
     if (!pixData?.orderId || paymentConfirmed) return;
 
@@ -366,8 +372,9 @@ const CheckoutPage = () => {
         }, true);
 
         // Redirect to thank you page if configured
-        const thankYouUrl = product?.thank_you_url;
+        const thankYouUrl = thankYouUrlRef.current;
         if (thankYouUrl) {
+          console.log("Redirecting to thank you page:", thankYouUrl);
           setTimeout(() => {
             window.location.href = thankYouUrl;
           }, 2500);
